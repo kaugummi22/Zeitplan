@@ -1163,6 +1163,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ms-up-btn { border: 0; background: none; font: inherit; font-size: 1.3rem; font-weight: 700; color: color-mix(in srgb, var(--accent) 80%, var(--ink)); cursor: pointer; padding: 0 6px; border-radius: 6px; }
 .ms-up-btn:hover { background: var(--accent-soft); }
 .sub-car-r { margin-left: 4px; width: auto; padding: 0 3px; }
+.lesson.ms-moved .lh { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
+.ms-from { display: block; font-size: 0.72rem; color: color-mix(in srgb, var(--accent) 70%, var(--ink)); }
 .ms-mark { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .ms-of { color: color-mix(in srgb, var(--accent) 70%, var(--ink)) !important; }
 .lesson.m-drop-before { box-shadow: inset 0 3px 0 var(--accent); }
@@ -2269,7 +2271,16 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const want = (k) => !sel || sel.keys.has(String(k)), head = !sel || sel.head;
     const rel = (r.related || []).filter((id) => U.reihen[id]).map((id) => esc(U.reihen[id].title) + ((r.relNotes || {})[id] ? " (" + esc(r.relNotes[id]) + ")" : ""));
     let h = head ? reihePrintHead(r) + (rel.length || r.relnote ? "<h3>Verbindungen</h3><div>" + rel.join(", ") + (r.relnote ? (rel.length ? " – " : "") + esc(r.relnote) : "") + "</div>" : "") : "<h1>" + esc(r.title || "Reihe") + "</h1>";
-    for (const [i, s] of blocksOf(r)) if (want(i)) h += lessonPrintHtml(r, i, s);
+    if (r.master && shownChildren(r).length) {
+      const kid = (rid) => !sel || !sel.kids || sel.kids.has(rid);
+      for (const it of masterSeq(r)) {
+        if (it.t === "own") { if (want(it.i)) h += lessonPrintHtml(r, it.i, it.s); continue; }
+        if (!kid(it.c.rid)) continue;
+        const ch = U.reihen[it.c.rid];
+        if (it.t === "chead") { h += '<h2 class="ms-print">Unterreihe ' + it.L + ": " + esc(ch.title || "") + "</h2>"; continue; }
+        h += lessonPrintHtml(ch, it.i, it.s).replace("<section><h2>", "<section><h2>" + it.L + "·");
+      }
+    } else for (const [i, s] of blocksOf(r)) if (want(i)) h += lessonPrintHtml(r, i, s);
     (r.lnItems || []).forEach((it, k) => { if (want("ln" + k)) h += lessonPrintHtml(r, "ln" + k, 1); });
     if (head && filled(r.zusatz)) h += "<h2>Zusätzliches</h2><div>" + sanitize(r.zusatz) + "</div>";
     printDoc((r.title || "Reihe") + " – Reihenplanung", h);
@@ -2281,6 +2292,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       '<label class="pp-row pp-head"><input type="checkbox" id="pp-head" checked> Übersicht der Reihe (Titel, Leitfrage, Verbindungen, Zusätzliches)</label>' +
       '<div class="pp-tools"><span class="lbl">Lektionen</span><button type="button" class="btn ghost" id="pp-all">Alle</button><button type="button" class="btn ghost" id="pp-none">Keine</button></div>' +
       '<div class="pp-list">' + items.map(([k, l]) => '<label class="pp-row"><input type="checkbox" data-pp="' + esc(k) + '" checked> ' + esc(l) + "</label>").join("") + "</div>" +
+      (shownChildren(r).length ? '<div class="pp-tools"><span class="lbl">Unterreihen</span></div><div class="pp-list">' + chOrdered(r).map((c, n) => '<label class="pp-row"><input type="checkbox" data-ppc="' + esc(c.rid) + '" checked> mit Unterreihe ' + CH_LET(n) + " · " + esc((U.reihen[c.rid] || {}).title || "") + " (" + totalL(U.reihen[c.rid]) + " L)</label>").join("") + "</div>" : "") +
       '<div class="actions"><span class="pp-n help" id="pp-n"></span><div class="right"><button class="btn" id="cnl" type="button">Abbrechen</button><button class="btn primary" id="pp-go" type="button">Drucken</button></div></div>',
       (root) => {
         const boxes = [...root.querySelectorAll("[data-pp]")], go = root.querySelector("#pp-go"), head = root.querySelector("#pp-head");
@@ -2289,7 +2301,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         root.querySelector("#pp-all").onclick = () => { boxes.forEach((b) => (b.checked = true)); upd(); };
         root.querySelector("#pp-none").onclick = () => { boxes.forEach((b) => (b.checked = false)); upd(); };
         root.querySelector("#cnl").onclick = closeModal;
-        go.onclick = () => { const sel = { head: head.checked, keys: new Set(boxes.filter((b) => b.checked).map((b) => b.dataset.pp)) }; closeModal(); printReihe(r, sel); };
+        go.onclick = () => { const sel = { head: head.checked, keys: new Set(boxes.filter((b) => b.checked).map((b) => b.dataset.pp)), kids: new Set([...root.querySelectorAll("[data-ppc]")].filter((b) => b.checked).map((b) => b.dataset.ppc)) }; closeModal(); printReihe(r, sel); };
         upd();
       });
   }
@@ -2853,31 +2865,25 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     out.lessons = (src.lessons || []).slice(0, n0); while (out.lessons.length < n0) out.lessons.push("");
     out.meta = { ...(src.meta || {}) }; out.phases = { ...(src.phases || {}) }; out.spans = { ...(src.spans || {}) }; out.links = { ...(src.links || {}) };
     for (let i = 0; i < n0; i++) if (typeof out.phases[i] !== "string") out.phases[i] = phaseOf(src, i);
-    // neue Reihenfolge: eigene Lektionsblöcke, dazwischen die Unterreihen an ihrem Platz
-    const bl = blocksOf(src), ord = chOrdered(src), segs = [];
-    ord.filter((c) => chPos(src, c, bl) === -1).forEach((c) => segs.push(["c", c]));
-    bl.forEach(([a, sp]) => { segs.push(["o", a, sp]); ord.filter((c) => chPos(src, c, bl) === a).forEach((c) => segs.push(["c", c])); });
-    ord.filter((c) => chPos(src, c, bl) === 1e9).forEach((c) => segs.push(["c", c]));
+    const bl = blocksOf(src), seq = masterSeq(src);
     const L2 = [], M2 = {}, P2 = {}, S2 = {}, K2 = {}, ownMap = {};
     let off = 0;
     out.mainFiles = (src.mainFiles || []).slice();
-    for (const sg of segs) {
-      if (sg[0] === "o") {
-        const [, a, sp] = sg; ownMap[a] = off;
+    const seen = new Set();
+    for (const it of seq) {
+      if (it.t === "own") {
+        const a = it.i, sp = it.s; ownMap[a] = off;
         for (let j = 0; j < sp; j++) { const i = a + j; L2[off + j] = out.lessons[i] || ""; if (out.meta[i]) M2[off + j] = out.meta[i]; P2[off + j] = out.phases[i]; if (out.links[i] && off + j > 0) K2[off + j] = out.links[i]; }
-        if (out.spans[a]) S2[off] = out.spans[a];
+        if (sp > 1) S2[off] = sp;
         off += sp; continue;
       }
-      const c = sg[1], ch = U.reihen[c.rid], cn = lessonCount(ch);
-      for (let i = 0; i < cn; i++) {
-        L2[off + i] = (ch.lessons || [])[i] || "";
-        if ((ch.meta || {})[i]) M2[off + i] = clone(ch.meta[i]);
-        P2[off + i] = (ch.title ? ch.title + ": " : "") + phaseOf(ch, i);
-        if ((ch.spans || {})[i]) S2[off + i] = ch.spans[i];
-        if ((ch.links || {})[i] && i > 0) K2[off + i] = ch.links[i];
-      }
-      (ch.mainFiles || []).forEach((f) => { if (!out.mainFiles.some((x) => x.id === f.id)) out.mainFiles.push(clone(f)); });
-      off += cn;
+      const ch = U.reihen[it.c.rid];
+      if (it.t === "chead") { if (!seen.has(it.c.rid)) { seen.add(it.c.rid); (ch.mainFiles || []).forEach((f) => { if (!out.mainFiles.some((x) => x.id === f.id)) out.mainFiles.push(clone(f)); }); } continue; }
+      const i = it.i, sp = it.s;
+      for (let j = 0; j < sp; j++) { L2[off + j] = j ? "" : (ch.lessons || [])[i] || ""; P2[off + j] = (ch.title ? ch.title + ": " : "") + phaseOf(ch, i + j); }
+      if ((ch.meta || {})[i]) M2[off] = clone(ch.meta[i]);
+      if (sp > 1) S2[off] = sp;
+      off += sp;
     }
     out.lessons = L2; out.meta = M2; out.phases = P2; out.spans = S2; out.links = K2;
     out.lnItems = (out.lnItems || []).map((m) => (m && m.mat && m.after != null && m.after !== -1 ? { ...m, after: ownMap[(bl.find(([a, sp]) => m.after >= a && m.after < a + sp) || [])[0]] } : m));
@@ -3233,27 +3239,48 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Position einer Unterreihe in der Masterreihe: nach Lektion (Blockanfang), -1 = vor L1, sonst am Ende
   function chPos(r, c, bl) { bl = bl || blocksOf(r); if (c.after == null) return 1e9; if (c.after === -1) return -1; const b = bl.find(([a, s]) => c.after >= a && c.after < a + s); return b ? b[0] : 1e9; }
   const chOrdered = (r) => { const bl = blocksOf(r); return shownChildren(r).map((c, j) => [c, j]).sort((x, y) => chPos(r, x[0], bl) - chPos(r, y[0], bl) || x[1] - y[1]).map((x) => x[0]); };
-  function childSecHtml(r, only) {
-    const ord = chOrdered(r);
-    return ord.map((c, n) => [c, n]).filter(([c]) => !only || only(c)).map(([c, n]) => {
-      const ch = U.reihen[c.rid], L = CH_LET(n), cbl = blocksOf(ch), mf = ch.mainFiles || [];
-      return '<div class="lesson ms-head" data-crid="' + esc(c.rid) + '"><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cdrag="' + esc(c.rid) + '" title="Ziehen, um die Unterreihe zwischen die Lektionen zu verschieben"') + ">" + L + '</b></div><span class="ms-tag">Unterreihe</span></div>' +
+  // Reihenfolge der Masterreihe: an jeder Position (-1 = vor L1, Blockanfang, 1e9 = Ende) die Unterreihen-Abschnitte und einzeln verschobene Lektionen
+  function masterAt(r) {
+    const bl = blocksOf(r), ord = chOrdered(r), at = {};
+    const P = (v) => (v == null ? 1e9 : v === -1 ? -1 : v >= 1e9 ? 1e9 : ((bl.find(([a, s]) => v >= a && v < a + s) || [1e9])[0]));
+    const moved = (c, i) => (c.place && c.place[i] != null ? P(c.place[i]) : null);
+    const push = (p, it) => (at[p] = at[p] || []).push(it);
+    ord.forEach((c, n) => {
+      const L = CH_LET(n), ch = U.reihen[c.rid], p = chPos(r, c, bl), cbl = blocksOf(ch);
+      push(p, { t: "chead", c, L, empty: !cbl.length });
+      cbl.forEach(([i, sp]) => { if (moved(c, i) == null) push(p, { t: "cl", c, L, i, s: sp }); });
+    });
+    ord.forEach((c, n) => blocksOf(U.reihen[c.rid]).forEach(([i, sp]) => { const q = moved(c, i); if (q != null) push(q, { t: "cl", c, L: CH_LET(n), i, s: sp, moved: true }); }));
+    return at;
+  }
+  function msItemHtml(r, it) {
+    const c = it.c, ch = U.reihen[c.rid];
+    if (it.t === "chead") {
+      const mf = ch.mainFiles || [];
+      return '<div class="lesson ms-head" data-crid="' + esc(c.rid) + '"><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cdrag="' + esc(c.rid) + '" title="Ziehen, um die ganze Unterreihe zu verschieben"') + ">" + it.L + '</b></div><span class="ms-tag">Unterreihe</span></div>' +
         '<div class="ms-title"><button type="button" class="linkbtn" data-goto="' + esc(c.rid) + '" title="Unterreihe öffnen und bearbeiten">↳ ' + esc(ch.title || "Ohne Titel") + "</button><small>" + totalL(ch) + " L</small></div>" +
         '<div class="ldocs">' + mf.map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '" title="Hauptdokument der Unterreihe ansehen"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>" +
-        (cbl.length ? cbl.map(([i, sp]) => { const m = (ch.meta || {})[i] || {};
-          return '<div class="lesson ms-l" data-crid="' + esc(c.rid) + '"><div class="lh"><div class="lh-top"><b>' + L + "·" + lessonLabel(i, sp) + '</b></div><div class="ph ro">' + esc(phaseOf(ch, i)) + "</div></div>" +
-            '<div class="cell ro"><div class="rich ro-txt">' + sanitize(ch.lessons[i] || "") + "</div></div>" +
-            '<div class="ldocs">' + (m.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>"; }).join("")
-          : '<div class="lesson ms-l" data-crid="' + esc(c.rid) + '"><div class="lh"></div><div class="cell ro"><span class="help">Noch keine Lektionen in dieser Unterreihe.</span></div><div class="ldocs"></div></div>');
-    }).join("");
+        (it.empty ? '<div class="lesson ms-l" data-crid="' + esc(c.rid) + '"><div class="lh"></div><div class="cell ro"><span class="help">Noch keine Lektionen in dieser Unterreihe.</span></div><div class="ldocs"></div></div>' : "");
+    }
+    const i = it.i, m = (ch.meta || {})[i] || {};
+    return '<div class="lesson ms-l' + (it.moved ? " ms-moved" : "") + '" data-crid="' + esc(c.rid) + '" data-clid="' + i + '"' + (it.moved ? ' data-cmoved="1"' : "") + '><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cldrag="' + esc(c.rid) + "|" + i + '" title="Ziehen, um diese Lektion an eine andere Stelle der Masterreihe zu verschieben"') + ">" + it.L + "·" + lessonLabel(i, it.s) + "</b></div>" +
+      '<div class="ph ro">' + esc(phaseOf(ch, i)) + (it.moved ? ' <span class="ms-from">aus ' + esc(ch.title || "Unterreihe") + "</span>" : "") + "</div></div>" +
+      '<div class="cell ro"><div class="rich ro-txt">' + sanitize(ch.lessons[i] || "") + "</div></div>" +
+      '<div class="ldocs">' + (m.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>";
+  }
+  // Abfolge für Klassenkopie und Drucken
+  function masterSeq(r) {
+    const at = masterAt(r), out = [], add = (p) => (at[p] || []).forEach((x) => out.push(x));
+    add(-1); blocksOf(r).forEach(([a, sp]) => { out.push({ t: "own", i: a, s: sp }); add(a); }); add(1e9);
+    return out;
   }
   function lessonsHtml(r) {
     const bl = blocksOf(r);
-    if (!bl.length && shownChildren(r).length) return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + childSecHtml(r) + lnRowHtml(r);
+    if (!bl.length && shownChildren(r).length) { const at0 = masterAt(r); return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + [-1, 1e9].map((p) => (at0[p] || []).map((x) => msItemHtml(r, x)).join("")).join("") + lnRowHtml(r); }
     if (!bl.length) return ((r.lnItems || []).some((m) => m && m.mat) ? "" : '<div class="empty">Keine Lektionen: Diese Reihe ist eine <b>Sammlung</b>. Legen Sie unten Materialsammlungen M1, M2 … an – oder tragen Sie oben die Anzahl Lektionen ein.</div>') + lnRowHtml(r);
     const links = r.links || {};
     const dates = r.klasse && typeof classSchedule === "function" ? lessonDates(r.klasse) : null;
-    const mp = matPlace(r, bl), chAt = (t) => childSecHtml(r, (c) => chPos(r, c, bl) === t), matAt = (t) => chAt(t) + (mp.at[t] || []).map((k) => matRowHtml(r, r.lnItems[k], k)).join("");
+    const mAt = r.master ? masterAt(r) : {}, mp = matPlace(r, bl), chAt = (t) => (mAt[t] || []).map((x) => msItemHtml(r, x)).join(""), matAt = (t) => chAt(t) + (mp.at[t] || []).map((k) => matRowHtml(r, r.lnItems[k], k)).join("");
     return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + matAt(-1) + bl.map(([i, s], k) => {
       const m = (r.meta || {})[i] || {};
       const more = !!(m.details || (m.files && m.files.length) || hasPlan(m.plan));
@@ -3268,7 +3295,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<div class="ph" contenteditable="true" role="textbox" data-phase="' + i + '" data-ph="Phase …" aria-label="Phase ' + lessonLabel(i, s) + '">' + esc(phaseOf(r, i)) + "</div></div>" +
         cellHtml2('data-rf="lessons.' + i + '" id="l-' + i + '" aria-label="' + lessonLabel(i, s) + '"', r.lessons[i], { color: m.color, more, cellAttrs: ' data-lesson="' + i + '"' }) +
         '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : i) + "</div></div>" + matAt(i);
-    }).join("") + childSecHtml(r, (c) => chPos(r, c, bl) === 1e9) + lnRowHtml(r, mp.placed) + hiddenNote(r);
+    }).join("") + chAt(1e9) + lnRowHtml(r, mp.placed) + hiddenNote(r);
   }
   function matRowHtml(r, m, k) {
     const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
@@ -4007,12 +4034,33 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function dropAfter(r, t, before) {
     const bl = blocksOf(r);
     if (t.classList.contains("ln-add")) return undefined;
+    if (t.dataset.cmoved) { const c = (r.children || []).find((x) => x.rid === t.dataset.crid), v = c && c.place ? c.place[t.dataset.clid] : null; return v == null || v >= 1e9 ? undefined : v; }
     if (t.dataset.crid) { const c = (r.children || []).find((x) => x.rid === t.dataset.crid); return c && c.after != null ? (chPos(r, c, bl) === 1e9 ? undefined : c.after) : undefined; }
     const li = t.dataset.li;
     if (/^ln\d+$/.test(li || "")) { const o = r.lnItems[+li.slice(2)]; return o && o.mat ? o.after : undefined; }
     const bi = bl.findIndex(([a]) => a === +li); if (bi < 0) return null;
     return before ? (bi > 0 ? bl[bi - 1][0] : -1) : bl[bi][0];
   }
+  (function childLessonDrag() {
+    let d = null;
+    const clear = () => uEl.querySelectorAll(".m-drop-before,.m-drop-after").forEach((el) => el.classList.remove("m-drop-before", "m-drop-after"));
+    uEl.addEventListener("dragstart", (e) => { const h = e.target.closest && e.target.closest("[data-cldrag]"); if (!h) return; d = h.dataset.cldrag; try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", h.textContent); } catch (err) {} });
+    uEl.addEventListener("dragover", (e) => {
+      if (d == null) return; const row = e.target.closest && (e.target.closest(".lesson") || e.target.closest(".ln-add")); if (!row) return;
+      e.preventDefault(); clear(); const rc = row.getBoundingClientRect();
+      row.classList.add(row.classList.contains("ln-add") || e.clientY >= rc.top + rc.height / 2 ? "m-drop-after" : "m-drop-before");
+    });
+    uEl.addEventListener("drop", (e) => {
+      if (d == null) return; const tb = uEl.querySelector(".m-drop-before"), ta = uEl.querySelector(".m-drop-after"); clear();
+      const [rid, li] = d.split("|"); d = null; const r = U.reihen[U.sel]; if (!r || r.klasse) return; const t = tb || ta; if (!t) return; e.preventDefault();
+      let v;
+      if (t.dataset.crid === rid && !t.dataset.cmoved) v = null; // zurück in den eigenen Abschnitt
+      else { const a = dropAfter(r, t, !!tb); if (a === null) return; v = a === undefined ? 1e9 : a; }
+      r.children = (r.children || []).map((c) => { if (c.rid !== rid) return c; const pl = { ...(c.place || {}) }; if (v == null) delete pl[li]; else pl[li] = v; const n = { ...c, place: pl }; if (!Object.keys(pl).length) delete n.place; return n; });
+      saveReihe(U.sel, 0); renderU();
+    });
+    uEl.addEventListener("dragend", () => { clear(); d = null; });
+  })();
   (function childDrag() {
     let d = null;
     const clear = () => uEl.querySelectorAll(".m-drop-before,.m-drop-after").forEach((el) => el.classList.remove("m-drop-before", "m-drop-after"));
