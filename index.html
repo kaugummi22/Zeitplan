@@ -1165,6 +1165,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .sub-car-r { margin-left: 4px; width: auto; padding: 0 3px; }
 .lesson.ms-moved .lh { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
 .ms-from { display: block; font-size: 0.72rem; color: color-mix(in srgb, var(--accent) 70%, var(--ink)); }
+.ms-ovtag { display: inline-flex; align-items: center; gap: 2px; margin-top: 3px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: color-mix(in srgb, var(--accent) 70%, var(--ink)); }
+.ms-reset { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 0 3px; text-transform: none; }
+.cv-note { margin-top: 4px; font-size: 0.75rem; color: color-mix(in srgb, var(--danger) 70%, var(--ink)); display: flex; flex-direction: column; gap: 2px; }
+.cv-note button { font: inherit; font-size: 0.75rem; border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 1px 6px; cursor: pointer; text-align: left; }
+.lesson.ms-ov .lh { box-shadow: inset 3px 0 0 var(--accent); }
 .ms-mark { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .ms-of { color: color-mix(in srgb, var(--accent) 70%, var(--ink)) !important; }
 .lesson.m-drop-before { box-shadow: inset 0 3px 0 var(--accent); }
@@ -2278,7 +2283,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (!kid(it.c.rid)) continue;
         const ch = U.reihen[it.c.rid];
         if (it.t === "chead") { h += '<h2 class="ms-print">Unterreihe ' + it.L + ": " + esc(ch.title || "") + "</h2>"; continue; }
-        h += lessonPrintHtml(ch, it.i, it.s).replace("<section><h2>", "<section><h2>" + it.L + "·");
+        h += lessonPrintHtml(childEff(it.c), it.i, it.s).replace("<section><h2>", "<section><h2>" + it.L + "·");
       }
     } else for (const [i, s] of blocksOf(r)) if (want(i)) h += lessonPrintHtml(r, i, s);
     (r.lnItems || []).forEach((it, k) => { if (want("ln" + k)) h += lessonPrintHtml(r, "ln" + k, 1); });
@@ -2335,6 +2340,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const extOf = (f) => (String(f.name || "").split(".").pop() || "").toLowerCase();
   let viewerDirty = false;
   function closeViewer(force) {
+    window.__vctx = null;
     if (viewerDirty && !force) { const bar = $("#vw-ask"); if (bar) { bar.hidden = false; return; } }
     viewerDirty = false;
     const r = document.getElementById("viewerRoot"); if (r) r.innerHTML = "";
@@ -2457,14 +2463,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (vw) vw.onclick = async () => {
       msg.className = "msg";
       try {
-        if (f.path) { msg.textContent = "Öffnet …"; await window.ZLOCAL.open(f.path); }
+        if (!window.__vctx && window.__vctxRid && U.reihen[U.sel] && U.reihen[U.sel].master) setCopyCtx(U.sel, window.__vctxRid, f);
+        const cx = window.__vctx && window.__vctx.orig && window.__vctx.orig.id === f.id ? window.__vctx : null;
+        const openPath = cx ? cx.view.path : f.path;
+        if (openPath) { msg.textContent = "Öffnet …"; await window.ZLOCAL.open(openPath); }
         else {
-          const folder = zlFolder();
-          if (!folder) { msg.className = "msg warn"; msg.textContent = "Bitte zuerst oben bei der Reihe über 📁 ✎ den Ordner wählen."; return; }
-          vw.disabled = true; msg.textContent = "Legt das Dokument im Ordner ab …";
-          bytes = bytes || await fileBytes(f);
-          const j = await window.ZLOCAL.place(folder, f.name, new Blob([bytes]), true);
-          f.path = j.path; linkFilePath(f.id, j.path);
+          const base = zlFolder();
+          if (!base) { msg.className = "msg warn"; msg.textContent = "Bitte zuerst oben bei der Reihe über 📁 ✎ den Ordner wählen."; return; }
+          const folder = cx ? base.replace(/\\+$/, "") + "\\" + cx.sub : base;
+          vw.disabled = true; msg.textContent = cx ? "Legt eine eigene Kopie " + cx.prefix + f.name + " im Ordner der Masterreihe ab …" : "Legt das Dokument im Ordner ab …";
+          bytes = bytes || await fileBytes(cx ? cx.orig : f);
+          const j = await window.ZLOCAL.place(folder, (cx ? cx.prefix : "") + f.name, new Blob([bytes]), true);
+          if (cx) { cx.view.path = j.path; cx.onCopied(j.path); } else { f.path = j.path; linkFilePath(f.id, j.path); }
         }
         msg.textContent = "In Word geöffnet. Dort ganz normal speichern (Strg+S) – die App zeigt beim nächsten Öffnen den neuen Stand.";
       } catch (err) { console.error(err); msg.className = "msg warn"; msg.textContent = "Das hat nicht geklappt: " + (err.message || err); }
@@ -2857,6 +2867,50 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const mastersOf = (id) => Object.entries(U.reihen).filter(([, m]) => m && !m.klasse && m.master && (m.children || []).some((c) => c && c.rid === id));
   const msArrow = (id) => { const ms = mastersOf(id); if (!ms.length) return ""; return '<span class="ms-up" data-msgo="' + ms[0][0] + '" role="button" title="Unterreihe von: ' + esc(ms.map(([, m]) => m.title || "Reihe").join(", ")) + ' – klicken öffnet die Masterreihe">↳ </span>'; };
   const effL = (r) => totalL(r) + shownChildren(r).reduce((a, c) => a + totalL(U.reihen[c.rid]), 0);
+  // Anpassungen einer Unterreihen-Lektion gelten nur in der Masterreihe (c.ov[i]); die Unterreihe bleibt unverändert
+  const strHash = (t) => { let h = 0; t = String(t); for (let k = 0; k < t.length; k++) h = (h * 31 + t.charCodeAt(k)) | 0; return String(h); };
+  const chBase = (ch, i) => strHash(JSON.stringify([(ch.lessons || [])[i] || "", (ch.meta || {})[i] || {}]));
+  function chLessonX(c, i) {
+    const ch = U.reihen[c.rid] || {}, ov = (c.ov || {})[i];
+    if (ov) return { html: ov.html || "", color: ov.color || "", details: ov.details || "", notesHtml: ov.notesHtml || "", notesLh: ov.notesLh || 0, plan: ov.plan ? clone(ov.plan) : {}, files: (ov.files || []).slice() };
+    const m = (ch.meta || {})[i] || {};
+    return { html: (ch.lessons || [])[i] || "", color: m.color || "", details: m.details || "", notesHtml: m.notesHtml != null ? m.notesHtml : plainToHtml(m.details || ""), notesLh: m.notesLh || 0, plan: m.plan ? clone(m.plan) : {}, files: (m.files || []).slice() };
+  }
+  function putChOv(mid, rid, i, x) {
+    const r = U.reihen[mid]; if (!r) return;
+    r.children = (r.children || []).map((c) => {
+      if (c.rid !== rid) return c;
+      const ch = U.reihen[rid] || {}, old = (c.ov || {})[i];
+      const o = { html: x.html || "", color: x.color || "", details: x.details || "", files: x.files || [], base: old ? old.base : chBase(ch, i) };
+      if (filled(x.notesHtml) || /<img/.test(x.notesHtml || "")) o.notesHtml = x.notesHtml; if (x.notesLh) o.notesLh = x.notesLh; if (hasPlan(x.plan)) o.plan = clone(x.plan);
+      return { ...c, ov: { ...(c.ov || {}), [i]: o } };
+    });
+  }
+  // Unterreihe so, wie sie in dieser Masterreihe erscheint (mit Anpassungen) – für Kopie und Druck
+  function childEff(c) {
+    const ch = U.reihen[c.rid]; if (!ch || !c.ov) return ch;
+    const e = { ...ch, lessons: (ch.lessons || []).slice(), meta: { ...(ch.meta || {}) } };
+    for (const [i, o] of Object.entries(c.ov)) { e.lessons[i] = o.html || ""; e.meta[i] = { ...(e.meta[i] || {}), color: o.color, details: o.details, notesHtml: o.notesHtml, notesLh: o.notesLh, plan: o.plan, files: o.files }; }
+    return e;
+  }
+  function setCopyCtx(mid, rid, f) {
+    const mr = U.reihen[mid], ch = U.reihen[rid]; window.__vctx = null;
+    if (!mr || !mr.master || !ch) return;
+    const L = chLetterOf(mr, rid) || "A", c = (mr.children || []).find((q) => q.rid === rid) || {}, cp = (c.fcopies || {})[f.id];
+    window.__vctx = { prefix: L + "_", sub: L + "_" + safeName(ch.title || "Unterreihe"), orig: f, view: { ...f, path: cp || undefined },
+      onCopied: (p) => { const m2 = U.reihen[mid]; if (!m2) return; m2.children = (m2.children || []).map((q) => (q.rid === rid ? { ...q, fcopies: { ...(q.fcopies || {}), [f.id]: p } } : q)); saveReihe(mid, 0); } };
+  }
+  function openChildLessonDetail(rid, i) {
+    const mid = U.sel, mr = U.reihen[mid], ch = U.reihen[rid]; if (!mr || !ch) return;
+    const c = (mr.children || []).find((q) => q.rid === rid); if (!c) return;
+    const x = chLessonX(c, i), L = chLetterOf(mr, rid), s = Number((ch.spans || {})[i]) || 1;
+    dirtyU.add(mid);
+    window.__vctxRid = rid;
+    openDetailBox({ editDocs: true, title: mr.title || "Masterreihe", sub: L + "·" + lessonLabel(i, s) + " · aus «" + (ch.title || "Unterreihe") + "» – Änderungen gelten nur hier", x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(mr.mainFiles || []), ...(ch.mainFiles || [])],
+      changed: () => { putChOv(mid, rid, i, x); saveReihe(mid, 900); },
+      onClose: () => { window.__vctx = null; window.__vctxRid = null; uFlush("r:" + mid); renderU(); } });
+  }
+  const chLetterOf = (r, rid) => { const n = chOrdered(r).findIndex((c) => c.rid === rid); return n < 0 ? "" : CH_LET(n); };
   const CH_LET = (n) => String.fromCharCode(65 + (n % 26));
   // Für Klassen: Masterreihe mit ihren eingeschalteten Unterreihen zu einer einzigen Reihe zusammenfügen
   function flattenMaster(src) {
@@ -2877,7 +2931,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (sp > 1) S2[off] = sp;
         off += sp; continue;
       }
-      const ch = U.reihen[it.c.rid];
+      const ch = childEff(it.c);
       if (it.t === "chead") { if (!seen.has(it.c.rid)) { seen.add(it.c.rid); (ch.mainFiles || []).forEach((f) => { if (!out.mainFiles.some((x) => x.id === f.id)) out.mainFiles.push(clone(f)); }); } continue; }
       const i = it.i, sp = it.s;
       for (let j = 0; j < sp; j++) { L2[off + j] = j ? "" : (ch.lessons || [])[i] || ""; P2[off + j] = (ch.title ? ch.title + ": " : "") + phaseOf(ch, i + j); }
@@ -3262,11 +3316,15 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<div class="ldocs">' + mf.map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '" title="Hauptdokument der Unterreihe ansehen"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>" +
         (it.empty ? '<div class="lesson ms-l" data-crid="' + esc(c.rid) + '"><div class="lh"></div><div class="cell ro"><span class="help">Noch keine Lektionen in dieser Unterreihe.</span></div><div class="ldocs"></div></div>' : "");
     }
-    const i = it.i, m = (ch.meta || {})[i] || {};
-    return '<div class="lesson ms-l' + (it.moved ? " ms-moved" : "") + '" data-crid="' + esc(c.rid) + '" data-clid="' + i + '"' + (it.moved ? ' data-cmoved="1"' : "") + '><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cldrag="' + esc(c.rid) + "|" + i + '" title="Ziehen, um diese Lektion an eine andere Stelle der Masterreihe zu verschieben"') + ">" + it.L + "·" + lessonLabel(i, it.s) + "</b></div>" +
-      '<div class="ph ro">' + esc(phaseOf(ch, i)) + (it.moved ? ' <span class="ms-from">aus ' + esc(ch.title || "Unterreihe") + "</span>" : "") + "</div></div>" +
-      '<div class="cell ro"><div class="rich ro-txt">' + sanitize(ch.lessons[i] || "") + "</div></div>" +
-      '<div class="ldocs">' + (m.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>";
+    const i = it.i, x = chLessonX(c, i), ov = (c.ov || {})[i], conflict = ov && ov.base !== chBase(ch, i);
+    const more = !!(x.details || filled(x.notesHtml) || (x.files && x.files.length) || hasPlan(x.plan));
+    return '<div class="lesson ms-l' + (it.moved ? " ms-moved" : "") + (ov ? " ms-ov" : "") + '" data-crid="' + esc(c.rid) + '" data-clid="' + i + '"' + (it.moved ? ' data-cmoved="1"' : "") + '><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cldrag="' + esc(c.rid) + "|" + i + '" title="Ziehen, um diese Lektion an eine andere Stelle der Masterreihe zu verschieben"') + ">" + it.L + "·" + lessonLabel(i, it.s) + "</b>" +
+      '<button type="button" class="lexp' + (more ? " on" : "") + '" data-clexp="' + esc(c.rid) + "|" + i + '" title="Gross öffnen – Anpassungen gelten nur in dieser Masterreihe" aria-label="Lektion gross öffnen">+</button></div>' +
+      '<div class="ph ro">' + esc(phaseOf(ch, i)) + (it.moved ? ' <span class="ms-from">aus ' + esc(ch.title || "Unterreihe") + "</span>" : "") + "</div>" +
+      (ov ? '<span class="ms-ovtag">angepasst<button type="button" class="ms-reset" data-cvtake="' + esc(c.rid) + "|" + i + '" title="Anpassung verwerfen und wieder die Fassung der Unterreihe zeigen">↺</button></span>' : "") +
+      (conflict ? '<div class="cv-note">Die Unterreihe hat diese Lektion geändert.<button type="button" data-cvtake="' + esc(c.rid) + "|" + i + '">Neue Fassung übernehmen</button><button type="button" data-cvkeep="' + esc(c.rid) + "|" + i + '">Meine behalten</button></div>' : "") + "</div>" +
+      cellHtml2('data-rf="cov.' + esc(c.rid) + "." + i + '" aria-label="' + it.L + "·" + lessonLabel(i, it.s) + '"', x.html, { color: x.color, more }) +
+      '<div class="ldocs">' + (x.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + "|" + i + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>";
   }
   // Abfolge für Klassenkopie und Drucken
   function masterSeq(r) {
@@ -3834,6 +3892,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   uEl.addEventListener("click", (e) => {
     const t = e.target.closest(".ucell .inp"); if (t && uLastPointer === "touch") uStart(t);
     const lx = e.target.closest("[data-lexp]"); if (lx) { openLessonDetail(keyOfLesson(lx.dataset.lexp)); return; }
+    const clx = e.target.closest("[data-clexp]"); if (clx) { const [rid, ci] = clx.dataset.clexp.split("|"); openChildLessonDetail(rid, +ci); return; }
     const ex = e.target.closest(".ucell .exp");
     if (ex) { const c = ex.closest("[data-lesson]"); if (c) openLessonDetail(keyOfLesson(c.dataset.lesson)); }
   });
@@ -3908,6 +3967,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     }
     const r = U.reihen[U.sel]; if (!r) return;
     const f = t.dataset.rf;
+    if (f && f.startsWith("cov.")) { const parts = f.split("."), ci = +parts.pop(), rid = parts.slice(1).join("."); const c = (r.children || []).find((q) => q.rid === rid); if (!c) return; const x = chLessonX(c, ci); x.html = val; putChOv(U.sel, rid, ci, x); saveReihe(U.sel); return; }
     if (/^lnItems\.\d+\.html$/.test(f)) { const k = +f.split(".")[1]; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), html: val }; saveReihe(U.sel); return; }
     if (f.startsWith("lessons.")) {
       const i = +f.split(".")[1];
@@ -4353,10 +4413,19 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const r0 = U.reihen[U.sel];
     if (b.dataset.joint != null && r0) { jointMenu(b, r0, +b.dataset.joint); return; }
     if (b.dataset.unmerge != null && r0) { unmergeLast(r0, +b.dataset.unmerge); saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
+    if (b.dataset.cvtake || b.dataset.cvkeep) {
+      const [rid, ci] = (b.dataset.cvtake || b.dataset.cvkeep).split("|"), mr = U.reihen[U.sel]; if (!mr) return;
+      if (b.dataset.cvtake && !b.dataset.armed && b.classList.contains("ms-reset")) { b.dataset.armed = "1"; b.textContent = "verwerfen?"; return; }
+      mr.children = (mr.children || []).map((c) => { if (c.rid !== rid) return c; const ov = { ...(c.ov || {}) };
+        if (b.dataset.cvtake) delete ov[ci]; else ov[ci] = { ...ov[ci], base: chBase(U.reihen[rid] || {}, +ci) };
+        const n = { ...c, ov }; if (!Object.keys(ov).length) delete n.ov; return n; });
+      saveReihe(U.sel, 0); renderU(); return;
+    }
     if (b.dataset.openCfile) {
-      const [rid, fid] = b.dataset.openCfile.split("|"), ch = U.reihen[rid]; if (!ch) return;
-      const f = [...Object.values(ch.meta || {}).flatMap((m) => m.files || []), ...(ch.mainFiles || []), ...(ch.files || [])].find((ff) => ff.id === fid);
-      if (f) openViewer(f); return;
+      const [rid, fid, ci] = b.dataset.openCfile.split("|"), ch = U.reihen[rid]; if (!ch) return;
+      const c = (r0 && (r0.children || []).find((q) => q.rid === rid)) || {}, x = ci != null ? chLessonX(c, +ci) : null;
+      const f = [...(x ? x.files : []), ...Object.values(ch.meta || {}).flatMap((m) => m.files || []), ...(ch.mainFiles || []), ...(ch.files || [])].find((ff) => ff.id === fid);
+      if (f) { setCopyCtx(U.sel, rid, f); openViewer(window.__vctx ? window.__vctx.view : f); } return;
     }
     if (b.dataset.openFile && r0) {
       const f = [...Object.values(r0.meta || {}).flatMap((m) => m.files || []), ...(r0.mainFiles || []), ...(r0.files || []), ...(r0.lnItems || []).flatMap((m) => m.files || [])].find((ff) => ff.id === b.dataset.openFile);
