@@ -1135,6 +1135,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .sub-link:hover { text-decoration: underline; }
 .sub-it.sub-r { background: color-mix(in srgb, var(--c-blau) 35%, var(--surface)); border-radius: 6px; padding: 0 2px 0 4px; }
 .rp-q { width: 100%; box-sizing: border-box; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+.u-moved { display: none !important; }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
@@ -1280,12 +1281,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         <button id="u-reihen" aria-pressed="false">Reihen</button>
         <button id="u-vorlagen" aria-pressed="false">Vorlagen</button>
       </div>
-      <button type="button" class="btn ghost toggle" id="u-subs" aria-pressed="false" title="Unterpunkte aller Reihen aus- oder einklappen">Unterpunkte</button>
+      <button type="button" class="btn ghost" id="u-show" aria-haspopup="menu" title="Unterpunkte, Mehrfach-Reihen, Fortschritt">Anzeigen ▾</button>
+      <button type="button" class="btn ghost toggle u-moved" id="u-subs" aria-pressed="false" title="Unterpunkte aller Reihen aus- oder einklappen">Unterpunkte</button>
       <button type="button" class="btn ghost toggle" id="u-prio" aria-pressed="true">Wichtigkeiten</button>
-      <button type="button" class="btn ghost toggle" id="u-cross" aria-pressed="true" title="Reihen, die auch in anderen Schuljahren vorkommen, dort zusätzlich als eigenen Abschnitt zeigen. Im Schuljahr, in dem die Reihe erstellt wurde, ist sie immer sichtbar.">Mehrfach-Reihen</button>
-      <button type="button" class="btn ghost toggle" id="u-bars" aria-pressed="true" title="Fortschrittsbalken unter den Reihen ein- oder ausblenden (wie viele Lektionen ausgearbeitet sind)">Fortschritt</button>
+      <button type="button" class="btn ghost toggle u-moved" id="u-cross" aria-pressed="true" title="Reihen, die auch in anderen Schuljahren vorkommen, dort zusätzlich als eigenen Abschnitt zeigen. Im Schuljahr, in dem die Reihe erstellt wurde, ist sie immer sichtbar.">Mehrfach-Reihen</button>
+      <button type="button" class="btn ghost toggle u-moved" id="u-bars" aria-pressed="true" title="Fortschrittsbalken unter den Reihen ein- oder ausblenden (wie viele Lektionen ausgearbeitet sind)">Fortschritt</button>
       <button type="button" class="btn ghost" id="u-stmenu" aria-haspopup="menu" title="Welche Reihen sichtbar sind und ob der Status angezeigt wird">Status ▾</button>
-      <button type="button" class="btn ghost" id="u-legend" aria-haspopup="menu" title="Welche Wichtigkeiten angezeigt werden">Anzeigen ▾</button>
+      <button type="button" class="btn ghost" id="u-legend" aria-haspopup="menu" title="Welche Wichtigkeiten angezeigt werden">Filter ▾</button>
       <span class="status" id="u-status"></span>
       <span class="u-search"><input type="search" id="u-search" placeholder="Thema suchen …" aria-label="Thema in allen Reihen suchen" autocomplete="off"><span class="u-sres" id="u-sres" hidden role="listbox"></span></span>
     </div>
@@ -2771,7 +2773,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Ohne Wichtigkeiten: Spalte in «In Arbeit», «Fertig geplant» und «Sammlungen» gliedern
   function jpGroups(list, itemHtml) {
     const g = { arbeit: [], fertig: [], samml: [] };
-    list.forEach((e) => { const r = e[1], n = lessonCount(r), pl = planned(r); (n ? (pl >= n ? g.fertig : g.arbeit) : g.samml).push(e); });
+    list.forEach((e) => { const r = e[1], n = lessonCount(r), pl = planned(r); (isSamml(r) ? g.samml : n && pl >= n ? g.fertig : g.arbeit).push(e); });
     return [["arbeit", "In Arbeit"], ["fertig", "Fertig geplant"], ["samml", "Sammlungen"]].filter(([k]) => g[k].length)
       .map(([k, l]) => '<div class="jp-grp jp-grp-' + k + '"><span>' + l + "</span><i>" + g[k].length + "</i></div>" + g[k].map(itemHtml).join("")).join("");
   }
@@ -2799,7 +2801,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const lnSumText = (r) => (lnLekt(r) ? "+ " + lnLekt(r) + " L Leistungsnachweis = " + totalL(r) + " L" : "");
   const totalL = (r) => (Number(r.lektionen) || 0) + lnLekt(r);
   const lnItemOf = (r, i) => (r.lnItems || [])[lnIdx(i)] || {};
-  const lnLabel = (r, i) => { const it = lnItemOf(r, i), n = it.name; return (it.mat ? "Materialsammlung" : "Leistungsnachweis") + (n ? " · " + n : ""); };
+  const matNo = (r, k) => (r.lnItems || []).slice(0, k + 1).filter((m) => m && m.mat).length;
+  const lnLabel = (r, i) => { const it = lnItemOf(r, i), n = it.name; return (it.mat ? "M" + matNo(r, lnIdx(i)) + " Materialsammlung" : "Leistungsnachweis") + (n ? " · " + n : ""); };
   const keyOfLesson = (v) => (String(v).startsWith("ln") ? String(v) : +v);
   const metaOf = (r, i) => (isLN(i) ? lnItemOf(r, i) : ((r.meta || {})[i] || {}));
   const htmlOf = (r, i) => (isLN(i) ? (lnItemOf(r, i).html || "") : ((r.lessons || [])[i] || ""));
@@ -2816,13 +2819,32 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const prioOf = (r) => r.prio || "essentiell";
   const STATI = [["todo", "To do"], ["progress", "In progress"], ["done", "Done"]];
   const statusOf = (r) => r.status || "progress";
-  const stVisible = (r) => !(UP.stHide || {})[statusOf(r)];
+  // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
+  const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
+  const stVisible = (r) => !(UP.stHide || {})[statusOf(r)] && (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? !isSamml(r) : true);
+  function showMenu(btn) {
+    closeMenu();
+    const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
+    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false]];
+    m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
+    m.addEventListener("mousedown", (ev) => ev.preventDefault());
+    m.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-shw]"); if (!b) return;
+      const k = b.dataset.shw;
+      if (k === "subs") { UP.subs = !UP.subs; UP.subOpen = {}; } else if (k === "cross") UP.cross = !UP.cross; else UP.bars = UP.bars === false;
+      saveUP(); renderU(); showMenu(btn);
+    });
+    document.body.appendChild(m);
+    const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(br.left, innerWidth - mr.width - 8)) + "px"; m.style.top = (br.bottom + 4) + "px";
+  }
   function statusMenu(btn) {
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const draw = () => {
       const hide = UP.stHide || {};
-      m.innerHTML = '<div class="cm-title">Sichtbar</div>' + STATI.map(([v, l]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !hide[v] + '" data-stv="' + v + '"><span class="ck">' + (hide[v] ? "" : "✓") + "</span>" + l + "</button>").join("") +
+      m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("") + "<hr>" +
+        '<div class="cm-title">Sichtbar</div>' + STATI.map(([v, l]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !hide[v] + '" data-stv="' + v + '"><span class="ck">' + (hide[v] ? "" : "✓") + "</span>" + l + "</button>").join("") +
         "<hr>" + '<button type="button" role="menuitemcheckbox" aria-checked="' + !!UP.stLabels + '" data-stl><span class="ck">' + (UP.stLabels ? "✓" : "") + "</span>Label anzeigen</button>" +
         '<div class="cm-title">Schnellwahl</div>' + [["all0", "Alle, ohne Label"], ["all1", "Alle, mit Label"], ["todo", "Nur To do"], ["progress", "Nur In progress"], ["done", "Nur Done"]].map(([v, l]) => '<button type="button" role="menuitem" data-stq="' + v + '"><span class="ck"></span>' + l + "</button>").join("");
     };
@@ -2830,7 +2852,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("button"); if (!b) return;
-      if (b.dataset.stv) { UP.stHide = { ...(UP.stHide || {}) }; UP.stHide[b.dataset.stv] = !UP.stHide[b.dataset.stv]; }
+      if (b.dataset.stk != null) UP.kind = b.dataset.stk || undefined;
+      else if (b.dataset.stv) { UP.stHide = { ...(UP.stHide || {}) }; UP.stHide[b.dataset.stv] = !UP.stHide[b.dataset.stv]; }
       else if (b.dataset.stl != null) UP.stLabels = !UP.stLabels;
       else if (b.dataset.stq) { const q = b.dataset.stq; if (q.startsWith("all")) { UP.stHide = {}; UP.stLabels = q === "all1"; } else { UP.stHide = { todo: q !== "todo", progress: q !== "progress", done: q !== "done" }; UP.stLabels = true; } }
       saveUP(); draw(); renderU();
@@ -2972,7 +2995,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     $("#u-view-jahresplan").hidden = U.view !== "jahresplan";
     $("#u-view-reihen").hidden = U.view !== "reihen";
     $("#u-view-vorlagen").hidden = U.view !== "vorlagen";
-    ["#u-prio", "#u-cross", "#u-bars", "#u-subs"].forEach((x) => { $(x).hidden = U.view === "vorlagen"; });
+    ["#u-prio", "#u-show", "#u-stmenu"].forEach((x) => { $(x).hidden = U.view === "vorlagen"; });
+    $("#u-stmenu").textContent = "Status" + (UP.kind === "samml" ? " · Sammlungen" : UP.kind === "lekt" ? " · Lektionsreihen" : "") + " ▾";
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
     if (!U.loaded) { $("#jp-main").innerHTML = '<div class="empty">Lädt …</div>'; return; }
@@ -3043,7 +3067,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const p = U.plan || {};
     $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false)); $("#u-legend").hidden = !UP.prio;
     const hideP = UP.hide || {};
-    { const nOff = PRIOS.filter(([v]) => v !== "keine" && hideP[v]).length; $("#u-legend").textContent = nOff ? "Anzeigen (" + (3 - nOff) + " von 3) ▾" : "Anzeigen ▾"; }
+    { const nOff = PRIOS.filter(([v]) => v !== "keine" && hideP[v]).length; $("#u-legend").textContent = nOff ? "Filter (" + (3 - nOff) + " von 3) ▾" : "Filter ▾"; }
     let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + '">';
     for (const y of YEARS) {
       const multi = (r) => yearsOf(r).length > 1;
@@ -3126,7 +3150,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const hasPlan = (p) => !!(p && (filled(p.ziele) || (p.rows || []).some((row) => row.some(filled))));
   function lessonsHtml(r) {
     const bl = blocksOf(r);
-    if (!bl.length) return '<div class="empty">Tragen Sie oben die Anzahl Lektionen ein, dann erscheinen hier L1, L2, L3 …</div>';
+    if (!bl.length) return ((r.lnItems || []).some((m) => m && m.mat) ? "" : '<div class="empty">Keine Lektionen: Diese Reihe ist eine <b>Sammlung</b>. Legen Sie unten Materialsammlungen M1, M2 … an – oder tragen Sie oben die Anzahl Lektionen ein.</div>') + lnRowHtml(r);
     const links = r.links || {};
     const dates = r.klasse && typeof classSchedule === "function" ? lessonDates(r.klasse) : null;
     return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + bl.map(([i, s], k) => {
@@ -3150,12 +3174,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
       if (m.mat) {
         const lk = m.rid && U.reihen[m.rid];
-        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>MAT</b><button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
+        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>M' + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
           '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diese Materialsammlung entfernen" aria-label="Materialsammlung entfernen">×</button></div>' +
-          '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Materialsammlung ' + (k + 1) + '" aria-label="Name der Materialsammlung">' +
+          '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Name, z. B. Bilder" aria-label="Name der Materialsammlung">' +
           (lk ? '<span class="mat-link"><button type="button" class="linkbtn" data-goto="' + esc(m.rid) + '" title="Verknüpfte Reihe öffnen">↗ ' + esc(lk.title || "Reihe") + '</button><button type="button" class="x" data-matunlink="' + k + '" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">×</button></span>'
               : (r.klasse ? "" : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>')) + "</div>" +
-          cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Kommentar zur Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
+          cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Kurzzusammenfassung der Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
           '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
       }
       return '<div class="lesson ln-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>LN</b><button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Planung, Notizen, Dokumente" aria-label="Leistungsnachweis gross öffnen">+</button>' +
@@ -3164,7 +3188,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<select class="ln-lekt" data-lnlekt="' + k + '" aria-label="Dauer in Lektionen">' + [[0, "keine Lektion"], [1, "1 Lektion"], [2, "2 Lektionen"]].map(([v, l]) => '<option value="' + v + '"' + ((Number(m.lekt) || 0) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></div>" +
         cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Leistungsnachweis"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
         '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
-    }).join("") + '<div class="ln-add"><button type="button" class="btn ghost" data-lnadd>+ Leistungsnachweis</button><button type="button" class="btn ghost" data-matadd>+ Materialsammlung</button></div>';
+    }).join("") + (r.klasse ? "" : '<div class="ln-add">' + (blocksOf(r).length ? '<button type="button" class="btn ghost" data-lnadd>+ Leistungsnachweis</button><button type="button" class="btn ghost" data-matadd>+ Materialsammlung</button>' : '<button type="button" class="btn primary" data-matadd>+ Materialsammlung</button>') + "</div>");
   }
   // Dokumente der ganzen Reihe (z. B. Gesamt-PowerPoint), in jeder Lektion verfügbar; mit OneDrive-Link
   function rfRowHtml(r, f, key) {
@@ -3562,7 +3586,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const plan = hasPlan(x.plan) ? clone(x.plan) : null;
       const o = { html: x.html || "", color: x.color || "", details: x.details || "", files: x.files || [] };
       if (filled(x.notesHtml) || /<img/.test(x.notesHtml || "")) o.notesHtml = x.notesHtml; if (x.notesLh) o.notesLh = x.notesLh; if (plan) o.plan = plan;
-      r.lnItems = (r.lnItems || []).slice(); const k = lnIdx(i); o.name = (r.lnItems[k] || {}).name || ""; r.lnItems[k] = o; return;
+      r.lnItems = (r.lnItems || []).slice(); const k = lnIdx(i), prev = r.lnItems[k] || {}; o.name = prev.name || ""; if (prev.mat) o.mat = true; if (prev.rid) o.rid = prev.rid; if (prev.lekt) o.lekt = prev.lekt; r.lnItems[k] = o; return;
     }
     r.lessons = (r.lessons || []).slice(); while (r.lessons.length <= i) r.lessons.push("");
     r.lessons[i] = x.html || "";
@@ -3574,7 +3598,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const id = U.sel, r = U.reihen[id]; if (!r) return;
     if (isLN(i)) {
       const x = lessonX(r, i); dirtyU.add(id);
-      openDetailBox({ editDocs: !r.klasse, title: r.title || "Reihe", sub: lnLabel(r, i), x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
+      const isMat = !!lnItemOf(r, i).mat;
+      openDetailBox({ editDocs: !r.klasse, title: r.title || "Reihe", sub: lnLabel(r, i), x, textLabel: isMat ? "Kurzzusammenfassung" : "Kurzeintrag in der Tabelle", plan: isMat ? undefined : x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
         onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
         changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
         onClose: () => { uFlush("r:" + id); renderU(); } });
@@ -4066,6 +4091,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.dataset.parktog != null) { const y = b.dataset.parktog; PARK_OPEN[y] = !PARK_OPEN[y]; renderU(); return; }
     if (b.id === "u-bars") { UP.bars = UP.bars === false; saveUP(); renderU(); return; }
     if (b.id === "u-stmenu") { statusMenu(b); return; }
+    if (b.id === "u-show") { showMenu(b); return; }
     if (b.dataset.pfilter) { UP.hide = { ...(UP.hide || {}) }; UP.hide[b.dataset.pfilter] = !UP.hide[b.dataset.pfilter]; saveUP(); renderU(); return; }
     if (b.dataset.rprio && U.reihen[U.sel]) { U.reihen[U.sel].prio = b.dataset.rprio; saveReihe(U.sel, 0); b.parentNode.querySelectorAll("[data-rprio]").forEach((c) => c.setAttribute("aria-pressed", String(c === b))); return; }
     const r0 = U.reihen[U.sel];
