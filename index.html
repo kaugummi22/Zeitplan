@@ -1138,8 +1138,6 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .sub-it.sub-r { background: color-mix(in srgb, var(--c-blau) 35%, var(--surface)); border-radius: 6px; padding: 0 2px 0 4px; }
 .rp-q { width: 100%; box-sizing: border-box; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
 .u-moved { display: none !important; }
-.jp-grid .jp-item.st-nostat, .jp-grid.show-prio .jp-item.st-nostat { background: var(--surface) !important; border: 1px solid var(--line); }
-.jp-grid .jp-item.st-nostat:hover { background: var(--accent-soft) !important; }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
@@ -3088,7 +3086,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button"' + (foreign ? "" : ' draggable="true"') + ' class="jp-item prio-' + prioOf(r) + (statusOf(r) === "none" ? " st-nostat" : "") + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "") + " · Ziehen zum Verschieben") + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + subsHtml(id, r).car + statusBadge(r) + esc(r.title || "Ohne Titel") + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
+          return '<button type="button"' + (foreign ? "" : ' draggable="true"') + ' class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "") + " · Ziehen zum Verschieben") + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + subsHtml(id, r).car + statusBadge(r) + esc(r.title || "Ohne Titel") + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
             (totalL(r) ? totalL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
