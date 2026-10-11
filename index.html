@@ -267,15 +267,33 @@
       const url = m.webUrl;
       if (w) w.location.href = url; else window.open(url, "_blank");
     };
+    // Am PC: kleiner Helfer (Zeitplan-Dienst) öffnet Explorer bzw. Word mit der echten Datei; sonst OneDrive im Browser
+    const HELPER = "http://localhost:8123";
+    const isPC = /Windows/.test(navigator.userAgent) && !/Android|Mobile/.test(navigator.userAgent);
+    let helperOk = null, helperAt = 0;
+    async function helperAlive() {
+      if (!isPC) return false;
+      if (helperOk !== null && Date.now() - helperAt < 60000) return helperOk;
+      try { const c = new AbortController(); const t = setTimeout(() => c.abort(), 900); const r = await _fetch(HELPER + "/api/version", { signal: c.signal, cache: "no-store" }); clearTimeout(t); helperOk = r.ok; } catch (e) { helperOk = false; }
+      helperAt = Date.now(); return helperOk;
+    }
+    async function viaHelper(p) {
+      if (!(await helperAlive())) return false;
+      try {
+        const meta = btoa(unescape(encodeURIComponent(JSON.stringify({ path: p }))));
+        const r = await _fetch(HELPER + "/api/open", { method: "POST", headers: { "X-Meta": meta } });
+        return r.ok;
+      } catch (e) { helperOk = null; return false; }
+    }
     window.ZLOCAL = {
       cloud: true, root: ROOT, dirs,
-      async open(path) { const w = window.open("", "_blank"); await openUrl(path, w); },
+      async open(path) { if (await viaHelper(path)) return; await openUrl(path, window.open("", "_blank")); },
       async read(path) { const m = await getMeta(toDrive(path)); if (!m) throw new Error("nicht gefunden"); return download(m); },
       async place(folder, name, blob, open) {
         const p = folder.replace(/\\+$/, "") + "\\" + name;
         let m = await getMeta(toDrive(p)); const existed = !!m;
         if (!m) { const r = await putFile(toDrive(p), blob); if (!r.ok) throw new Error("Ablegen in OneDrive: " + r.status); }
-        if (open) await openUrl(p, window.open("", "_blank"));
+        if (open && !(await viaHelper(p))) await openUrl(p, window.open("", "_blank"));
         return { ok: true, path: p, existed };
       },
       async saveVersion() { throw new Error("nicht verfügbar"); },
