@@ -1143,6 +1143,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .sub-it.sub-r { background: color-mix(in srgb, var(--c-blau) 35%, var(--surface)); border-radius: 6px; padding: 0 2px 0 4px; }
 .rp-q { width: 100%; box-sizing: border-box; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
 .u-moved { display: none !important; }
+.lesson.m-drop-before { box-shadow: inset 0 3px 0 var(--accent); }
+.lesson.m-drop-after, .ln-add.m-drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
@@ -3163,7 +3165,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (!bl.length) return ((r.lnItems || []).some((m) => m && m.mat) ? "" : '<div class="empty">Keine Lektionen: Diese Reihe ist eine <b>Sammlung</b>. Legen Sie unten Materialsammlungen M1, M2 … an – oder tragen Sie oben die Anzahl Lektionen ein.</div>') + lnRowHtml(r);
     const links = r.links || {};
     const dates = r.klasse && typeof classSchedule === "function" ? lessonDates(r.klasse) : null;
-    return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + bl.map(([i, s], k) => {
+    const mp = matPlace(r, bl), matAt = (t) => (mp.at[t] || []).map((k) => matRowHtml(r, r.lnItems[k], k)).join("");
+    return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + matAt(-1) + bl.map(([i, s], k) => {
       const m = (r.meta || {})[i] || {};
       const more = !!(m.details || (m.files && m.files.length) || hasPlan(m.plan));
       const linked = k > 0 && !!links[i];
@@ -3176,22 +3179,36 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         (s > 1 ? '<button type="button" class="split-btn" data-unmerge="' + i + '" title="L' + (i + s) + ' wieder als eigenes Feld abtrennen">trennen</button>' : "") +
         '<div class="ph" contenteditable="true" role="textbox" data-phase="' + i + '" data-ph="Phase …" aria-label="Phase ' + lessonLabel(i, s) + '">' + esc(phaseOf(r, i)) + "</div></div>" +
         cellHtml2('data-rf="lessons.' + i + '" id="l-' + i + '" aria-label="' + lessonLabel(i, s) + '"', r.lessons[i], { color: m.color, more, cellAttrs: ' data-lesson="' + i + '"' }) +
-        '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : i) + "</div></div>";
-    }).join("") + lnRowHtml(r) + hiddenNote(r);
+        '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : i) + "</div></div>" + matAt(i);
+    }).join("") + lnRowHtml(r, mp.placed) + hiddenNote(r);
   }
-  function lnRowHtml(r) {
-    return (r.lnItems || []).map((m, k) => {
-      const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
-      if (m.mat) {
+  function matRowHtml(r, m, k) {
+    const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
         const lk = m.rid && U.reihen[m.rid];
-        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>M' + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
+        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-mdrag="' + k + '" title="Ziehen, um die Materialsammlung zwischen die Lektionen zu verschieben"') + ">M" + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
           '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diese Materialsammlung entfernen" aria-label="Materialsammlung entfernen">×</button></div>' +
           '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Name, z. B. Bilder" aria-label="Name der Materialsammlung">' +
           (lk ? '<span class="mat-link"><button type="button" class="linkbtn" data-goto="' + esc(m.rid) + '" title="Verknüpfte Reihe öffnen">↗ ' + esc(lk.title || "Reihe") + '</button><button type="button" class="x" data-matunlink="' + k + '" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">×</button></span>'
               : (r.klasse ? "" : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>')) + "</div>" +
           cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Kurzzusammenfassung der Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
           '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
-      }
+  }
+  // Wo eine Materialsammlung steht: nach welcher Lektion (Blockanfang), -1 = vor L1, sonst am Ende
+  function matPlace(r, bl) {
+    const at = {}, placed = new Set();
+    (r.lnItems || []).forEach((m, k) => {
+      if (!m || !m.mat || m.after == null) return;
+      let t = null;
+      if (m.after === -1) t = -1; else { const blk = bl.find(([a, s]) => m.after >= a && m.after < a + s); if (blk) t = blk[0]; }
+      if (t == null) return;
+      (at[t] = at[t] || []).push(k); placed.add(k);
+    });
+    return { at, placed };
+  }
+  function lnRowHtml(r, placed) {
+    return (r.lnItems || []).map((m, k) => {
+      const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
+      if (m.mat) return placed && placed.has(k) ? "" : matRowHtml(r, m, k);
       return '<div class="lesson ln-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>LN</b><button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Planung, Notizen, Dokumente" aria-label="Leistungsnachweis gross öffnen">+</button>' +
         '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diesen Leistungsnachweis entfernen" aria-label="Leistungsnachweis entfernen">×</button></div>' +
         '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="z. B. Prüfung" aria-label="Art des Leistungsnachweises">' +
@@ -3863,6 +3880,45 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.style.top = Math.max(8, Math.min(br.bottom + 4, innerHeight - mr.height - 8)) + "px";
   }
   // Lektion an der Bezeichnung (L1, L2 …) packen und an eine andere Stelle ziehen
+  // Materialsammlung zwischen Lektionen ziehen; Nummern M1, M2 … folgen der Reihenfolge
+  function matReorder(r) {
+    const bl = blocksOf(r), pos = (m) => (m.after == null ? 1e9 : m.after === -1 ? -1 : ((bl.find(([a, s]) => m.after >= a && m.after < a + s) || [1e9])[0]));
+    const slots = [], mats = [];
+    (r.lnItems || []).forEach((m, k) => { if (m && m.mat) { slots.push(k); mats.push(m); } });
+    mats.map((m, j) => [m, j]).sort((x, y) => pos(x[0]) - pos(y[0]) || x[1] - y[1]).forEach(([m], j) => { r.lnItems[slots[j]] = m; });
+  }
+  (function matDrag() {
+    let d = null;
+    const clear = () => uEl.querySelectorAll(".m-drop-before,.m-drop-after").forEach((el) => el.classList.remove("m-drop-before", "m-drop-after"));
+    uEl.addEventListener("dragstart", (e) => {
+      const h = e.target.closest && e.target.closest("[data-mdrag]"); if (!h) return;
+      d = +h.dataset.mdrag; const row = h.closest(".lesson"); if (row) row.classList.add("l-dragging");
+      try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", h.textContent); } catch (err) {}
+    });
+    uEl.addEventListener("dragover", (e) => {
+      if (d == null) return; const row = e.target.closest && (e.target.closest(".lesson") || e.target.closest(".ln-add")); if (!row) return;
+      e.preventDefault(); clear(); const rc = row.getBoundingClientRect();
+      row.classList.add(row.classList.contains("ln-add") || e.clientY >= rc.top + rc.height / 2 ? "m-drop-after" : "m-drop-before");
+    });
+    uEl.addEventListener("drop", (e) => {
+      if (d == null) return; const tb = uEl.querySelector(".m-drop-before"), ta = uEl.querySelector(".m-drop-after"); clear();
+      const k = d; d = null; const r = U.reihen[U.sel]; if (!r || r.klasse) return; const t = tb || ta; if (!t) return; e.preventDefault();
+      const it = r.lnItems && r.lnItems[k]; if (!it) return;
+      const bl = blocksOf(r), rows = [...uEl.querySelectorAll("#r-lessons .lesson, .lesson")].filter((x) => x.closest("#r-detail") || true);
+      let after;
+      if (t.classList.contains("ln-add")) after = undefined;
+      else {
+        const li = t.dataset.li;
+        if (/^ln\d+$/.test(li)) { const o = r.lnItems[+li.slice(2)]; after = o && o.mat ? (o.after == null ? undefined : o.after) : undefined; }
+        else { const bi = bl.findIndex(([a]) => a === +li); if (bi < 0) return; after = tb ? (bi > 0 ? bl[bi - 1][0] : -1) : bl[bi][0]; }
+      }
+      r.lnItems = r.lnItems.slice(); const n = { ...it }; if (after === undefined) delete n.after; else n.after = after; r.lnItems[k] = n;
+      matReorder(r);
+      const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur();
+      saveReihe(U.sel, 0); renderU();
+    });
+    uEl.addEventListener("dragend", () => { clear(); d = null; });
+  })();
   (function lessonDrag() {
     let d = null;
     const clear = () => uEl.querySelectorAll(".l-drop-before,.l-drop-after").forEach((el) => el.classList.remove("l-drop-before", "l-drop-after"));
