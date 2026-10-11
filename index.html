@@ -1143,6 +1143,23 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .sub-it.sub-r { background: color-mix(in srgb, var(--c-blau) 35%, var(--surface)); border-radius: 6px; padding: 0 2px 0 4px; }
 .rp-q { width: 100%; box-sizing: border-box; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
 .u-moved { display: none !important; }
+.ms-btn { color: color-mix(in srgb, var(--accent) 75%, var(--ink)); }
+.ms-menu { min-width: 300px; }
+.ms-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 2px; padding: 2px 6px; }
+.ms-row button { border: 0; background: none; font: inherit; cursor: pointer; color: var(--ink); padding: 5px 6px; border-radius: 5px; }
+.ms-row button[disabled] { opacity: 0.3; cursor: default; }
+.ms-row .ms-tog { text-align: left; border-left: 4px solid var(--line); background: var(--surface); }
+.ms-row.on .ms-tog { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.ms-row .ms-tog small { color: var(--muted); margin-left: 4px; }
+.lesson.ms-head { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-top: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.lesson.ms-head .lh, .lesson.ms-l .lh { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.ms-tag { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.ms-title { padding: 8px 10px; display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
+.ms-title small { color: var(--muted); font-weight: 400; }
+.lesson.ms-l .ro-txt { padding: 6px 10px; color: color-mix(in srgb, var(--ink) 85%, transparent); }
+.lesson.ms-l .ph.ro { font-size: 0.78rem; color: var(--muted); }
+.ms-mark { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
+.ms-of { color: color-mix(in srgb, var(--accent) 70%, var(--ink)) !important; }
 .lesson.m-drop-before { box-shadow: inset 0 3px 0 var(--accent); }
 .lesson.m-drop-after, .ln-add.m-drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
@@ -2817,6 +2834,37 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const htmlOf = (r, i) => (isLN(i) ? (lnItemOf(r, i).html || "") : ((r.lessons || [])[i] || ""));
   const phaseOf = (r, i) => (r.phases && typeof r.phases[i] === "string" ? r.phases[i] : defaultPhase(i));
   // Lektionen in Blöcke einteilen (verbundene Lektionen bilden einen Block)
+  // ---------- Masterreihen: Unterreihen erscheinen mit ihren Lektionen in der Masterreihe ----------
+  const childrenOf = (r) => (r && r.master && Array.isArray(r.children) ? r.children.filter((c) => c && U.reihen[c.rid] && !U.reihen[c.rid].klasse) : []);
+  const shownChildren = (r) => childrenOf(r).filter((c) => c.show !== false);
+  const mastersOf = (id) => Object.entries(U.reihen).filter(([, m]) => m && !m.klasse && m.master && (m.children || []).some((c) => c && c.rid === id));
+  const effL = (r) => totalL(r) + shownChildren(r).reduce((a, c) => a + totalL(U.reihen[c.rid]), 0);
+  const CH_LET = (n) => String.fromCharCode(65 + (n % 26));
+  // Für Klassen: Masterreihe mit ihren eingeschalteten Unterreihen zu einer einzigen Reihe zusammenfügen
+  function flattenMaster(src) {
+    if (!src || !src.master) return src;
+    const out = clone(src), n0 = lessonCount(src);
+    out.lessons = (src.lessons || []).slice(0, n0); while (out.lessons.length < n0) out.lessons.push("");
+    out.meta = { ...(src.meta || {}) }; out.phases = { ...(src.phases || {}) }; out.spans = { ...(src.spans || {}) }; out.links = { ...(src.links || {}) };
+    for (let i = 0; i < n0; i++) if (typeof out.phases[i] !== "string") out.phases[i] = phaseOf(src, i);
+    let off = n0;
+    out.mainFiles = (src.mainFiles || []).slice();
+    for (const c of shownChildren(src)) {
+      const ch = U.reihen[c.rid], cn = lessonCount(ch);
+      for (let i = 0; i < cn; i++) {
+        out.lessons[off + i] = (ch.lessons || [])[i] || "";
+        if ((ch.meta || {})[i]) out.meta[off + i] = clone(ch.meta[i]);
+        out.phases[off + i] = (ch.title ? ch.title + ": " : "") + phaseOf(ch, i);
+        if ((ch.spans || {})[i]) out.spans[off + i] = ch.spans[i];
+        if ((ch.links || {})[i] && i > 0) out.links[off + i] = ch.links[i];
+      }
+      (ch.mainFiles || []).forEach((f) => { if (!out.mainFiles.some((x) => x.id === f.id)) out.mainFiles.push(clone(f)); });
+      off += cn;
+    }
+    out.lektionen = off; if (!out.mainFiles.length) delete out.mainFiles;
+    delete out.master; delete out.children;
+    return out;
+  }
   function blocksOf(r) {
     const n = lessonCount(r), out = [];
     for (let i = 0; i < n;) { const s = Math.max(1, Math.min(Number((r.spans || {})[i]) || 1, n - i)); out.push([i, s]); i += s; }
@@ -3089,12 +3137,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const rs = vis.filter(([, r]) => homeOf(r) === y);
       const ms = UP.cross ? vis.filter(([, r]) => multi(r) && homeOf(r) !== y) : [];
       const all = [...ms, ...rs], act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
-      const sum = all.reduce((s, [, r]) => s + totalL(r), 0);
+      const inCol = new Set(all.map(([id]) => id));
+      // Unterreihen nicht doppelt zählen, wenn ihre Masterreihe (mit eingeschalteter Unterreihe) in derselben Spalte steht
+      const sum = all.reduce((s, [id, r]) => s + (mastersOf(id).some(([mid, mr]) => inCol.has(mid) && shownChildren(mr).some((c) => c.rid === id)) ? 0 : effL(r)), 0);
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button"' + (foreign ? "" : ' draggable="true"') + ' class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "") + " · Ziehen zum Verschieben") + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + subsHtml(id, r).car + statusBadge(r) + esc(r.title || "Ohne Titel") + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
-            (totalL(r) ? totalL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
+          return '<button type="button"' + (foreign ? "" : ' draggable="true"') + ' class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "") + " · Ziehen zum Verschieben") + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + subsHtml(id, r).car + statusBadge(r) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + (mastersOf(id).length ? '<span class="home-yr ms-of">↳ Unterreihe von ' + esc(mastersOf(id).map(([, mr]) => mr.title || "Reihe").join(", ")) + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
+            (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
@@ -3111,7 +3161,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     $("#r-years").innerHTML = YEARS.map((y) => '<button type="button" data-year="' + y + '" aria-pressed="' + (y === U.year) + '">' + YEAR_SHORT[y] + "</button>").join("");
     $("#u-cross").setAttribute("aria-pressed", String(UP.cross));
     const y = U.year, rs = sideList(y), act = rs.filter(([, r]) => !isParked(r, y)), pk = rs.filter(([, r]) => isParked(r, y)), pOpen = !!PARK_OPEN[y];
-    const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + sh.car + esc(r.title || "Ohne Titel") + sh.list + '</span><span class="n">' + (totalL(r) ? totalL(r) + " L" : "") + "</span></button>"; };
+    const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + sh.car + (r.master ? '<span class="ms-mark">◆ </span>' : "") + esc(r.title || "Ohne Titel") + sh.list + '</span><span class="n">' + (effL(r) ? effL(r) + " L" : "") + "</span></button>"; };
     $("#r-list").innerHTML = rs.length
       ? '<div class="rl-zone" data-zone="act">' + act.map(row).join("") + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
@@ -3160,8 +3210,22 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   const lessonLabel = (i, s) => (s === 1 ? "L" + (i + 1) : s === 2 ? "L" + (i + 1) + " + L" + (i + 2) : "L" + (i + 1) + " – L" + (i + s));
   const hasPlan = (p) => !!(p && (filled(p.ziele) || (p.rows || []).some((row) => row.some(filled))));
+  function childSecHtml(r) {
+    return shownChildren(r).map((c, n) => {
+      const ch = U.reihen[c.rid], L = CH_LET(n), cbl = blocksOf(ch), mf = ch.mainFiles || [];
+      return '<div class="lesson ms-head"><div class="lh"><div class="lh-top"><b>' + L + '</b></div><span class="ms-tag">Unterreihe</span></div>' +
+        '<div class="ms-title"><button type="button" class="linkbtn" data-goto="' + esc(c.rid) + '" title="Unterreihe öffnen und bearbeiten">↳ ' + esc(ch.title || "Ohne Titel") + "</button><small>" + totalL(ch) + " L</small></div>" +
+        '<div class="ldocs">' + mf.map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '" title="Hauptdokument der Unterreihe ansehen"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>" +
+        (cbl.length ? cbl.map(([i, sp]) => { const m = (ch.meta || {})[i] || {};
+          return '<div class="lesson ms-l"><div class="lh"><div class="lh-top"><b>' + L + "·" + lessonLabel(i, sp) + '</b></div><div class="ph ro">' + esc(phaseOf(ch, i)) + "</div></div>" +
+            '<div class="cell ro"><div class="rich ro-txt">' + sanitize(ch.lessons[i] || "") + "</div></div>" +
+            '<div class="ldocs">' + (m.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>"; }).join("")
+          : '<div class="lesson ms-l"><div class="lh"></div><div class="cell ro"><span class="help">Noch keine Lektionen in dieser Unterreihe.</span></div><div class="ldocs"></div></div>');
+    }).join("");
+  }
   function lessonsHtml(r) {
     const bl = blocksOf(r);
+    if (!bl.length && shownChildren(r).length) return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + childSecHtml(r) + lnRowHtml(r);
     if (!bl.length) return ((r.lnItems || []).some((m) => m && m.mat) ? "" : '<div class="empty">Keine Lektionen: Diese Reihe ist eine <b>Sammlung</b>. Legen Sie unten Materialsammlungen M1, M2 … an – oder tragen Sie oben die Anzahl Lektionen ein.</div>') + lnRowHtml(r);
     const links = r.links || {};
     const dates = r.klasse && typeof classSchedule === "function" ? lessonDates(r.klasse) : null;
@@ -3180,7 +3244,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<div class="ph" contenteditable="true" role="textbox" data-phase="' + i + '" data-ph="Phase …" aria-label="Phase ' + lessonLabel(i, s) + '">' + esc(phaseOf(r, i)) + "</div></div>" +
         cellHtml2('data-rf="lessons.' + i + '" id="l-' + i + '" aria-label="' + lessonLabel(i, s) + '"', r.lessons[i], { color: m.color, more, cellAttrs: ' data-lesson="' + i + '"' }) +
         '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : i) + "</div></div>" + matAt(i);
-    }).join("") + lnRowHtml(r, mp.placed) + hiddenNote(r);
+    }).join("") + childSecHtml(r) + lnRowHtml(r, mp.placed) + hiddenNote(r);
   }
   function matRowHtml(r, m, k) {
     const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
@@ -3276,6 +3340,35 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return '<span class="r-home">Hauptjahr <select id="r-home" aria-label="Hauptjahr der Reihe"' + (ys.length < 2 ? " disabled" : "") + ">" +
       ys.map((y) => '<option value="' + y + '"' + (y === homeYear(r) ? " selected" : "") + ">" + YEAR_SHORT[y] + "</option>").join("") + "</select>" +
       (none ? '<span class="hint">Kein Schuljahr gewählt – die Reihe steht unter «Anderes».</span>' : "") + "</span>";
+  }
+  function masterMenu(btn) {
+    closeMenu();
+    const id = U.sel; if (!U.reihen[id]) return;
+    const R = () => U.reihen[id] || {};
+    const m = document.createElement("div"); m.className = "cmenu ms-menu"; m.id = "cmenu"; m.setAttribute("role", "menu");
+    const draw = () => {
+      const list = (R().children || []).filter((c) => c && U.reihen[c.rid]);
+      m.innerHTML = '<div class="cm-title">Unterreihen · Klick = in der Masterreihe zeigen oder nicht</div>' +
+        (list.length ? list.map((c, k) => { const ch = U.reihen[c.rid];
+          return '<div class="ms-row' + (c.show !== false ? " on" : "") + '"><button type="button" class="ms-tog" data-mtog="' + k + '" title="' + (c.show !== false ? "Wird in der Masterreihe gezeigt – klicken zum Ausblenden" : "Ausgeblendet – klicken zum Zeigen") + '">' + esc(ch.title || "Ohne Titel") + " <small>" + totalL(ch) + ' L</small></button><button type="button" data-mmv="' + k + ':-1"' + (k ? "" : " disabled") + ' title="Nach oben">↑</button><button type="button" data-mmv="' + k + ':1"' + (k < list.length - 1 ? "" : " disabled") + ' title="Nach unten">↓</button><button type="button" data-mrm="' + k + '" title="Unterreihe entfernen (die Reihe selbst bleibt bestehen)">×</button></div>'; }).join("")
+          : '<p class="msg" style="padding:4px 10px">Noch keine Unterreihen.</p>') +
+        '<hr><button type="button" role="menuitem" data-madd>+ Unterreihe hinzufügen</button><button type="button" role="menuitem" class="cm-danger" data-moff>Masterreihe aufheben</button>';
+    };
+    draw();
+    m.addEventListener("mousedown", (ev) => ev.preventDefault());
+    m.addEventListener("click", (ev) => {
+      const b = ev.target.closest("button"); if (!b) return;
+      const r = R(), list = (r.children || []).filter((c) => c && U.reihen[c.rid]).map((c) => ({ ...c }));
+      const done = () => { R().children = list; saveReihe(id, 0); renderU(); const nb = $("#r-mlist"); if (nb) { document.body.appendChild(m); const br = nb.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, br.right - m.offsetWidth)) + "px"; m.style.top = br.bottom + 4 + "px"; } draw(); };
+      if (b.dataset.mtog != null) { const c = list[+b.dataset.mtog]; c.show = c.show === false; done(); return; }
+      if (b.dataset.mmv) { const [k, d] = b.dataset.mmv.split(":").map(Number), q = k + d; if (q < 0 || q >= list.length) return; [list[k], list[q]] = [list[q], list[k]]; done(); return; }
+      if (b.dataset.mrm != null) { list.splice(+b.dataset.mrm, 1); done(); return; }
+      if (b.dataset.madd != null) { closeMenu(); reihePicker(id, (rid) => { const rr = R(); if (rid === id || (rr.children || []).some((c) => c.rid === rid)) return; if (U.reihen[rid] && U.reihen[rid].master && childrenOf(U.reihen[rid]).some((c) => c.rid === id)) return; rr.children = [...(rr.children || []), { rid, show: true }]; saveReihe(id, 0); renderU(); }); return; }
+      if (b.dataset.moff != null) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich aufheben? (Unterreihen bleiben bestehen)"; return; } closeMenu(); const rr = R(); delete rr.master; delete rr.children; saveReihe(id, 0); renderU(); }
+    });
+    document.body.appendChild(m);
+    const br = btn.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, br.right - m.offsetWidth)) + "px"; m.style.top = br.bottom + 4 + "px";
   }
   // Eine andere Reihe auswählen (für Unterpunkte und Materialsammlungen)
   function reihePicker(self, cb) {
@@ -3530,7 +3623,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     rSnapBase(U.sel); setTimeout(rUndoBtn, 0);
     box.innerHTML =
       '<div class="r-top"><input class="r-title" id="r-title" data-rf="title" value="' + esc(r.title || "") + '" aria-label="Titel der Reihe" placeholder="Titel der Reihe">' +
-      '<div class="r-tools"><button class="btn ghost" type="button" id="r-undo" disabled title="Noch nichts rückgängig zu machen">↶ Rückgängig</button>' + (r.klasse ? "" : '<select id="r-status" class="st-sel st-' + statusOf(r) + '" aria-label="Status der Reihe">' + STATI.map(([v, l]) => '<option value="' + v + '"' + (statusOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>") + '<button class="btn ghost' + (r.folder ? " has-folder" : "") + '" type="button" id="r-folder" title="' + (r.folder ? "Ordnerpfad kopieren: " + esc(r.folder) : "Ordner auf dem Computer hinterlegen") + '">📁 Ordner</button>' + (window.ZLOCAL ? '<button class="btn ghost" type="button" id="r-folder-ed" title="Ordner wählen oder ändern" aria-label="Ordner wählen">✎</button>' : "") + '<button class="btn ghost" type="button" id="r-print" title="Ganze Reihe als Lektionsplanung drucken">Drucken</button><button class="btn ghost" type="button" data-move="-1" title="Reihe in der Liste nach oben schieben" aria-label="Reihe nach oben">↑</button><button class="btn ghost" type="button" data-move="1" title="Reihe in der Liste nach unten schieben" aria-label="Reihe nach unten">↓</button></div></div>' +
+      '<div class="r-tools"><button class="btn ghost" type="button" id="r-undo" disabled title="Noch nichts rückgängig zu machen">↶ Rückgängig</button>' + (r.klasse ? "" : '<select id="r-status" class="st-sel st-' + statusOf(r) + '" aria-label="Status der Reihe">' + STATI.map(([v, l]) => '<option value="' + v + '"' + (statusOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>") + '<button class="btn ghost' + (r.folder ? " has-folder" : "") + '" type="button" id="r-folder" title="' + (r.folder ? "Ordnerpfad kopieren: " + esc(r.folder) : "Ordner auf dem Computer hinterlegen") + '">📁 Ordner</button>' + (window.ZLOCAL ? '<button class="btn ghost" type="button" id="r-folder-ed" title="Ordner wählen oder ändern" aria-label="Ordner wählen">✎</button>' : "") + '' + (r.klasse ? "" : r.master ? '<button class="btn ghost ms-btn" type="button" id="r-mlist" aria-haspopup="menu" title="Unterreihen dieser Masterreihe">◆ Unterreihen (' + childrenOf(r).length + ') ▾</button>' : '<button class="btn ghost" type="button" id="r-master" title="Diese Reihe zur Masterreihe machen, um Unterreihen hinzuzufügen">◆ Masterreihe</button>') + '<button class="btn ghost" type="button" id="r-print" title="Ganze Reihe als Lektionsplanung drucken">Drucken</button><button class="btn ghost" type="button" data-move="-1" title="Reihe in der Liste nach oben schieben" aria-label="Reihe nach oben">↑</button><button class="btn ghost" type="button" data-move="1" title="Reihe in der Liste nach unten schieben" aria-label="Reihe nach unten">↓</button></div></div>' +
       '<div class="r-meta"><label>Lektionen <input type="number" min="0" max="60" id="r-lekt" data-rf="lektionen" value="' + (r.lektionen ?? "") + '"></label>' + '<span class="ln-sum" id="r-lnsum">' + lnSumText(r) + "</span>" +
       '<label>Leistungsnachweis <input type="text" id="r-ln" data-rf="ln" list="ln-list" value="' + esc(r.ln || "") + '" placeholder="z. B. Prüfung, Abgabe"></label>' +
       '<datalist id="ln-list">' + LN_SUGGEST.map((s) => '<option value="' + esc(s) + '"></option>').join("") + "</datalist>" +
@@ -4164,6 +4257,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const r0 = U.reihen[U.sel];
     if (b.dataset.joint != null && r0) { jointMenu(b, r0, +b.dataset.joint); return; }
     if (b.dataset.unmerge != null && r0) { unmergeLast(r0, +b.dataset.unmerge); saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
+    if (b.dataset.openCfile) {
+      const [rid, fid] = b.dataset.openCfile.split("|"), ch = U.reihen[rid]; if (!ch) return;
+      const f = [...Object.values(ch.meta || {}).flatMap((m) => m.files || []), ...(ch.mainFiles || []), ...(ch.files || [])].find((ff) => ff.id === fid);
+      if (f) openViewer(f); return;
+    }
     if (b.dataset.openFile && r0) {
       const f = [...Object.values(r0.meta || {}).flatMap((m) => m.files || []), ...(r0.mainFiles || []), ...(r0.files || []), ...(r0.lnItems || []).flatMap((m) => m.files || [])].find((ff) => ff.id === b.dataset.openFile);
       if (f && f.folder) { if (window.ZLOCAL) window.ZLOCAL.open(f.path).catch(() => uStatus("Ordner nicht gefunden", true)); else uStatus("Ordner: " + f.path); return; }
@@ -4176,10 +4274,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     }
     if (b.id === "r-folder-ed" && r0) { folderMenu($("#r-folder") || b, r0); return; }
     if (b.id === "r-print" && r0) { printPicker(r0); return; }
+    if (b.id === "r-master" && r0) { r0.master = true; r0.children = r0.children || []; saveReihe(U.sel, 0); renderU(); setTimeout(() => { const mb = $("#r-mlist"); if (mb) masterMenu(mb); }, 50); return; }
+    if (b.id === "r-mlist" && r0) { masterMenu(b); return; }
     if (b.dataset.matadd != null && r0) { r0.lnItems = [...(r0.lnItems || []), { mat: true, name: "", html: "" }]; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
-    if (b.dataset.matlink != null && r0) { const k = +b.dataset.matlink; reihePicker(U.sel, (rid) => { r0.lnItems = (r0.lnItems || []).slice(); r0.lnItems[k] = { ...(r0.lnItems[k] || {}), rid }; saveReihe(U.sel, 0); renderLessonsOnly(r0); }); return; }
+    if (b.dataset.matlink != null && r0) { const k = +b.dataset.matlink; const sid = U.sel; reihePicker(sid, (rid) => { const rr = U.reihen[sid]; if (!rr) return; rr.lnItems = (rr.lnItems || []).slice(); rr.lnItems[k] = { ...(rr.lnItems[k] || {}), rid }; saveReihe(sid, 0); renderU(); }); return; }
     if (b.dataset.matunlink != null && r0) { const k = +b.dataset.matunlink; r0.lnItems = (r0.lnItems || []).slice(); const it = { ...(r0.lnItems[k] || {}) }; delete it.rid; r0.lnItems[k] = it; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
-    if (b.dataset.sublink != null) { const r = U.reihen[U.sel]; if (!r) return; reihePicker(U.sel, (rid) => { r.subs = [...(Array.isArray(r.subs) ? r.subs : []), "@" + rid]; saveReihe(U.sel, 0); $("#r-subs").innerHTML = subsEdHtml(r); renderRSide(); }); return; }
+    if (b.dataset.sublink != null) { const sid = U.sel; if (!U.reihen[sid]) return; reihePicker(sid, (rid) => { const r = U.reihen[sid]; if (!r) return; r.subs = [...(Array.isArray(r.subs) ? r.subs : []), "@" + rid]; saveReihe(U.sel, 0); $("#r-subs").innerHTML = subsEdHtml(r); renderRSide(); }); return; }
     if (b.dataset.lnadd != null && r0) { r0.lnItems = [...(r0.lnItems || []), { name: (r0.lnItems || []).length ? "" : r0.ln || "", html: "" }]; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
     if (b.dataset.lnrm != null && r0) {
       const k = +b.dataset.lnrm, it = (r0.lnItems || [])[k] || {}, used = filled(it.html) || hasPlan(it.plan) || filled(it.notesHtml) || (it.files || []).length;
@@ -5108,7 +5208,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     let n = 0;
     for (const srcId of ids) {
       const src = U.reihen[srcId]; if (!src) continue;
-      const c = normReihe(clone(src));
+      const c = normReihe(clone(flattenMaster(src)));
       c.klasse = kid; c.kyear = cy; c.src = srcId; c.srcTitle = src.title || ""; c.copiedAt = keyOf(today());
       c.order = copiesOf(kid).reduce((m, [, r]) => Math.max(m, (r.order ?? 0) + 1), 0);
       const id = "k" + Date.now().toString(36) + (n++);
