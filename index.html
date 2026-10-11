@@ -434,7 +434,7 @@ html.mob .side-rz { display: none !important; }
   .cal-dayview .cal-s { font-size: 0.7rem; }
   .cal-dayview .cal-add { align-self: flex-start; }
 }
-.row { display: grid; grid-template-columns: 104px 108px repeat(3, minmax(0, 1fr)) minmax(0, 0.9fr); border-top: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 104px 108px repeat(3, minmax(0, 1fr)) minmax(0, 0.9fr) 22px; border-top: 1px solid var(--line); }
 .row:first-child { border-top: 0; }
 .row > * { min-width: 0; }
 .row > * + * { border-left: 1px solid var(--line); }
@@ -1099,6 +1099,31 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .sp td.sp-ops { white-space: nowrap; width: auto; }
 .sp td.sp-ops .btn { padding: 2px 6px; min-width: 0; }
 .sp td.sp-ops .btn[disabled] { opacity: 0.3; cursor: default; }
+.cell.has-time .inp { padding-bottom: 22px; }
+.t-time { position: absolute; left: 0; right: 0; bottom: 3px; padding: 0 8px; pointer-events: none; text-align: inherit; font-size: 0.72rem; font-weight: 600; color: color-mix(in srgb, var(--ink) 65%, transparent); font-variant-numeric: tabular-nums; }
+.tseries { display: flex; flex-wrap: wrap; gap: 3px; padding: 4px 6px 0; }
+.ts { display: inline-flex; flex-direction: column; align-items: flex-start; max-width: 100%; border: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 5px; padding: 2px 7px; font: inherit; font-size: 0.78rem; color: var(--ink); background: color-mix(in srgb, var(--surface) 70%, transparent); cursor: pointer; text-align: left; }
+.ts small { font-size: 0.7rem; color: color-mix(in srgb, var(--ink) 65%, transparent); font-variant-numeric: tabular-nums; }
+.ts:hover { border-style: solid; border-color: var(--accent); }
+.cal-e.cal-ser { border: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent); }
+.hstrip { position: relative; border-left: 1px solid var(--line); background: var(--surface); }
+.row.head .h-hol { border-left: 1px solid var(--line); }
+.hstrip.on { background: color-mix(in srgb, var(--c-blau) 85%, var(--surface)); }
+.hstrip.on.special { background: color-mix(in srgb, var(--c-apricot) 85%, var(--surface)); }
+.hstrip.first { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+.hstrip.last { box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+.hstrip.first.last { box-shadow: inset 0 3px 0 color-mix(in srgb, var(--accent) 60%, transparent), inset 0 -3px 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+.hstrip > span { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 2; writing-mode: vertical-rl; white-space: nowrap; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; color: var(--ink); pointer-events: none; }
+.d-time { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.d-time input { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.ser-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ser-row small { display: block; color: var(--muted); font-size: 0.8rem; }
+.ser-sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); }
+.ser-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 4px 14px; }
+.ser-form .field select, .ser-form .field input[type="text"], .ser-form .field input[type="date"] { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.ser-exc { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
+.exc { display: inline-flex; align-items: center; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 1px 4px 1px 9px; font-size: 0.82rem; }
+.exc button { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 0.95rem; }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
@@ -1220,6 +1245,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       <label class="sp-show"><input type="checkbox" id="t-show" checked> Klassen anzeigen</label>
       <label class="sp-show"><input type="checkbox" id="t-showhol" checked> Ferien anzeigen</label>
       <button type="button" class="btn ghost" id="t-hol">Ferien eintragen</button>
+      <button type="button" class="btn ghost" id="t-ser">↻ Regelmässige Termine</button>
       <span class="status" id="status"></span>
     </div>
     <div class="layout">
@@ -1337,6 +1363,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (x) {
         d[s] = { text: x.text || "", color: x.color || "", details: x.details || "", files: Array.isArray(x.files) ? x.files : [] };
         if (typeof x.html === "string") d[s].html = x.html;
+        if (x.from) d[s].from = String(x.from); if (x.to) d[s].to = String(x.to);
         if (x.split === "v" || x.split === "h") {
           d[s].split = x.split; d[s].nparts = Math.max(2, Math.min(4, x.nparts | 0 || 2));
           for (let n = 2; n <= d[s].nparts; n++) { d[s]["text" + n] = x["text" + n] || ""; if (typeof x["html" + n] === "string") d[s]["html" + n] = x["html" + n]; }
@@ -1361,7 +1388,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const validWidths = (w) => w.every((n) => n >= 0) && Math.abs(w[0] + w[1] + w[2] - 3) < 0.01 && w[0] > 0;
   const isDefaultW = (w) => !w || w.every((n, i) => Math.abs(n - DEFAULT_W[i]) < 0.01);
   const widthsOf = (key) => (state.days[key] && state.days[key].widths) || DEFAULT_W;
-  const slotEmpty = (x) => !x || (!x.text && !x.color && !x.details && !(x.files && x.files.length) && !x.split);
+  const slotEmpty = (x) => !x || (!x.text && !x.color && !x.details && !(x.files && x.files.length) && !x.split && !x.from);
   const dayEmpty = (d) => !d || (SLOTS.every(([s]) => slotEmpty(d[s])) && isDefaultW(d.widths));
   function slotOf(key, slot) {
     state.days[key] = state.days[key] || {};
@@ -1517,19 +1544,68 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const pc = x && x.split && x.pcolors && x.pcolors[part - 1];
     return '<div class="inp rich' + (pc ? " f-" + pc : "") + '" data-part="' + part + '" tabindex="0" role="textbox" aria-multiline="true" id="t-' + key + '-' + slot + (part > 1 ? "-" + part : "") + '" aria-label="' + label + PART_NAMES[part] + '" title="Doppelklick zum Schreiben">' + (x ? richOf(x, part) : "") + "</div>";
   };
+  // ---------- Regelmässige Termine, Zeiten, Ferienstreifen ----------
+  const timeTxt = (o) => (o && o.from ? o.from + (o.to ? "–" + o.to : "") : "");
+  const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
+  function seriesOn(key, slot) {
+    let list; try { list = spGet().series; } catch (e) { return []; }
+    if (!list.length) return [];
+    const d = fromKey(key), wd = d.getDay(), out = [];
+    for (const sr of list) {
+      if (slot && sr.slot !== slot) continue;
+      if (!Array.isArray(sr.days) || !sr.days.includes(wd)) continue;
+      if (sr.start && key < sr.start) continue; if (sr.end && key > sr.end) continue;
+      if ((sr.except || []).includes(key)) continue;
+      if (sr.skipHol !== false) { const h = holidayOf(key, "termine"); if (h && h.frei !== false) continue; }
+      const n = sr.freq === "w2" ? 2 : sr.freq === "w4" ? 4 : 1;
+      if (n > 1) { const wk = Math.round((mondayOf(d) - mondayOf(fromKey(sr.start || key))) / 6048e5); if (((wk % n) + n) % n) continue; }
+      out.push(sr);
+    }
+    return out;
+  }
+  const endSlot = (t) => (!t ? -1 : t <= "12:00" ? 0 : t <= "18:00" ? 1 : 2);
+  // Breite: von Hand gezogen gilt; sonst wird ein Feld breiter, wenn ein Termin mit Zeit über den Mittag/Abend hinaus dauert
+  function effW(key) {
+    const d = state.days[key];
+    if (d && d.widths && !isDefaultW(d.widths)) return d.widths;
+    const w = DEFAULT_W.slice(), has = (j) => !slotEmpty(d && d[SPAN_SLOTS[j]]) || seriesOn(key, SPAN_SLOTS[j]).length > 0;
+    for (let i = 0; i < 2; i++) {
+      if (w[i] <= 0) continue;
+      const sl = SPAN_SLOTS[i], ends = [d && d[sl] && d[sl].to, ...seriesOn(key, sl).map((x) => x.to)].filter(Boolean);
+      if (!ends.length) continue;
+      const e = Math.max(...ends.map(endSlot));
+      for (let j = i + 1; j <= e; j++) { if (has(j)) break; w[i] += w[j]; w[j] = 0; }
+    }
+    return w;
+  }
+  function serBand(key, slot) {
+    const ss = seriesOn(key, slot); if (!ss.length) return "";
+    return '<div class="tseries">' + ss.map((sr) => '<button type="button" class="ts' + (sr.color ? " f-" + sr.color : "") + '" data-ser="' + esc(sr.id) + "|" + key + '" title="Regelmässiger Termin – klicken für Optionen"><span>↻ ' + esc(sr.text || "Termin") + "</span>" + (sr.from ? "<small>" + esc(timeTxt(sr)) + "</small>" : "") + "</button>").join("") + "</div>";
+  }
+  const sameHol = (a, b) => !!(a && b && a.from === b.from && (a.to || a.from) === (b.to || b.from) && a.label === b.label);
+  function holStrip(key, weekStart) {
+    let h = null; try { h = spGet().showHol ? holidayOf(key, "termine") : null; } catch (e) {}
+    if (!h) return '<div class="hstrip"></div>';
+    const prev = holidayOf(keyOf(addDays(fromKey(key), -1)), "termine"), next = holidayOf(keyOf(addDays(fromKey(key), 1)), "termine");
+    const first = !sameHol(prev, h), last = !sameHol(next, h);
+    const span = fmt(fromKey(h.from)).slice(0, 6) + "–" + fmt(fromKey(h.to || h.from)).slice(0, 6);
+    return '<div class="hstrip on' + (h.frei === false ? " special" : "") + (first ? " first" : "") + (last ? " last" : "") + '" title="' + esc((h.label || "Ferien") + " · " + span) + '">' + (first || weekStart ? "<span>" + esc(h.label || "Ferien") + "</span>" : "") + "</div>";
+  }
   function cellHtml(key, slot, label) {
     const x = state.days[key] && state.days[key][slot];
     const more = x && (x.details || (x.files && x.files.length));
-    const i = SPAN_SLOTS.indexOf(slot), w = i >= 0 ? widthsOf(key)[i] : 1;
+    const i = SPAN_SLOTS.indexOf(slot), w = i >= 0 ? effW(key)[i] : 1;
     const cls = "cell cell-" + slot + (x && x.color ? " f-" + x.color : "") + (more ? " has-more" : "") + (w <= 0 ? " covered" : "") + (w > DEFAULT_W[i] + 0.01 ? " wide" : "");
     const style = i >= 0 ? ' style="width:' + pct(w) + '"' : "";
     const rz = i >= 0 && i < 2 && w > 0 ? '<span class="rz" title="Ziehen, um das Feld breiter oder schmaler zu machen" aria-hidden="true"></span>' : "";
     const tip = more ? "Gross öffnen (enthält Details" + (x.files && x.files.length ? " und " + x.files.length + " Dokument" + (x.files.length > 1 ? "e" : "") : "") + ")" : "Gross öffnen";
     const band = slot === "morgen" || slot === "nachmittag" ? lessonBand(key, slot) : "";
-    return '<div class="' + cls + (band ? " has-ul" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band +
+    const sband = serBand(key, slot);
+    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from ? " has-time" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
       (x && x.split
         ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => ta(key, slot, label, n + 1, x)).join("") + '</div>'
         : ta(key, slot, label, 1, x)) +
+      (x && x.from ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
       (more ? '<span class="dot" aria-hidden="true"></span>' : "") +
       '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + rz + '</div>';
   }
@@ -1538,11 +1614,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return '<div class="row day' + (we ? " we" : "") + (isToday ? " is-today" : "") + (weekStart ? " week" : "") + '" data-key="' + key + '">' +
       '<div class="daytitle"><div class="cell-date">' + fmt(date) + holTag(key) + (weekStart ? '<span class="kw">KW ' + isoWeek(date) + '</span>' : "") + '</div><div class="cell-day">' + TAGE[wd] + '</div></div>' +
       '<div class="slots">' + SLOTS.slice(0, 3).map(([s, l]) => cellHtml(key, s, l)).join("") + '</div>' +
-      cellHtml(key, "notiz", "Notizen") + '</div>';
+      cellHtml(key, "notiz", "Notizen") + holStrip(key, weekStart) + '</div>';
   }
   const HEAD = '<div class="row head"><div>Datum</div><div>Tag</div><div class="slots">' +
     '<div class="h-morgen" style="width:' + pct(DEFAULT_W[0]) + '">Morgen</div><div class="h-nachmittag" style="width:' + pct(DEFAULT_W[1]) + '">Nachmittag</div><div class="h-abend" style="width:' + pct(DEFAULT_W[2]) + '">Abend</div>' +
-    '</div><div>Notizen</div></div>';
+    '</div><div>Notizen</div><div class="h-hol" title="Ferien"></div></div>';
 
   // Felder wachsen von selbst mit dem Inhalt
   function autosize() {}
@@ -1554,7 +1630,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const holTag = (key) => { const h = spGet().showHol ? holidayOf(key, "termine") : null; return h ? '<span class="hol-tag' + (h.frei === false ? " special" : "") + '">' + esc(h.label || (h.frei === false ? "Spezieller Tag" : "Ferien")) + "</span>" : ""; };
   function lessonBand(key, slot) {
     const all = curLB[key]; if (!all || !all.length) return "";
-    const pmCovered = widthsOf(key)[1] <= 0;
+    const pmCovered = effW(key)[1] <= 0;
     const items = all.filter((x) => !x.hol && (slot === "morgen" ? (x.from < "12:00" || pmCovered) : x.from >= "12:00"));
     if (!items.length) return "";
     return '<div class="tlessons">' + items.map((x) => { const k = K.klassen[x.kid], nm = (k && k.name) || "Klasse";
@@ -1629,8 +1705,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       SLOTS.forEach(([s]) => {
         const x = day[s], txt = slotText(x); if (!txt) return;
         const col = (x && x.color) || (x && x.pcolors && x.pcolors[0]) || "";
-        inner += '<button type="button" class="cal-e' + (col ? " f-" + col : "") + '" data-copen="' + k + "|" + s + '" title="' + esc(SLOT_SHORT[s] + ": " + txt) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + "</span>" : "") + esc(txt) + "</button>";
+        inner += '<button type="button" class="cal-e' + (col ? " f-" + col : "") + '" data-copen="' + k + "|" + s + '" title="' + esc(SLOT_SHORT[s] + ": " + txt + (x.from ? " · " + timeTxt(x) : "")) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + (x.from ? " · " + esc(timeTxt(x)) : "") + "</span>" : "") + esc(txt) + "</button>";
       });
+      SLOTS.forEach(([s]) => seriesOn(k, s).forEach((sr) => { inner += '<button type="button" class="cal-e cal-ser' + (sr.color ? " f-" + sr.color : "") + '" data-ser="' + esc(sr.id) + "|" + k + '" title="Regelmässig: ' + esc((sr.text || "Termin") + (sr.from ? " · " + timeTxt(sr) : "")) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + (sr.from ? " · " + esc(timeTxt(sr)) : "") + "</span>" : "") + "↻ " + esc(sr.text || "Termin") + "</button>"; }));
       const empty = !SLOTS.some(([s]) => slotText(day[s]));
       h += '<div class="cal-d' + (wd === 0 || wd === 6 ? " we" : "") + (k === tk ? " is-today" : "") + (out ? " out" : "") + (empty ? " empty" : "") + (!week && k === selK ? " sel" : "") + '" data-k="' + k + '">' + inner + "</div>";
     }
@@ -1952,6 +2029,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     // Auf dem Handy reicht ein Tippen zum Schreiben
     const t = e.target.closest(".inp"); if (t && lastPointer === "touch") startEdit(t);
   });
+  document.addEventListener("click", (e) => {
+    const sb = e.target.closest("[data-ser]"); if (!sb || !(sb.closest("#list") || sb.closest("#cal"))) return;
+    e.preventDefault(); e.stopPropagation(); serMenu(sb);
+  }, true);
   list.addEventListener("click", (e) => {
     const tl = e.target.closest(".tl");
     if (tl) { const g = tl.dataset.tgo, c = g.indexOf("|"); setTab("klassen"); goToSlot(g.slice(0, c), g.slice(c + 1)); return; }
@@ -2418,12 +2499,17 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
         '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div>' +
         notesF + actionsF;
-    } else body = textF + colorF + notesF + docsF + actionsF;
+    } else body = textF + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button></div></div>' : "") + colorF + notesF + docsF + actionsF;
     openModal(
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
       (root) => {
         const tText = $("#d-text"), tDet = $("#d-details");
         if (opt.plan) { root.querySelector(".panel").classList.add("wide"); bindPlan(root, opt.plan, () => opt.changed()); }
+        if (opt.time) {
+          const tf = () => { const a = $("#d-from").value, b2 = $("#d-to").value; if (a) x.from = a; else delete x.from; if (a && b2) x.to = b2; else delete x.to; opt.changed(); };
+          $("#d-from").addEventListener("change", tf); $("#d-to").addEventListener("change", tf);
+          $("#d-tclr").onclick = () => { $("#d-from").value = ""; $("#d-to").value = ""; tf(); };
+        }
         if (opt.onPrint) $("#d-print").onclick = () => { opt.changed(); opt.onPrint(); };
         const changed = () => opt.changed();
         tText.addEventListener("input", () => { x.html = sanitize(tText.innerHTML); x.text = htmlToPlain(x.html); changed(); });
@@ -2590,7 +2676,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const x = slotOf(key, slot);
     dirty.add(key); // Eintrag während des Bearbeitens nicht durch Serverstand ersetzen
     openDetailBox({
-      title: TAGE[date.getDay()] + ", " + fmt(date), sub: label, x,
+      title: TAGE[date.getDay()] + ", " + fmt(date), sub: label, x, time: slot !== "notiz",
       changed: () => { state.days[key] = state.days[key] || {}; state.days[key][slot] = x; scheduleSave(key, 900); },
       onClose: () => { if (timers[key]) flush(key); else dirty.delete(key); render(); },
     });
@@ -4020,7 +4106,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     let sems = Array.isArray(sp.semesters) && sp.semesters.length ? sp.semesters : null;
     if (!sems) { const d = semDefault(); if (Array.isArray(sp.times) && sp.times.length) d.times = sp.times; if (sp.cells) d.cells = sp.cells; sems = [d]; }
     sems = sems.map((s) => ({ ...s, times: Array.isArray(s.times) && s.times.length ? s.times : DEF_TIMES.map((t) => t.slice()), cells: s.cells || {} }));
-    return { semesters: sems, show: sp.show !== false, showHol: sp.showHol !== false, holidays: Array.isArray(sp.holidays) ? sp.holidays : [], kinds: Array.isArray(sp.kinds) ? sp.kinds : [], extra: sp.extra && typeof sp.extra === "object" ? sp.extra : {} };
+    return { semesters: sems, show: sp.show !== false, showHol: sp.showHol !== false, holidays: Array.isArray(sp.holidays) ? sp.holidays : [], kinds: Array.isArray(sp.kinds) ? sp.kinds : [], extra: sp.extra && typeof sp.extra === "object" ? sp.extra : {}, series: Array.isArray(sp.series) ? sp.series : [] };
   }
   const semOf = (dk) => spGet().semesters.find((s) => dk >= s.from && dk <= s.to) || null;
   function curSem() {
@@ -4646,6 +4732,74 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.style.top = Math.max(8, Math.min(br.bottom + 4, innerHeight - mr.height - 8)) + "px";
   }
   // Ferien und spezielle Tage eintragen – aus den Terminen (scope "termine") oder den Klassen (scope "klassen")
+  const SER_FREQ = [["w1", "jede Woche"], ["w2", "alle 2 Wochen"], ["w4", "alle 4 Wochen"]];
+  const SWD = [[1, "Mo"], [2, "Di"], [3, "Mi"], [4, "Do"], [5, "Fr"], [6, "Sa"], [0, "So"]];
+  function serSummary(sr) {
+    return SWD.filter(([d]) => (sr.days || []).includes(d)).map(([, l]) => l).join(", ") + " · " + (SER_FREQ.find(([v]) => v === sr.freq) || SER_FREQ[0])[1] +
+      (sr.from ? " · " + timeTxt(sr) : "") + (sr.start ? " · ab " + fmt(fromKey(sr.start)) : "") + (sr.end ? " bis " + fmt(fromKey(sr.end)) : "") + ((sr.except || []).length ? " · " + sr.except.length + " Ausnahme" + (sr.except.length > 1 ? "n" : "") : "");
+  }
+  function saveSeries(list) { spSet({ series: list }); spSave(300); render(); }
+  function openSeries(editId) {
+    let list = clone(spGet().series), cur = editId ? list.find((x) => x.id === editId) : null;
+    const listHtml = () => (list.length ? list.map((sr) => '<div class="ser-row"><span class="ser-sw' + (sr.color ? " f-" + sr.color : "") + '"></span><div><b>' + esc(sr.text || "Termin") + '</b><small>' + esc(serSummary(sr)) + '</small></div><button type="button" class="btn ghost" data-sedit="' + esc(sr.id) + '">Bearbeiten</button><button type="button" class="btn ghost danger" data-sdel="' + esc(sr.id) + '" aria-label="Löschen">×</button></div>').join("") : '<p class="msg">Noch keine regelmässigen Termine.</p>') +
+      '<div class="ptools"><button type="button" class="btn" id="ser-new">+ Regelmässiger Termin</button></div>';
+    const formHtml = (sr) => '<div class="ser-form">' +
+      '<label class="field"><span class="lbl">Bezeichnung</span><input type="text" id="sf-text" value="' + esc(sr.text || "") + '" placeholder="z. B. IBE, Teamsitzung, Chor"></label>' +
+      '<div class="field"><span class="lbl">Wochentage</span><div class="chips">' + SWD.map(([d, l]) => '<button type="button" class="chip" data-sfd="' + d + '" aria-pressed="' + (sr.days || []).includes(d) + '">' + l + "</button>").join("") + "</div></div>" +
+      '<div class="ser-grid"><label class="field"><span class="lbl">Rhythmus</span><select id="sf-freq">' + SER_FREQ.map(([v, l]) => '<option value="' + v + '"' + (sr.freq === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" +
+      '<label class="field"><span class="lbl">Tageszeit</span><select id="sf-slot">' + SLOTS.map(([v, l]) => '<option value="' + v + '"' + ((sr.slot || "morgen") === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" +
+      '<label class="field"><span class="lbl">Zeit (freiwillig)</span><span class="d-time"><input type="time" id="sf-from" value="' + esc(sr.from || "") + '"><span>bis</span><input type="time" id="sf-to" value="' + esc(sr.to || "") + '"></span></label>' +
+      '<label class="field"><span class="lbl">Farbe</span><select id="sf-color">' + FARBEN.map(([v, l]) => '<option value="' + v + '"' + ((sr.color || "") === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" +
+      '<label class="field"><span class="lbl">ab</span><input type="date" id="sf-start" value="' + esc(sr.start || keyOf(today())) + '"></label>' +
+      '<label class="field"><span class="lbl">bis (freiwillig)</span><input type="date" id="sf-end" value="' + esc(sr.end || "") + '"></label></div>' +
+      '<label class="dp-chk"><input type="checkbox" id="sf-hol"' + (sr.skipHol !== false ? " checked" : "") + "> In den Ferien auslassen</label>" +
+      '<div class="field"><span class="lbl">Ausnahmen (an diesen Tagen nicht)</span><div class="ser-exc" id="sf-exc">' + (sr.except || []).slice().sort().map((d) => '<span class="exc">' + fmt(fromKey(d)) + '<button type="button" data-sfx="' + d + '" aria-label="Ausnahme entfernen">×</button></span>').join("") + '</div><span class="d-time"><input type="date" id="sf-xadd"><button type="button" class="btn ghost" id="sf-xbtn">+ Ausnahme</button></span></div>' +
+      '<div class="actions"><button type="button" class="btn ghost" id="sf-back">Zurück</button><div class="right"><button type="button" class="btn primary" id="sf-ok">Speichern</button></div></div></div>';
+    openModal('<h3>Regelmässige Termine</h3><div id="ser-body"></div>', (root) => {
+      const body = root.querySelector("#ser-body");
+      const showList = () => { cur = null; body.innerHTML = listHtml() + '<div class="actions"><span></span><div class="right"><button type="button" class="btn primary" id="ser-done">Fertig</button></div></div>'; };
+      const showForm = (sr) => { cur = clone(sr); body.innerHTML = formHtml(cur); };
+      body.addEventListener("click", (e) => {
+        const b = e.target.closest("button"); if (!b) return;
+        if (b.id === "ser-done") { closeModal(); return; }
+        if (b.id === "ser-new") { showForm({ id: "s" + Date.now().toString(36), days: [fromKey(keyOf(today())).getDay() || 1], freq: "w1", slot: "morgen", start: keyOf(today()), except: [], skipHol: true }); return; }
+        if (b.dataset.sedit) { showForm(list.find((x) => x.id === b.dataset.sedit)); return; }
+        if (b.dataset.sdel) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Löschen?"; return; } list = list.filter((x) => x.id !== b.dataset.sdel); saveSeries(list); showList(); return; }
+        if (b.dataset.sfd != null) { const d = +b.dataset.sfd, on = b.getAttribute("aria-pressed") === "true"; b.setAttribute("aria-pressed", String(!on)); return; }
+        if (b.dataset.sfx) { cur.except = (cur.except || []).filter((d) => d !== b.dataset.sfx); b.parentNode.remove(); return; }
+        if (b.id === "sf-xbtn") { const v = body.querySelector("#sf-xadd").value; if (v && !(cur.except || []).includes(v)) { cur.except = [...(cur.except || []), v]; body.querySelector("#sf-exc").insertAdjacentHTML("beforeend", '<span class="exc">' + fmt(fromKey(v)) + '<button type="button" data-sfx="' + v + '" aria-label="Ausnahme entfernen">×</button></span>'); } return; }
+        if (b.id === "sf-back") { showList(); return; }
+        if (b.id === "sf-ok") {
+          const q = (id) => body.querySelector(id);
+          const days = [...body.querySelectorAll("[data-sfd]")].filter((x) => x.getAttribute("aria-pressed") === "true").map((x) => +x.dataset.sfd);
+          if (!days.length) { q("[data-sfd]").focus(); return; }
+          const sr = { ...cur, text: q("#sf-text").value.trim(), days, freq: q("#sf-freq").value, slot: q("#sf-slot").value, color: q("#sf-color").value, start: q("#sf-start").value || keyOf(today()), skipHol: q("#sf-hol").checked };
+          const f = q("#sf-from").value, t = q("#sf-to").value, en = q("#sf-end").value;
+          if (f) sr.from = f; else delete sr.from; if (f && t) sr.to = t; else delete sr.to; if (en) sr.end = en; else delete sr.end;
+          const i = list.findIndex((x) => x.id === sr.id); if (i >= 0) list[i] = sr; else list.push(sr);
+          saveSeries(list); showList(); return;
+        }
+      });
+      if (cur) showForm(cur); else showList();
+    });
+  }
+  function serMenu(btn) {
+    closeMenu();
+    const [id, key] = btn.dataset.ser.split("|"), sr = spGet().series.find((x) => x.id === id); if (!sr) return;
+    const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
+    m.innerHTML = '<div class="cm-title">↻ ' + esc(sr.text || "Termin") + " · " + fmt(fromKey(key)) + "</div>" +
+      '<button type="button" role="menuitem" data-sa="skip">Nur an diesem Tag auslassen</button>' +
+      '<button type="button" role="menuitem" data-sa="edit">Regelmässigen Termin bearbeiten …</button>';
+    m.addEventListener("mousedown", (ev) => ev.preventDefault());
+    m.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-sa]"); if (!b) return; closeMenu();
+      if (b.dataset.sa === "skip") { saveSeries(spGet().series.map((x) => (x.id === id ? { ...x, except: [...new Set([...(x.except || []), key])] } : x))); return; }
+      openSeries(id);
+    });
+    document.body.appendChild(m);
+    const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(innerWidth - mr.width - 8, br.left)) + "px"; m.style.top = Math.min(innerHeight - mr.height - 8, br.bottom + 4) + "px";
+  }
   function openHolidays(scope) {
     let list = clone(spGet().holidays);
     const rowHtml = (h, i) => '<div class="hol-row" data-hi="' + i + '"><input type="date" data-hf="from" value="' + esc(h.from || "") + '" aria-label="von"><span>bis</span><input type="date" data-hf="to" value="' + esc(h.to || h.from || "") + '" aria-label="bis">' +
@@ -5019,6 +5173,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   $("#t-show").addEventListener("change", (e) => { spSet({ show: e.target.checked }); spSave(0); render(); });
   $("#t-showhol").addEventListener("change", (e) => { spSet({ showHol: e.target.checked }); spSave(0); render(); });
   $("#t-hol").onclick = () => openHolidays("termine");
+  $("#t-ser").onclick = () => openSeries();
   function setTab(tab) {
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
     $("#view-termine").hidden = tab !== "termine"; $("#view-unterricht").hidden = tab !== "unterricht"; $("#view-klassen").hidden = tab !== "klassen";
