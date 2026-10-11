@@ -2847,8 +2847,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const hide = UP.stHide || {};
       m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("") + "<hr>" +
         '<div class="cm-title">Sichtbar</div>' + STATI.map(([v, l]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !hide[v] + '" data-stv="' + v + '"><span class="ck">' + (hide[v] ? "" : "✓") + "</span>" + l + "</button>").join("") +
-        "<hr>" + '<button type="button" role="menuitemcheckbox" aria-checked="' + !!UP.stLabels + '" data-stl><span class="ck">' + (UP.stLabels ? "✓" : "") + "</span>Label anzeigen</button>" +
-        '<div class="cm-title">Schnellwahl</div>' + [["all0", "Alle, ohne Label"], ["all1", "Alle, mit Label"], ["todo", "Nur To do"], ["progress", "Nur In progress"], ["done", "Nur Done"]].map(([v, l]) => '<button type="button" role="menuitem" data-stq="' + v + '"><span class="ck"></span>' + l + "</button>").join("");
+        "<hr>" + '<button type="button" role="menuitemcheckbox" aria-checked="' + !!UP.stLabels + '" data-stl><span class="ck">' + (UP.stLabels ? "✓" : "") + "</span>Label anzeigen</button>";
     };
     draw();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
