@@ -2844,7 +2844,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return r;
   }
   const yearsOf = (r) => (r.years && r.years.length ? r.years : [5]);
-  const byYear = (y) => Object.entries(U.reihen).filter(([, r]) => !r.klasse && yearsOf(r).includes(y)).sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0));
+  // Reihenfolge pro Schuljahr (r.yorder[y]); fehlt sie, gilt die gemeinsame r.order
+  const ordOf = (r, y) => { const v = r.yorder && r.yorder[y]; return typeof v === "number" ? v : (Number(r.order) || 0); };
+  const byYear = (y) => Object.entries(U.reihen).filter(([, r]) => !r.klasse && yearsOf(r).includes(y)).sort((a, b) => (ordOf(a[1], y) - ordOf(b[1], y)) || ((Number(a[1].order) || 0) - (Number(b[1].order) || 0)));
   const filled = (h) => !!(h && htmlToPlain(h).trim());
   const lastFilled = (r) => { for (let i = (r.lessons || []).length - 1; i >= 0; i--) if (filled(r.lessons[i])) return i + 1; return 0; };
   // Ohne Wichtigkeiten: Spalte in «In Arbeit», «Fertig geplant» und «Sammlungen» gliedern
@@ -2989,14 +2991,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const allOpen = YEARS.every((y) => PARK_OPEN[y]);
-    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
+    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
     m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-shw]"); if (!b) return;
       const k = b.dataset.shw;
       if (k === "park") { const open = !YEARS.every((y) => PARK_OPEN[y]); YEARS.forEach((y) => { PARK_OPEN[y] = open; }); renderU(); showMenu(btn); return; }
-      if (k === "subs") { UP.subs = !UP.subs; UP.subOpen = {}; } else if (k === "cross") UP.cross = !UP.cross; else UP.bars = UP.bars === false;
+      if (k === "subs") { UP.subs = !UP.subs; UP.subOpen = {}; } else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else UP.bars = UP.bars === false;
       saveUP(); renderU(); showMenu(btn);
     });
     document.body.appendChild(m);
@@ -3034,14 +3036,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const saveUP = () => { try { localStorage.setItem("zeitplan-uprefs", JSON.stringify(UP)); } catch (e) {} };
   // Reihe innerhalb eines Schuljahres verschieben (Ziehen oder Menü)
   function jpMove(id, year, targetId, after) {
-    const list = byYear(year).map(([rid]) => rid), vals = list.map((rid) => Number(U.reihen[rid].order) || 0).sort((a, b) => a - b);
+    const list = byYear(year).map(([rid]) => rid);
     const from = list.indexOf(id); if (from < 0) return;
     list.splice(from, 1);
     let to = targetId === "__top" ? 0 : targetId === "__end" ? list.length : list.indexOf(targetId) + (after ? 1 : 0);
     if (to < 0) to = list.length;
     list.splice(to, 0, id);
-    for (let k = 1; k < vals.length; k++) if (vals[k] <= vals[k - 1]) vals[k] = vals[k - 1] + 1;
-    list.forEach((rid, k) => { const r = U.reihen[rid]; if (r.order !== vals[k]) { r.order = vals[k]; saveReihe(rid, 0); } });
+    // nur die Reihenfolge dieses Schuljahrs ändern – andere Jahre bleiben, wie sie sind
+    list.forEach((rid, k) => { const r = U.reihen[rid]; if (!r.yorder || r.yorder[year] !== k) { r.yorder = { ...(r.yorder || {}), [year]: k }; saveReihe(rid, 0); } });
     renderU();
   }
   // Reihen im Jahresplan ausblenden (unterer, einklappbarer Teil je Schuljahr)
@@ -3067,7 +3069,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const tog = e.target.closest(".jp-park-tog");
       if (tog) { if (+tog.dataset.parktog !== drag.year) return; e.preventDefault(); clear(); tog.classList.add("drop-into"); return; }
       const col = e.target.closest(".jp-items[data-zone]"); if (!col || +col.dataset.year !== drag.year) return;
-      const items = [...col.querySelectorAll(".jp-item:not(.jp-foreign)")];
+      const items = [...col.querySelectorAll(".jp-item")];
       e.preventDefault(); clear();
       if (!items.length) { col.classList.add("drop-into"); return; }
       let tgt = items.find((el) => { const r = el.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
@@ -3236,23 +3238,23 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     for (const y of YEARS) {
       const multi = (r) => yearsOf(r).length > 1;
       const vis = byYear(y).filter(([, r]) => !(UP.prio && (UP.hide || {})[prioOf(r)]) && stVisible(r))
-          .map((e, k) => [e, k]).sort((a, b) => ((statusOf(a[0][1]) === "todo" ? 0 : 1) - (statusOf(b[0][1]) === "todo" ? 0 : 1)) || a[1] - b[1]).map((x) => x[0]);
+          ;
       const homeOf = (r) => (typeof r.home === "number" && yearsOf(r).includes(r.home) ? r.home : firstYear(r));
       const rs = vis.filter(([, r]) => homeOf(r) === y);
       const ms = UP.cross ? vis.filter(([, r]) => multi(r) && homeOf(r) !== y) : [];
-      const all = [...ms, ...rs], act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
+      const inc = new Set([...ms, ...rs].map(([id]) => id)), all = vis.filter(([id]) => inc.has(id)), act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
       const inCol = new Set(all.map(([id]) => id));
       // Unterreihen nicht doppelt zählen, wenn ihre Masterreihe (mit eingeschalteter Unterreihe) in derselben Spalte steht
       const sum = all.reduce((s, [id, r]) => s + (mastersOf(id).some(([mid, mr]) => inCol.has(mid) && shownChildren(mr).some((c) => c.rid === id)) ? 0 : effL(r)), 0);
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button"' + (foreign ? "" : ' draggable="true"') + ' class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "") + " · Ziehen zum Verschieben") + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
+          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
-        (UP.prio ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
+        (UP.prio || !UP.groups ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
         '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button>' +
@@ -3922,7 +3924,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   });
   uEl.addEventListener("contextmenu", (e) => {
     const it = e.target.closest(".jp-item");
-    if (it) { e.preventDefault(); prioMenu(e.clientX, e.clientY, it.dataset.open, it.classList.contains("jp-foreign") ? null : +it.dataset.from, +it.dataset.from); return; }
+    if (it) { e.preventDefault(); prioMenu(e.clientX, e.clientY, it.dataset.open, +it.dataset.from, +it.dataset.from); return; }
     const t = e.target.closest(".ucell .inp"); if (!t || document.activeElement !== t) return;
     const c = t.closest("[data-lesson]"); if (!c || String(c.dataset.lesson).startsWith("ln")) return;
     const r = U.reihen[U.sel]; if (!r) return;
