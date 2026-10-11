@@ -125,12 +125,36 @@
       document.getElementById("zl-gate").remove();
       const b = document.createElement("div"); b.id = "zl-badge"; b.textContent = "OneDrive · gespeichert"; document.body.appendChild(b);
       readyRes();
-      setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 60000);
+      setInterval(() => { if (document.visibilityState === "visible") { refresh(); dailyBackup(); } }, 60000);
+      setTimeout(dailyBackup, 4000);
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
     } catch (e) { console.error(e); gate("Die Daten konnten nicht geladen werden (" + esc(e.message || e) + "). Bitte Internetverbindung prüfen.", "Nochmals versuchen", () => location.reload()); }
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+
+  // ---------- Tägliche Sicherung: 0_Planung › Zeitplan Sicherung › JJJJ-MM-TT › *.json (90 Tage aufbewahrt) ----------
+  const BACKUP = "0_Planung/Zeitplan Sicherung";
+  let backupDone = "";
+  const dayKey = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  async function dailyBackup() {
+    const day = dayKey(); if (backupDone === day) return;
+    backupDone = day;
+    try {
+      const dir = BACKUP + "/" + day;
+      if (await getMeta(dir + "/reihen.json")) return; // heute schon gesichert (z. B. vom anderen Gerät)
+      for (const c of COLS) {
+        const r = await putFile(dir + "/" + c + ".json", new Blob([JSON.stringify(mem[c])], { type: "application/json" }));
+        if (!r.ok) throw new Error("Sicherung " + c + ": " + r.status);
+      }
+      // ältere Sicherungen als 90 Tage entfernen
+      const lr = await g(item(BACKUP) + ":/children?$top=500&$select=id,name,folder");
+      if (lr.ok) {
+        const limit = new Date(Date.now() - 90 * 864e5), lk = limit.getFullYear() + "-" + String(limit.getMonth() + 1).padStart(2, "0") + "-" + String(limit.getDate()).padStart(2, "0");
+        for (const x of (await lr.json()).value || []) if (x.folder && /^\d{4}-\d{2}-\d{2}$/.test(x.name) && x.name < lk) await g("/me/drive/items/" + x.id, { method: "DELETE" });
+      }
+    } catch (e) { console.warn("Sicherung", e); backupDone = ""; }
+  }
 
   // Änderungen von anderen Geräten (PC, Handy) übernehmen
   let refreshing = false;
