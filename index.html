@@ -667,7 +667,10 @@ html.fit body { touch-action: pan-x pan-y; }
 .sv-row .sv-act { display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
 .sv-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 4px; padding: 0 5px; margin-left: 6px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px; }
 .sv-tag.auto { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
-.sp-cell .sp-x { display: block; font-size: 0.72em; font-weight: 400; opacity: 0.75; line-height: 1.2; }
+/* Haupteintrag und Zusatz nebeneinander; ist der Zusatz zu lang, rutscht er darunter */
+.xl { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: inherit; column-gap: 0.45em; row-gap: 0; width: 100%; }
+.sp-cell .xl { justify-content: center; }
+.sp-cell .sp-x, .dp-c .dp-x { font-size: 0.78em; font-weight: 400; opacity: 0.75; line-height: 1.2; }
 .cm-xchk { display: flex; padding: 4px 10px 6px; align-items: center; gap: 4px; font-size: 0.82rem; white-space: nowrap; cursor: pointer; }
 .dp-c .dp-t { display: block; font-size: 0.72em; opacity: 0.8; }
 .dp-c .dp-mv { font-style: normal; font-weight: 400; opacity: 0.7; }
@@ -4795,11 +4798,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const dk = keyOf(d), wd = d.getDay(), sem = semOf(dk); if (!sem || wd < 1 || wd > 5) continue;
       const list = per[sem.id][wd]; if (!list.length) continue;
       for (const p0 of list) {
-        const sk = dk + "|" + p0, meta = (k.slots || {})[sk] || {};
+        const sk = dk + "|" + p0, meta = (k.slots || {})[sk] || {}, cell = sem.cells[wd + "-" + p0] || {};
         // nur diese eine Stunde an einen anderen Tag / in eine andere Lektion verschoben (Stundenplan bleibt gleich)
         const mv = (k.moves || {})[sk], [mdk, mps] = mv ? mv.split("|") : [dk, String(p0)], msem = semOf(mdk) || sem, p = +mps, tt = msem.times[p] || sem.times[p0];
         const hol = holidayOf(mdk, "klassen");
-        const slot = { kid, date: mdk, p, from: meta.from || tt[0], to: meta.to || tt[1], sk, at: mdk + "|" + p, moved: !!mv, ownTime: !!(meta.from || meta.to), dp: meta.dp || "", note: meta.note || "", topic: meta.topic, kind: meta.kind || "", special: hol && hol.frei === false ? hol.label || "Spezieller Tag" : "" };
+        const slot = { kid, date: mdk, p, from: meta.from || tt[0], to: meta.to || tt[1], sk, at: mdk + "|" + p, x: cell.x && !cell.xh ? cell.x : "", moved: !!mv, ownTime: !!(meta.from || meta.to), dp: meta.dp || "", note: meta.note || "", topic: meta.topic, kind: meta.kind || "", special: hol && hol.frei === false ? hol.label || "Spezieller Tag" : "" };
         if (hol && hol.frei !== false && meta.ins == null) slot.hol = hol.label || "Ferien";
         else if (meta.skip) slot.skip = true;
         else if (meta.ins != null) slot.ins = meta.ins;
@@ -4871,7 +4874,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
           if (s) {
             const k = K.klassen[s.kid] || {};
             cls += " has f-" + kColor(s.kid) + (s.skip ? " skip" : "") + (s.hol ? " hol" : "") + (s.moved ? " moved" : "");
-            inner = '<b class="dp-k">' + esc(k.name || "Klasse") + (s.moved ? ' <i class="dp-mv" title="Nur diese Stunde verschoben – Stundenplan unverändert">↷</i>' : "") + "</b>" + (s.ownTime || s.moved ? '<span class="dp-t">' + esc(s.from) + "–" + esc(s.to) + "</span>" : "") +
+            inner = '<span class="xl"><b class="dp-k">' + esc(k.name || "Klasse") + (s.moved ? ' <i class="dp-mv" title="Nur diese Stunde verschoben – Stundenplan unverändert">↷</i>' : "") + "</b>" + (s.x ? '<small class="dp-x">' + esc(s.x) + "</small>" : "") + "</span>" + (s.ownTime || s.moved ? '<span class="dp-t">' + esc(s.from) + "–" + esc(s.to) + "</span>" : "") +
               (s.dp && !s.hol && !s.skip ? '<span class="dp-u">' + esc(s.dp) + "</span>" : s.hol || s.skip || s.unit || s.ins != null ? '<span class="dp-u">' + esc(unitText(s)) + "</span>" : "") + (s.note ? '<span class="dp-n">' + esc(s.note) + "</span>" : "");
           } else if (x && (x.k || x.t)) {
             const k = x.k && K.klassen[x.k];
@@ -5005,7 +5008,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     h += '<div class="sp-wrap"><table class="sp"><thead><tr><th class="sp-tcol">Zeit</th>' + [1, 2, 3, 4, 5].map((d) => "<th>" + TAGE[d] + "</th>").join("") + '<th class="rm"></th></tr></thead><tbody>' +
       sem.times.map((t, p) => '<tr><td class="sp-tcol"><input type="text" inputmode="numeric" maxlength="5" placeholder="07:45" data-spt="' + p + '-0" value="' + esc(t[0]) + '" aria-label="Beginn ' + (p + 1) + '. Lektion"><span>–</span><input type="text" inputmode="numeric" maxlength="5" placeholder="08:30" data-spt="' + p + '-1" value="' + esc(t[1]) + '" aria-label="Ende ' + (p + 1) + '. Lektion"></td>' +
         [1, 2, 3, 4, 5].map((d) => { const c = sem.cells[d + "-" + p], k = c && c.k && K.klassen[c.k];
-          const inner = (k ? esc(k.name || "Klasse") : c && c.t ? esc(c.t) : '<span class="sp-empty">+</span>') + ((k || (c && c.t)) && c.x && !c.xh ? '<small class="sp-x">' + esc(c.x) + "</small>" : "");
+          const main = k ? esc(k.name || "Klasse") : c && c.t ? esc(c.t) : "";
+          const inner = main ? '<span class="xl"><span>' + main + "</span>" + (c.x && !c.xh ? '<small class="sp-x">' + esc(c.x) + "</small>" : "") + "</span>" : '<span class="sp-empty">+</span>';
           return '<td><button type="button" class="sp-cell' + (k ? " f-" + kColor(c.k) : c && c.t ? " own" : "") + (k && k.archived ? " arch" : "") + '" data-spc="' + d + "-" + p + '" title="Klasse oder eigenen Eintrag wählen">' + inner + "</button></td>"; }).join("") +
         '<td class="rm sp-ops"><button type="button" class="btn ghost" data-spmv="' + p + ':-1"' + (p ? "" : " disabled") + ' title="Lektion nach oben">↑</button><button type="button" class="btn ghost" data-spmv="' + p + ':1"' + (p < sem.times.length - 1 ? "" : " disabled") + ' title="Lektion nach unten">↓</button><button type="button" class="btn ghost" data-spins="' + p + '" title="Darunter eine Lektion einfügen">＋</button><button type="button" class="btn ghost danger" data-sprm="' + p + '" title="Zeile löschen" aria-label="Zeile löschen">×</button></td></tr>').join("") +
       '</tbody></table></div><div class="ptools"><button class="btn ghost" type="button" id="sp-add">+ Lektion</button>' + (list.length ? "" : '<span class="msg">Legen Sie unten zuerst eine Klasse an.</span>') + "</div></section>";
@@ -5025,7 +5029,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     // Zusatz (z. B. Zimmer) bleibt beim Wechsel der Klasse erhalten
     const extraOf = () => { const x = ($("#sp-x") || {}).value || "", sh = ($("#sp-xshow") || {}).checked !== false; return x.trim() ? { x: x.trim(), ...(sh ? {} : { xh: true }) } : {}; };
     const apply = (val) => { const s2 = curSem(); const cells = { ...s2.cells }; if (val) cells[ck] = { ...val, ...extraOf() }; else delete cells[ck]; semPatch({ cells }); spSave(0); closeMenu(); renderK(); render(); };
-    const saveExtra = () => { const s2 = curSem(), c0 = s2.cells[ck]; if (!c0 || !(c0.k || c0.t)) return; const c1 = { ...c0 }; delete c1.x; delete c1.xh; const cells = { ...s2.cells, [ck]: { ...c1, ...extraOf() } }; semPatch({ cells }); spSave(400); const cell = document.querySelector('[data-spc="' + ck + '"]'); if (cell) { let sm = cell.querySelector(".sp-x"); const e2 = extraOf(); if (e2.x && !e2.xh) { if (!sm) { sm = document.createElement("small"); sm.className = "sp-x"; cell.appendChild(sm); } sm.textContent = e2.x; } else if (sm) sm.remove(); } };
+    const saveExtra = () => { const s2 = curSem(), c0 = s2.cells[ck]; if (!c0 || !(c0.k || c0.t)) return; const c1 = { ...c0 }; delete c1.x; delete c1.xh; const cells = { ...s2.cells, [ck]: { ...c1, ...extraOf() } }; semPatch({ cells }); spSave(400); const cell = document.querySelector('[data-spc="' + ck + '"]'); if (cell) { let sm = cell.querySelector(".sp-x"); const e2 = extraOf(), line = cell.querySelector(".xl") || cell; if (e2.x && !e2.xh) { if (!sm) { sm = document.createElement("small"); sm.className = "sp-x"; line.appendChild(sm); } sm.textContent = e2.x; } else if (sm) sm.remove(); } };
     m.addEventListener("input", (ev) => { if (ev.target.id === "sp-x") saveExtra(); });
     m.addEventListener("change", (ev) => { if (ev.target.id === "sp-xshow") saveExtra(); });
     m.addEventListener("mousedown", (ev) => { if (!ev.target.closest("input,label")) ev.preventDefault(); });
