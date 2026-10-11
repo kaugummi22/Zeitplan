@@ -982,8 +982,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .jp-items[data-zone="act"]:empty { min-height: 26px; }
 .jp-items.drop-into { outline: 2px dashed var(--accent); outline-offset: -3px; border-radius: 6px; }
 .jp-grid:not(.show-prio) .jp-items { gap: 3px; }
-.jp-grid:not(.show-prio) .jp-item, .jp-grid.show-prio .jp-item.prio-keine { border: 1px solid color-mix(in srgb, var(--c-blau) 70%, var(--accent)); background: color-mix(in srgb, var(--c-blau) 45%, var(--surface)); }
-.jp-grid:not(.show-prio) .jp-item:hover, .jp-grid.show-prio .jp-item.prio-keine:hover { background: color-mix(in srgb, var(--c-blau) 80%, var(--surface)); }
+.jp-grid.show-prio .jp-item.prio-keine { border: 1px solid var(--line); background: var(--surface); }
+.jp-grid.show-prio .jp-item.prio-keine:hover { background: var(--accent-soft); }
+.sq.sq-white { background: var(--surface); border: 1px solid var(--line); }
+.prio-sel { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.prio-sel.pr-essentiell { background: var(--c-rost); } .prio-sel.pr-wichtig { background: var(--c-gelb); } .prio-sel.pr-wenig { background: var(--c-gruen); } .prio-sel.pr-offen { background: color-mix(in srgb, var(--c-blau) 70%, var(--surface)); }
+.jp-grid:not(.show-prio) .jp-item, .jp-grid.show-prio .jp-item.prio-offen { border: 1px solid color-mix(in srgb, var(--c-blau) 70%, var(--accent)); background: color-mix(in srgb, var(--c-blau) 45%, var(--surface)); }
+.jp-grid:not(.show-prio) .jp-item:hover, .jp-grid.show-prio .jp-item.prio-offen:hover { background: color-mix(in srgb, var(--c-blau) 80%, var(--surface)); }
 .prio-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .chip.prio-chip { font-size: 0.78rem; padding: 2px 9px; color: var(--ink); }
 .chip.prio-chip[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; background-color: var(--surface); color: var(--ink); border-color: var(--line); }
@@ -2817,7 +2822,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
 
   // Wichtigkeit einer Reihe (Anzeige im Jahresplan, per Rechtsklick änderbar)
-  const PRIOS = [["essentiell", "Essentiell", "rost"], ["wichtig", "Wichtig", "gelb"], ["wenig", "Wenig wichtig", "gruen"], ["keine", "Ohne Angabe", ""]];
+  const PRIOS = [["essentiell", "Essentiell", "rost"], ["wichtig", "Wichtig", "gelb"], ["wenig", "Wenig wichtig", "gruen"], ["offen", "Unentschieden", "blau"], ["keine", "Ohne Angabe", ""]];
   const prioOf = (r) => r.prio || "essentiell";
   const STATI = [["none", "Kein Status"], ["todo", "To do"], ["progress", "In progress"], ["done", "Done"]];
   const statusOf = (r) => r.status || "progress";
@@ -3059,7 +3064,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     closeMenu();
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
-    const draw = () => { const h = UP.hide || {}; m.innerHTML = '<div class="cm-title">Anzeigen</div>' + PRIOS.filter(([v]) => v !== "keine").map(([v, l, c]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !h[v] + '" data-pf="' + v + '"><span class="sq f-' + c + '"></span>' + l + '<span class="pf-ck">' + (h[v] ? "" : "✓") + "</span></button>").join(""); };
+    const draw = () => { const h = UP.hide || {}; m.innerHTML = '<div class="cm-title">Anzeigen</div>' + PRIOS.map(([v, l, c]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !h[v] + '" data-pf="' + v + '"><span class="sq' + (c ? " f-" + c : " sq-white") + '"></span>' + l + '<span class="pf-ck">' + (h[v] ? "" : "✓") + "</span></button>").join(""); };
     draw();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => { const b = ev.target.closest("[data-pf]"); if (!b) return; UP.hide = { ...(UP.hide || {}) }; UP.hide[b.dataset.pf] = !UP.hide[b.dataset.pf]; saveUP(); draw(); renderU(); });
@@ -3072,7 +3077,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const p = U.plan || {};
     $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false)); $("#u-legend").hidden = !UP.prio;
     const hideP = UP.hide || {};
-    { const nOff = PRIOS.filter(([v]) => v !== "keine" && hideP[v]).length; $("#u-legend").textContent = nOff ? "Filter (" + (3 - nOff) + " von 3) ▾" : "Filter ▾"; }
+    { const nOff = PRIOS.filter(([v]) => hideP[v]).length; $("#u-legend").textContent = nOff ? "Filter (" + (PRIOS.length - nOff) + " von " + PRIOS.length + ") ▾" : "Filter ▾"; }
     let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + '">';
     for (const y of YEARS) {
       const multi = (r) => yearsOf(r).length > 1;
@@ -3513,7 +3518,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       '<label>Leistungsnachweis <input type="text" id="r-ln" data-rf="ln" list="ln-list" value="' + esc(r.ln || "") + '" placeholder="z. B. Prüfung, Abgabe"></label>' +
       '<datalist id="ln-list">' + LN_SUGGEST.map((s) => '<option value="' + esc(s) + '"></option>').join("") + "</datalist>" +
 
-      '<span class="prio-pick">Wichtigkeit ' + PRIOS.map(([v, l, c]) => '<button type="button" class="chip prio-chip' + (c ? " f-" + c : "") + '" data-rprio="' + v + '" aria-pressed="' + (prioOf(r) === v) + '">' + l + "</button>").join("") + "</span></div>" +
+      '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label></div>" +
       (r.klasse
         ? '<div class="k-banner">Kopie von „' + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse.</div>"
         : '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips" id="r-chips">' + yearChips(r) + '</div><span id="r-homewrap">' + homePick(r) + "</span></div>") +
@@ -3761,6 +3766,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   });
   uEl.addEventListener("change", async (e) => {
     const t = e.target;
+    if (t.id === "r-prio") { const r = U.reihen[U.sel]; if (!r) return; r.prio = t.value; t.className = "prio-sel pr-" + t.value; saveReihe(U.sel, 0); renderRSide(); return; }
     if (t.id === "r-home") { const r = U.reihen[U.sel]; if (!r) return; r.home = +t.value; saveReihe(U.sel, 0); U.year = r.home; renderU(); return; }
     if (t.id === "r-status") { const r = U.reihen[U.sel]; if (!r) return; if (t.value === "progress") delete r.status; else r.status = t.value; t.className = "st-sel st-" + t.value; saveReihe(U.sel, 0); t.blur(); renderRSide(); return; }
     if (t.dataset && t.dataset.lnlekt != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +t.dataset.lnlekt; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), lekt: +t.value || 0 }; if (!r.lnItems[k].lekt) delete r.lnItems[k].lekt; saveReihe(U.sel, 0); t.blur(); const ls = $("#r-lnsum"); if (ls) ls.textContent = lnSumText(r); renderRSide(); return; }
