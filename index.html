@@ -2936,7 +2936,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function renderRSide() {
     $("#r-years").innerHTML = YEARS.map((y) => '<button type="button" data-year="' + y + '" aria-pressed="' + (y === U.year) + '">' + YEAR_SHORT[y] + "</button>").join("");
-    const y = U.year, rs = byYear(y), act = rs.filter(([, r]) => !isParked(r, y)), pk = rs.filter(([, r]) => isParked(r, y)), pOpen = !!PARK_OPEN[y];
+    $("#u-cross").setAttribute("aria-pressed", String(UP.cross));
+    const y = U.year, rs = sideList(y), act = rs.filter(([, r]) => !isParked(r, y)), pk = rs.filter(([, r]) => isParked(r, y)), pOpen = !!PARK_OPEN[y];
     const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + sh.car + esc(r.title || "Ohne Titel") + sh.list + '</span><span class="n">' + (totalL(r) ? totalL(r) + " L" : "") + "</span></button>"; };
     $("#r-list").innerHTML = rs.length
       ? '<div class="rl-zone" data-zone="act">' + act.map(row).join("") + "</div>" +
@@ -3069,6 +3070,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const c = $("#r-count"); if (c) c.textContent = planned(r) + " von " + lessonCount(r) + " Lektionen ausgearbeitet";
   }
   const firstYear = (r) => Math.min(...yearsOf(r));
+  // Reihen-Liste links: mit «Mehrfach-Reihen» aus nur die Reihen, deren Hauptjahr dieses Jahr ist
+  const sideList = (y) => byYear(y).filter(([, r]) => UP.cross || homeYear(r) === y);
   const homeYear = (r) => (typeof r.home === "number" && yearsOf(r).includes(r.home) ? r.home : firstYear(r));
   function homePick(r) {
     const ys = yearsOf(r), none = !(r.years && r.years.length);
@@ -3308,7 +3311,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (!target && U.sel && U.reihen[U.sel] && U.reihen[U.sel].klasse) U.sel = U.lastMaster || null;
     let r = U.sel && U.reihen[U.sel];
     if (!target && (!r || !yearsOf(r).includes(U.year))) {
-      const first = byYear(U.year)[0];
+      const first = sideList(U.year)[0] || byYear(U.year)[0];
       if (!first) { U.sel = null; box.innerHTML = '<div class="empty">Noch keine Reihe hier. Mit „+ Neue Reihe“ legen Sie eine an.</div>'; return; }
       U.sel = first[0]; r = first[1]; renderRSide();
     }
