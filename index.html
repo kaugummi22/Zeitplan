@@ -207,8 +207,8 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
 
-  // ---------- Tägliche Sicherung: 0_Planung › Zeitplan Sicherung › JJJJ-MM-TT › *.json (90 Tage aufbewahrt) ----------
-  const BACKUP = "0_Planung/Zeitplan Sicherung";
+  // ---------- Tägliche Sicherung: 0_Planung › Zeitplan-App › Zeitplan Sicherung › JJJJ-MM-TT › *.json (90 Tage aufbewahrt) ----------
+  const BACKUP = BASE + "/Zeitplan Sicherung";
   let backupDone = "";
   const dayKey = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   async function dailyBackup() {
