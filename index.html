@@ -434,6 +434,8 @@
       },
       async saveVersion() { throw new Error("nicht verfügbar"); },
       async exists(path) { return !!(await getMeta(toDrive(path))); },
+      // Datei überschreiben (für «Als Original übernehmen»; die alte Fassung wird vorher von der App gesichert)
+      async write(path, blob) { const r = await putFile(toDrive(path), blob); if (!r.ok) throw new Error("Speichern in OneDrive: " + r.status); return path; },
       // Ordner anlegen (auch mehrere Ebenen); vorhandene bleiben unverändert
       async mkdir(path) { return mkdirDrive(toDrive(path)); },
       // Datei oder ganzen Ordner in OneDrive kopieren (läuft bei Microsoft, nichts wird heruntergeladen).
@@ -2613,7 +2615,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     let root = document.getElementById("viewerRoot");
     if (!root) { root = document.createElement("div"); root.id = "viewerRoot"; document.body.appendChild(root); }
     root.innerHTML = '<div class="overlay vw-ov" id="vw-ov"><div class="panel viewer" role="dialog" aria-modal="true" aria-label="' + esc(f.name) + '">' +
-      '<div class="vw-head"><h3>' + esc(f.name) + '</h3><div class="right"><span class="msg" id="vw-msg"></span><button class="btn" type="button" id="vw-edit" hidden>Bearbeiten</button><button class="btn" type="button" id="vw-saveas" hidden>Speichern unter …</button>' + (window.ZLOCAL && /^(docx?|xlsx?|pptx?|pptm|pdf|odt)$/i.test(extOf(f)) ? '<button class="btn primary" type="button" id="vw-word" title="Das Dokument im Ordner der Reihe direkt bearbeiten">' + ({ doc: "In Word bearbeiten", docx: "In Word bearbeiten", xls: "In Excel bearbeiten", xlsx: "In Excel bearbeiten", ppt: "In PowerPoint bearbeiten", pptx: "In PowerPoint bearbeiten", pptm: "In PowerPoint bearbeiten" }[extOf(f).toLowerCase()] || "Im Programm öffnen") + "</button>" : "") + '<button class="btn" type="button" id="vw-dl">Herunterladen</button><button class="btn primary" type="button" id="vw-close">Schliessen</button></div></div>' +
+      '<div class="vw-head"><h3>' + esc(f.name) + '</h3><div class="right"><span class="msg" id="vw-msg"></span><button class="btn" type="button" id="vw-edit" hidden>Bearbeiten</button><button class="btn" type="button" id="vw-saveas" hidden>Speichern unter …</button>' + (window.ZLOCAL && /^(docx?|xlsx?|pptx?|pptm|pdf|odt)$/i.test(extOf(f)) ? '<button class="btn primary" type="button" id="vw-word" title="Das Dokument im Ordner der Reihe direkt bearbeiten">' + ({ doc: "In Word bearbeiten", docx: "In Word bearbeiten", xls: "In Excel bearbeiten", xlsx: "In Excel bearbeiten", ppt: "In PowerPoint bearbeiten", pptx: "In PowerPoint bearbeiten", pptm: "In PowerPoint bearbeiten" }[extOf(f).toLowerCase()] || "Im Programm öffnen") + "</button>" : "") + (U.reihen[U.sel] && U.reihen[U.sel].klasse && U.reihen[U.sel].kfolder && U.reihen[U.reihen[U.sel].src] && window.ZLOCAL && window.ZLOCAL.write ? '<button class="btn" type="button" id="vw-promote" title="Diese Fassung aus der Klasse wird zum Original im Unterricht">Als Original übernehmen</button>' : "") + '<button class="btn" type="button" id="vw-dl">Herunterladen</button><button class="btn primary" type="button" id="vw-close">Schliessen</button></div></div>' +
       '<div class="vw-bar" id="vw-ask" hidden><span>Sie haben das Dokument bearbeitet. Als neues Dokument speichern? Das Original bleibt unverändert.</span><button class="btn primary" type="button" id="vw-ask-save">Speichern unter …</button><button class="btn ghost danger" type="button" id="vw-ask-drop">Änderungen verwerfen</button><button class="btn ghost" type="button" id="vw-ask-back">Weiter bearbeiten</button></div>' +
       '<div class="vw-bar" id="vw-name" hidden><label for="vw-fname">Name der bearbeiteten Fassung</label><input type="text" id="vw-fname"><button class="btn primary" type="button" id="vw-name-ok">Speichern</button><button class="btn ghost" type="button" id="vw-name-cancel">Abbrechen</button></div>' +
       '<div class="vw-body" id="vw-body"><div class="empty">Lädt …</div></div></div></div>';
@@ -2644,6 +2646,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       finally { vw.disabled = false; }
     };
     if (window.ZLOCAL && f.path) msg.textContent = "Datei: " + f.path.slice(window.ZLOCAL.root.length + 1).split("\\").join(" › ");
+    const vp = $("#vw-promote");
+    if (vp) vp.onclick = async () => {
+      if (!vp.dataset.armed) { vp.dataset.armed = "1"; vp.textContent = "Wirklich? Original im Unterricht ersetzen"; msg.className = "msg"; msg.textContent = "Die bisherige Fassung wird vorher in «_alte Fassungen» gesichert."; return; }
+      vp.disabled = true; msg.className = "msg"; msg.textContent = "Übernimmt …";
+      try { msg.textContent = "✓ " + (await promoteFile(U.sel, f.id)); vp.textContent = "Übernommen"; }
+      catch (err) { console.error(err); vp.disabled = false; msg.className = "msg warn"; msg.textContent = "Das hat nicht geklappt: " + (err.message || err); }
+    };
     $("#vw-dl").onclick = async () => {
       if (!state.downloads) { msg.className = "msg warn"; msg.textContent = "Herunterladen ist hier nicht möglich."; return; }
       try { bytes = bytes || await fileBytes(f); await state.downloads.save({ filename: f.name, data: new Blob([bytes]) }); msg.className = "msg"; msg.textContent = "Gespeichert."; }
@@ -3906,7 +3915,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 
       '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label></div>" +
       (r.klasse
-        ? '<div class="k-banner">Kopie von „' + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse.</div>"
+        ? '<div class="k-banner">Kopie von „' + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse." +
+          (canFolders() ? (r.kfolder ? '<br>Die Dokumente sind Kopien im Klassenordner (' + esc(relPath(r.folder)) + '). Die Originale im Unterricht bleiben unverändert. Ein bearbeitetes Dokument können Sie beim Ansehen mit «Als Original übernehmen» zurück in den Unterricht geben.'
+            : '<br><b>Achtung:</b> Die Dokumente dieser Kopie sind noch die Originale aus dem Unterricht – wenn Sie sie in Word bearbeiten, ändern sich die Originale. <button type="button" class="btn ghost" data-kcopyfiles="1">In den Klassenordner kopieren</button>') : "") + "</div>"
         : '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips" id="r-chips">' + yearChips(r) + '</div><span id="r-homewrap">' + homePick(r) + "</span></div>") +
       '<div class="r-field"><span class="lbl">Leitfrage oder Leitproblem</span>' + cellHtml2('data-rf="leitfrage" id="r-leitfrage" aria-label="Leitfrage"', r.leitfrage) + "</div>" +
       reiheFilesHtml(r) +
@@ -5669,6 +5680,45 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     cur.folder = dest; cur.kfolder = true; saveReihe(cid, 0);
     return dest;
   }
+  function findFile(r, fid) {
+    const hit = (arr) => (Array.isArray(arr) ? arr.find((f) => f && f.id === fid) : null);
+    let f = hit(r.files) || hit(r.mainFiles); if (f) return { f, where: "r" };
+    for (const [i, m] of Object.entries(r.meta || {})) { f = m && hit(m.files); if (f) return { f, where: "l", i }; }
+    for (const m of r.lnItems || []) { f = m && hit(m.files); if (f) return { f, where: "ln" }; }
+    return null;
+  }
+  // Ein in der Klasse bearbeitetes Dokument wird wieder zum Original im Unterricht. Die bisherige Fassung bleibt in «_alte Fassungen».
+  async function promoteFile(cid, fid) {
+    const c = U.reihen[cid], src = c && U.reihen[c.src], Z = window.ZLOCAL;
+    if (!c || !src) throw new Error("Die Reihe im Unterricht gibt es nicht mehr.");
+    const cf = findFile(c, fid); if (!cf) throw new Error("Dokument nicht gefunden.");
+    const blob = new Blob([await fileBytes(cf.f)]);
+    const stamp = () => { const d = new Date(); return keyOf(d) + " " + pad(d.getHours()) + "-" + pad(d.getMinutes()); };
+    const of = findFile(src, fid);
+    if (of && of.f.path && (await Z.exists(of.f.path))) {
+      const dir = of.f.path.replace(/\\[^\\]*$/, ""), m = /^(.*?)(\.[^.]*)?$/.exec(of.f.name || "Dokument");
+      await Z.copy(of.f.path, dir + "\\_alte Fassungen", m[1] + " (bis " + stamp() + ")" + (m[2] || ""));
+      await Z.write(of.f.path, blob);
+      return "Original ersetzt. Die bisherige Fassung liegt in «_alte Fassungen» daneben.";
+    }
+    // im Original noch nicht als Datei vorhanden: im Ordner der Reihe ablegen bzw. als neues Dokument hinzufügen
+    const up = await state.assets.upload(blob, { type: blob.type || "application/octet-stream" });
+    const nf = { ...(of ? of.f : cf.f), id: up.id }; delete nf.path;
+    if (src.folder) { try { const j = await Z.place(src.folder, nf.name || "Dokument", blob, false); nf.path = j.existed ? undefined : j.path; } catch (e) {} }
+    const s2 = U.reihen[c.src];
+    const put = (arr) => { const a = (arr || []).slice(), k = of ? a.findIndex((x) => x && x.id === fid) : -1; if (k >= 0) a[k] = nf; else a.push(nf); return a; };
+    if (of && of.where === "l" || !of && cf.where === "l" && (s2.lessons || [])[+cf.i] !== undefined) { const i = of ? of.i : cf.i; s2.meta = { ...(s2.meta || {}) }; s2.meta[i] = { ...(s2.meta[i] || {}), files: put((s2.meta[i] || {}).files) }; }
+    else s2.files = put(s2.files);
+    saveReihe(c.src, 0);
+    return of ? "Original ersetzt." : "Als neues Dokument in die Reihe im Unterricht übernommen.";
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-kcopyfiles]"); if (!b) return;
+    const r = U.reihen[U.sel]; if (!r || !r.klasse) return;
+    b.disabled = true;
+    copyFilesToClass(U.sel, { title: r.title, folder: r.folder }, (a, n) => kStatus("Kopiert Dokumente in den Klassenordner … " + a + "/" + n))
+      .then((d) => { kStatus("✓ Dokumente liegen jetzt im Klassenordner: " + relPath(d)); renderK(); }, (err) => { b.disabled = false; kStatus("Kopieren hat nicht geklappt: " + (err.message || err), true); });
+  });
   function copyManyToClass(ids, kid, withFiles) {
     const k = K.klassen[kid]; if (!k) return;
     const cy = kCur(k), made = [];
