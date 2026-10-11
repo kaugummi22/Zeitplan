@@ -683,6 +683,23 @@ html.fit body { touch-action: pan-x pan-y; }
 .dp-time input[type="text"] { width: 4.2em; }
 .ks-time.own { font-weight: 700; }
 .bulk-files small { display: block; color: var(--muted); font-weight: 400; margin-left: 24px; }
+.rf-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; align-items: start; }
+@media (max-width: 760px) { .rf-cols { grid-template-columns: 1fr; } }
+.rf-col { display: grid; gap: 6px; align-content: start; min-height: 40px; }
+.rf-ch { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.rf-colr { border-left: 1px dashed var(--line); padding-left: 14px; }
+@media (max-width: 760px) { .rf-colr { border-left: 0; padding-left: 0; } }
+.rf-grp { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 4px 6px; }
+.rf-grp.ddrop { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.rf-ghead { display: flex; align-items: center; gap: 6px; }
+.rf-gtog { border: 0; background: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px; color: var(--ink); }
+.rf-gtog .caret { transition: transform 0.15s; } .rf-grp:not(.open) .rf-gtog .caret { transform: rotate(-90deg); }
+.rf-gname { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-weight: 600; padding: 2px 4px; border-radius: 4px; }
+.rf-gname:focus { outline: none; background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+.rf-ghead .n { font-size: 0.78rem; color: var(--muted); }
+.rf-glist { display: grid; gap: 4px; padding: 4px 0 2px 22px; }
+.rf-gbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.rf-car { display: inline-block; width: 1em; color: var(--muted); }
 #k-detail.kcopy { border: 3px solid var(--kc); box-shadow: 0 0 0 4px color-mix(in srgb, var(--kc) 35%, transparent); }
 .l-grip { cursor: grab; color: var(--muted); padding: 0 2px; font-weight: 400; user-select: none; }
 .l-name { outline: none; border-radius: 4px; padding: 0 3px; cursor: text; min-width: 1.5em; }
@@ -3445,20 +3462,26 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     (r.lnItems || []).forEach((m, k) => out.push(["ln" + k, lnLabel(r, "ln" + k)]));
     return out;
   }
+  const grpOk = (r, g) => !!(g && (r.fgroups || []).some((x) => x.id === g));
+  const stripGrp = (f) => { if (!f || !f.grp) return f; const y = { ...f }; delete y.grp; return y; };
   function docsAt(r, key) {
     key = String(key);
-    if (key === "reihe") return r.files || [];
+    if (key.startsWith("g:")) { const g = key.slice(2); return (r.files || []).filter((f) => f && f.grp === g); }
+    if (key === "reihe") return (r.files || []).filter((f) => f && !grpOk(r, f.grp));
     if (key === "main") return r.mainFiles || [];
     if (isLN(key)) return lnItemOf(r, key).files || [];
     return ((r.meta || {})[key] || {}).files || [];
   }
   function setDocsAt(r, key, files) {
     key = String(key);
-    if (key === "reihe") { r.files = files; return; }
-    if (key === "main") { if (files.length) r.mainFiles = files; else delete r.mainFiles; return; }
-    if (isLN(key)) { r.lnItems = (r.lnItems || []).slice(); const k = lnIdx(key); r.lnItems[k] = { ...(r.lnItems[k] || {}), files }; return; }
+    if (key.startsWith("g:")) { const g = key.slice(2); r.files = [...(r.files || []).filter((f) => f && f.grp !== g), ...files.map((f) => ({ ...f, grp: g }))]; return; }
+    if (key === "reihe") { r.files = [...files.map(stripGrp), ...(r.files || []).filter((f) => f && grpOk(r, f.grp))]; return; }
+    if (key === "main") { files = files.map(stripGrp); if (files.length) r.mainFiles = files; else delete r.mainFiles; return; }
+    if (isLN(key)) { files = files.map(stripGrp); r.lnItems = (r.lnItems || []).slice(); const k = lnIdx(key); r.lnItems[k] = { ...(r.lnItems[k] || {}), files }; return; }
+    files = files.map(stripGrp);
     r.meta = { ...(r.meta || {}) }; r.meta[key] = { color: "", details: "", ...(r.meta[key] || {}), files };
   }
+  const reDraw = () => { const kv = document.getElementById("view-klassen"); if (kv && !kv.hidden && typeof renderK === "function") renderK(); else renderU(); };
   function moveDoc(r, from, fid, to, beforeId) {
     from = String(from); to = String(to);
     const src = docsAt(r, from).slice(), k = src.findIndex((f) => f.id === fid); if (k < 0) return false;
@@ -3593,9 +3616,16 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const mainB = true ? '<div class="r-field rf-main"><span class="lbl">Hauptdokumente</span><div class="rf-mlist">' +
       (main.length ? main.map((f) => rfRowHtml(r, f, "main")).join("") : '<span class="help">Wichtige Dokumente hierher ziehen, z. B. die PowerPoint der Reihe. Sie bleiben immer sichtbar.</span>') + "</div></div>" : "";
     const head = '<button type="button" class="v-inr-tog rf-tog' + (files.length ? " has" : "") + '" data-rftog aria-expanded="' + open + '"><span class="lbl">Dokumente der ganzen Reihe' + (files.length ? " (" + files.length + ")" : "") + "</span></button>";
-    const docsB = !open ? '<div class="r-field rf-docs">' + head + "</div>" : '<div class="r-field rf-docs">' + head + '<div class="rf-list">' +
-      (files.length ? [...files.filter((f) => f.folder), ...files.filter((f) => !f.folder)].map((f) => rfRowHtml(r, f, "reihe")).join("") : '<span class="help">Noch keine. Hier gehören Unterlagen hin, die Sie in mehreren Lektionen brauchen.</span>') +
-      "</div>" + (!state.assets ? "" : '<label class="btn ghost rf-up">+ Dokument für die ganze Reihe<input type="file" id="rf-file" multiple hidden accept="application/pdf,image/*,.txt,.md,.csv,.json,.docx,.xlsx,.pptx"></label>' + (window.ZLOCAL && window.ZLOCAL.list ? '<button type="button" class="btn ghost rf-up" id="rf-addfolder" title="Einen ganzen Ordner (z. B. Bilder oder Scans) verknüpfen">+ Ordner</button>' : "") + '<span class="msg" id="rf-msg"></span>') + "</div>";
+    const loose = files.filter((f) => f && !grpOk(r, f.grp)), single = loose.filter((f) => !f.folder), links = loose.filter((f) => f.folder), groups = r.fgroups || [];
+    const gOpen = (g) => { try { return localStorage.getItem("zeitplan-rfg-" + g.id) === "1"; } catch (e) { return false; } };
+    const grpHtml = (g) => { const list = files.filter((f) => f && f.grp === g.id), o = gOpen(g);
+      return '<div class="rf-grp' + (o ? " open" : "") + '" data-gid="' + esc(g.id) + '"><div class="rf-ghead"><button type="button" class="rf-gtog" data-gtog="' + esc(g.id) + '" aria-expanded="' + o + '" title="' + (o ? "Zuklappen" : "Aufklappen") + '"><span class="rf-car" aria-hidden="true">' + (o ? "▾" : "▸") + "</span>📁</button>" +
+        '<input type="text" class="rf-gname" data-gname="' + esc(g.id) + '" value="' + esc(g.name || "") + '" placeholder="Name der Gruppe" aria-label="Name der Gruppe"><span class="n">' + list.length + '</span><button type="button" class="rf-pen" data-gdel="' + esc(g.id) + '" title="Gruppe auflösen – die Dokumente kommen zurück nach links">×</button></div>' +
+        (o ? '<div class="rf-glist">' + (list.length ? list.map((f) => rfRowHtml(r, f, "g:" + g.id)).join("") : '<span class="help">Dokumente hierher ziehen.</span>') + "</div>" : "") + "</div>"; };
+    const docsB = !open ? '<div class="r-field rf-docs">' + head + "</div>" : '<div class="r-field rf-docs">' + head + '<div class="rf-cols"><div class="rf-col"><span class="rf-ch">Einzeldokumente</span><div class="rf-list">' +
+      (single.length ? single.map((f) => rfRowHtml(r, f, "reihe")).join("") : '<span class="help">Noch keine. Hier gehören Unterlagen hin, die Sie in mehreren Lektionen brauchen.</span>') +
+      '</div></div><div class="rf-col rf-colr"><span class="rf-ch">Ordner und Gruppen</span>' + (links.length ? '<div class="rf-list rf-links">' + links.map((f) => rfRowHtml(r, f, "reihe")).join("") + "</div>" : "") +
+      groups.map(grpHtml).join("") + '<div class="rf-gbtns"><button type="button" class="btn ghost rf-gadd" id="rf-gadd" title="Eine Gruppe für Dokumente anlegen, z. B. «Lektionsplanungen» oder «Archiv»">+ Gruppe</button>' + (window.ZLOCAL && window.ZLOCAL.list ? '<button type="button" class="btn ghost" id="rf-addfolder" title="Einen ganzen Ordner (z. B. Bilder oder Scans) aus OneDrive verknüpfen">+ OneDrive-Ordner</button>' : "") + "</div></div></div>" + (!state.assets ? "" : '<label class="btn ghost rf-up">+ Dokument für die ganze Reihe<input type="file" id="rf-file" multiple hidden accept="application/pdf,image/*,.txt,.md,.csv,.json,.docx,.xlsx,.pptx"></label>' + '<span class="msg" id="rf-msg"></span>') + "</div>";
     return '<div class="rf-wrap">' + mainB + docsB + "</div>";
   }
   // Verbindung zwischen zwei Lektionen: getrennt, Doppellektion (verbunden) oder ein gemeinsames Feld
@@ -4129,6 +4159,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const r = U.reihen[U.sel]; if (!r) return; const k = +e.target.dataset.sub;
       r.subs = (Array.isArray(r.subs) ? r.subs : []).slice(); r.subs[k] = e.target.value; saveReihe(U.sel); return;
     }
+    if (e.target.dataset && e.target.dataset.gname != null) {
+      const r = U.reihen[U.sel]; if (!r) return; const g = e.target.dataset.gname;
+      r.fgroups = (r.fgroups || []).map((x) => (x.id === g ? { ...x, name: e.target.value } : x)); saveReihe(U.sel); return;
+    }
     if (e.target.dataset && e.target.dataset.relnote != null) {
       const r = U.reihen[U.sel]; if (!r) return; const rid = e.target.dataset.relnote, v = e.target.value;
       r.relNotes = { ...(r.relNotes || {}) }; if (v.trim()) r.relNotes[rid] = v; else delete r.relNotes[rid];
@@ -4501,7 +4535,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (cur === Z.root) return;
         const name = cur.split("\\").pop();
         r.files = [...(r.files || []), { id: "fold-" + Date.now().toString(36), folder: true, name, path: cur }];
-        window.__rfdocs = true; saveReihe(U.sel, 0); closeModal(); renderU();
+        window.__rfdocs = true; saveReihe(U.sel, 0); closeModal(); reDraw();
       };
       draw();
     });
@@ -4514,18 +4548,21 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.innerHTML = '<div class="cm-title">' + esc(f.name) + "</div>" +
       (f.folder ? "" : '<button type="button" role="menuitem" data-rfa="link">' + (f.link ? "OneDrive-Link ändern" : "OneDrive-Link hinzufügen") + "</button>") +
       (f.link && !f.folder ? '<button type="button" role="menuitem" data-rfa="unlink">Link entfernen</button>' : "") +
+      ((r.files || []).some((x) => x.id === fid) && (r.fgroups || []).length ? '<div class="cm-title">Verschieben nach</div>' + (grpOk(r, f.grp) ? '<button type="button" role="menuitem" data-rfa="grp" data-g="">← Einzeldokumente</button>' : "") +
+        r.fgroups.filter((g) => g.id !== f.grp).map((g) => '<button type="button" role="menuitem" data-rfa="grp" data-g="' + esc(g.id) + '">📁 ' + esc(g.name || "Gruppe") + "</button>").join("") + "<hr>" : "") +
       ('<button type="button" role="menuitem" class="cm-danger" data-rfa="rm">' + (f.folder ? "Ordner-Verknüpfung entfernen" : "Dokument entfernen") + "</button>");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-rfa]"); if (!b) return;
       const a = b.dataset.rfa, upd = (fn) => { r.files = (r.files || []).map(fn); if (r.mainFiles) r.mainFiles = r.mainFiles.map(fn); };
       if (a === "link") { closeMenu(); const row = btn.closest(".rf-row"), inp = row && row.querySelector(".rf-link"); if (inp) { inp.hidden = false; inp.focus(); inp.select(); } return; }
-      if (a === "unlink") { closeMenu(); upd((x) => { if (x.id !== fid) return x; const y = { ...x }; delete y.link; return y; }); saveReihe(U.sel, 0); renderU(); return; }
+      if (a === "unlink") { closeMenu(); upd((x) => { if (x.id !== fid) return x; const y = { ...x }; delete y.link; return y; }); saveReihe(U.sel, 0); reDraw(); return; }
+      if (a === "grp") { closeMenu(); const g = b.dataset.g; r.files = (r.files || []).map((x) => (x.id !== fid ? x : g ? { ...x, grp: g } : stripGrp(x))); saveReihe(U.sel, 0); reDraw(); return; }
       if (a === "rm") {
         if (!b.dataset.armed) { b.dataset.armed = "1"; b.innerHTML = 'Wirklich entfernen?'; return; }
         closeMenu(); r.files = (r.files || []).filter((x) => x.id !== fid);
         if (r.mainFiles) { r.mainFiles = r.mainFiles.filter((x) => x.id !== fid); if (!r.mainFiles.length) delete r.mainFiles; }
-        saveReihe(U.sel, 0); renderU();
+        saveReihe(U.sel, 0); reDraw();
       }
     });
     document.body.appendChild(m);
@@ -4538,7 +4575,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     let d = null, justDragged = 0;
     const clear = () => uEl.querySelectorAll(".ddrop,.ddrop-before").forEach((el) => el.classList.remove("ddrop", "ddrop-before"));
     const zoneOf = (t) => {
-      const z = t && t.closest && t.closest(".ldocs,.rf-docs,.rf-main"); if (!z || !uEl.contains(z)) return null;
+      const z = t && t.closest && t.closest(".ldocs,.rf-grp,.rf-docs,.rf-main"); if (!z || !uEl.contains(z)) return null;
+      if (z.classList.contains("rf-grp")) return { z, key: "g:" + z.dataset.gid };
       if (z.classList.contains("rf-docs")) return { z, key: "reihe" };
       if (z.classList.contains("rf-main")) return { z, key: "main" };
       const l = z.closest(".lesson"); return l && l.dataset.li != null ? { z, key: l.dataset.li } : null;
@@ -4560,7 +4598,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (!d) return; const zz = zoneOf(e.target), bef = uEl.querySelector(".ddrop-before"); clear();
       const dd = d; d = null; justDragged = Date.now(); if (!zz) return; e.preventDefault();
       const r = U.reihen[U.sel]; if (!r) return;
-      if (moveDoc(r, dd.key, dd.fid, zz.key, bef ? bef.dataset.openFile : null)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
+      if (moveDoc(r, dd.key, dd.fid, zz.key, bef ? bef.dataset.openFile : null)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); reDraw(); }
     });
     uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".doc.dragging").forEach((el) => el.classList.remove("dragging")); d = null; justDragged = Date.now(); });
     uEl.addEventListener("click", (e) => {
@@ -4631,6 +4669,17 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (f) openViewer(f); return;
     }
     if (b.id === "rf-addfolder" && r0) { folderPicker(r0); return; }
+    if (b.id === "rf-gadd" && r0) {
+      const id = "g" + Date.now().toString(36);
+      r0.fgroups = [...(r0.fgroups || []), { id, name: "" }]; try { localStorage.setItem("zeitplan-rfg-" + id, "1"); } catch (err) {}
+      saveReihe(U.sel, 0); reDraw(); setTimeout(() => { const n = document.querySelector('[data-gname="' + id + '"]'); if (n) n.focus(); }, 30); return;
+    }
+    if (b.dataset.gtog && r0) { const k = "zeitplan-rfg-" + b.dataset.gtog; try { localStorage.setItem(k, localStorage.getItem(k) === "1" ? "0" : "1"); } catch (err) {} reDraw(); return; }
+    if (b.dataset.gdel && r0) {
+      if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Auflösen?"; b.classList.add("armed"); return; }
+      const g = b.dataset.gdel; r0.files = (r0.files || []).map((x) => (x.grp === g ? stripGrp(x) : x)); r0.fgroups = (r0.fgroups || []).filter((x) => x.id !== g); if (!r0.fgroups.length) delete r0.fgroups;
+      saveReihe(U.sel, 0); reDraw(); return;
+    }
     if (b.id === "r-folder" && r0) {
       if (window.ZLOCAL && r0.folder) { uStatus("Öffnet den Ordner …"); window.ZLOCAL.open(r0.folder).then(() => uStatus(window.ZLOCAL.cloud ? "Ordner in OneDrive geöffnet" : "Ordner im Explorer geöffnet")).catch(() => { uStatus("Ordner nicht gefunden – bitte über ✎ neu wählen", true); folderMenu(b, r0); }); return; }
       folderMenu(b, r0); return;
