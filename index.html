@@ -1021,7 +1021,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .cmenu .ck { display: inline-block; width: 14px; color: var(--accent); font-weight: 700; }
 .jp-item.stat-done .t { opacity: 0.65; }
 .jp-item.stat-todo { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--danger) 55%, transparent); }
-.st-sq-todo { background: var(--danger); } .st-sq-done { background: #6bbf7a; } .st-sq-progress { background: var(--surface); }
+.st-sq-todo { background: var(--danger); } .st-sq-done { background: #6bbf7a; } .st-sq-progress { background: var(--accent); } .st-sq-none { background: var(--surface); border: 1px solid var(--line); }
+.st-sel.st-progress { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: color-mix(in srgb, var(--accent) 70%, var(--ink)); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.st-sel.st-none { background: var(--surface); color: var(--muted); font-weight: 500; }
 .st-sel { font: inherit; font-size: 0.82rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); margin-right: 6px; }
 .st-sel { font-weight: 600; color: var(--muted); }
 .st-sel.st-todo { background: color-mix(in srgb, var(--danger) 8%, var(--surface)); color: color-mix(in srgb, var(--danger) 75%, var(--ink)); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
@@ -2817,7 +2819,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Wichtigkeit einer Reihe (Anzeige im Jahresplan, per Rechtsklick änderbar)
   const PRIOS = [["essentiell", "Essentiell", "rost"], ["wichtig", "Wichtig", "gelb"], ["wenig", "Wenig wichtig", "gruen"], ["keine", "Ohne Angabe", ""]];
   const prioOf = (r) => r.prio || "essentiell";
-  const STATI = [["todo", "To do"], ["progress", "In progress"], ["done", "Done"]];
+  const STATI = [["none", "Kein Status"], ["todo", "To do"], ["progress", "In progress"], ["done", "Done"]];
   const statusOf = (r) => r.status || "progress";
   // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
@@ -2863,7 +2865,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
     m.style.left = Math.max(8, Math.min(br.left, innerWidth - mr.width - 8)) + "px"; m.style.top = (br.bottom + 4) + "px";
   }
-  const statusBadge = (r) => { const st = statusOf(r); return st === "progress" || !UP.stLabels ? "" : '<span class="st st-' + st + '">' + (st === "done" ? "✓ Done" : "To do") + "</span>"; };
+  const statusBadge = (r) => { const st = statusOf(r); return st === "progress" || st === "none" || !UP.stLabels ? "" : '<span class="st st-' + st + '">' + (st === "done" ? "✓ Done" : "To do") + "</span>"; };
   let UP = { prio: true, cross: true, bars: true, hide: {} };
   try { UP = { ...UP, ...JSON.parse(localStorage.getItem("zeitplan-uprefs") || "{}") }; } catch (e) {}
   delete UP.parkOpen; // ausgeblendete Reihen sind beim Öffnen der Seite immer eingeklappt
