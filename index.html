@@ -1124,6 +1124,17 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ser-exc { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; }
 .exc { display: inline-flex; align-items: center; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 1px 4px 1px 9px; font-size: 0.82rem; }
 .exc button { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 0.95rem; }
+.mat-row .lh-top b { color: color-mix(in srgb, var(--accent) 75%, var(--ink)); }
+.mat-row { background: color-mix(in srgb, var(--c-blau) 22%, var(--surface)); }
+.lesson.mat-row .lh, .lesson.mat-row > .lh { background: color-mix(in srgb, var(--c-blau) 55%, var(--surface)) !important; }
+.mat-link .x { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 0 4px; }
+.mat-link { display: inline-flex; align-items: center; gap: 2px; margin-top: 4px; font-size: 0.82rem; }
+.mat-pick { margin-top: 4px; font-size: 0.8rem; }
+.ln-add { display: flex; gap: 6px; flex-wrap: wrap; }
+.sub-link { cursor: pointer; color: var(--accent); }
+.sub-link:hover { text-decoration: underline; }
+.sub-it.sub-r { background: color-mix(in srgb, var(--c-blau) 35%, var(--surface)); border-radius: 6px; padding: 0 2px 0 4px; }
+.rp-q { width: 100%; box-sizing: border-box; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
@@ -2232,7 +2243,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   // Auswahl vor dem Drucken: ganze Reihe oder einzelne Lektionen
   function printPicker(r) {
-    const items = [...blocksOf(r).map(([i, s]) => [String(i), lessonLabel(i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : "")]), ...(r.lnItems || []).map((m, k) => ["ln" + k, "Leistungsnachweis" + (m.name ? " · " + m.name : "")])];
+    const items = [...blocksOf(r).map(([i, s]) => [String(i), lessonLabel(i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : "")]), ...(r.lnItems || []).map((m, k) => ["ln" + k, lnLabel(r, "ln" + k)])];
     openModal('<h3>Drucken</h3><p class="help" style="margin:0 0 10px">Was soll gedruckt werden?</p>' +
       '<label class="pp-row pp-head"><input type="checkbox" id="pp-head" checked> Übersicht der Reihe (Titel, Leitfrage, Verbindungen, Zusätzliches)</label>' +
       '<div class="pp-tools"><span class="lbl">Lektionen</span><button type="button" class="btn ghost" id="pp-all">Alle</button><button type="button" class="btn ghost" id="pp-none">Keine</button></div>' +
@@ -2788,7 +2799,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const lnSumText = (r) => (lnLekt(r) ? "+ " + lnLekt(r) + " L Leistungsnachweis = " + totalL(r) + " L" : "");
   const totalL = (r) => (Number(r.lektionen) || 0) + lnLekt(r);
   const lnItemOf = (r, i) => (r.lnItems || [])[lnIdx(i)] || {};
-  const lnLabel = (r, i) => { const n = lnItemOf(r, i).name; return "Leistungsnachweis" + (n ? " · " + n : ""); };
+  const lnLabel = (r, i) => { const it = lnItemOf(r, i), n = it.name; return (it.mat ? "Materialsammlung" : "Leistungsnachweis") + (n ? " · " + n : ""); };
   const keyOfLesson = (v) => (String(v).startsWith("ln") ? String(v) : +v);
   const metaOf = (r, i) => (isLN(i) ? lnItemOf(r, i) : ((r.meta || {})[i] || {}));
   const htmlOf = (r, i) => (isLN(i) ? (lnItemOf(r, i).html || "") : ((r.lessons || [])[i] || ""));
@@ -2970,16 +2981,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   // Unterpunkte einer Reihe (z. B. Wortarten: Nomen, Verb …)
   const subsOf = (r) => (Array.isArray(r.subs) ? r.subs.filter((x) => String(x || "").trim()) : []);
+  const subRid = (x) => (String(x).startsWith("@") ? String(x).slice(1) : null);
+  const subLabel = (x) => { const id = subRid(x); return id ? (U.reihen[id] && U.reihen[id].title) || "(Reihe gelöscht)" : x; };
   const subsOpen = (id) => { const o = (UP.subOpen || {})[id]; return o == null ? !!UP.subs : o; };
   function subsHtml(id, r) {
     const ss = subsOf(r); if (!ss.length) return { car: "", list: "" };
     const open = subsOpen(id);
     return { car: '<span class="sub-car" data-subtog="' + id + '" role="button" aria-label="Unterpunkte ' + (open ? "einklappen" : "ausklappen") + '" title="Unterpunkte ' + (open ? "einklappen" : "ausklappen") + '">' + (open ? "▾" : "▸") + "</span>",
-      list: open ? '<span class="subs">' + ss.map((x) => "<span>" + esc(x) + "</span>").join("") + "</span>" : "" };
+      list: open ? '<span class="subs">' + ss.map((x) => subRid(x) ? '<span class="sub-link" data-subgo="' + esc(subRid(x)) + '" title="Reihe öffnen">↗ ' + esc(subLabel(x)) + "</span>" : "<span>" + esc(x) + "</span>").join("") + "</span>" : "" };
   }
   function subsEdHtml(r) {
-    return (Array.isArray(r.subs) ? r.subs : []).map((x, k) => '<span class="sub-it"><input type="text" data-sub="' + k + '" value="' + esc(x) + '" placeholder="Unterpunkt" aria-label="Unterpunkt ' + (k + 1) + '"><button type="button" class="x" data-subrm="' + k + '" title="Unterpunkt entfernen" aria-label="Unterpunkt entfernen">×</button></span>').join("") +
-      '<button type="button" class="btn ghost" data-subadd>+ Unterpunkt</button>';
+    return (Array.isArray(r.subs) ? r.subs : []).map((x, k) => '<span class="sub-it' + (subRid(x) ? " sub-r" : "") + '">' + (subRid(x) ? '<button type="button" class="linkbtn" data-goto="' + esc(subRid(x)) + '" title="Reihe öffnen">↗ ' + esc(subLabel(x)) + "</button>" : '<input type="text" data-sub="' + k + '" value="' + esc(x) + '" placeholder="Unterpunkt" aria-label="Unterpunkt ' + (k + 1) + '">') + '<button type="button" class="x" data-subrm="' + k + '" title="Unterpunkt entfernen" aria-label="Unterpunkt entfernen">×</button></span>').join("") +
+      '<button type="button" class="btn ghost" data-subadd>+ Unterpunkt</button><button type="button" class="btn ghost" data-sublink>+ Reihe als Unterpunkt</button>';
   }
   // ---------- Suche über alle Reihen ----------
   function uSearch(q) {
@@ -2990,7 +3003,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (r.klasse) continue;
       const where = [];
       if (hit(r.title)) where.push(["", "Titel"]);
-      subsOf(r).forEach((x) => { if (hit(x)) where.push(["", "Unterpunkt «" + x + "»"]); });
+      subsOf(r).forEach((x) => { if (hit(subLabel(x))) where.push(["", "Unterpunkt «" + subLabel(x) + "»"]); });
       if (hit(htmlToPlain(r.leitfrage || ""))) where.push(["", "Leitfrage"]);
       blocksOf(r).forEach(([i, sp]) => {
         const m = (r.meta || {})[i] || {}, pl = m.plan || {};
@@ -3082,7 +3095,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function docKeys(r) {
     const out = [["main", "Hauptdokumente"], ["reihe", "Dokumente der ganzen Reihe"]];
     blocksOf(r).forEach(([i, s]) => out.push([String(i), lessonLabel(i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : "")]));
-    (r.lnItems || []).forEach((m, k) => out.push(["ln" + k, "Leistungsnachweis" + (m.name ? " · " + m.name : "")]));
+    (r.lnItems || []).forEach((m, k) => out.push(["ln" + k, lnLabel(r, "ln" + k)]));
     return out;
   }
   function docsAt(r, key) {
@@ -3135,13 +3148,23 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function lnRowHtml(r) {
     return (r.lnItems || []).map((m, k) => {
       const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
+      if (m.mat) {
+        const lk = m.rid && U.reihen[m.rid];
+        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>MAT</b><button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
+          '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diese Materialsammlung entfernen" aria-label="Materialsammlung entfernen">×</button></div>' +
+          '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Materialsammlung ' + (k + 1) + '" aria-label="Name der Materialsammlung">' +
+          (lk ? '<span class="mat-link"><button type="button" class="linkbtn" data-goto="' + esc(m.rid) + '" title="Verknüpfte Reihe öffnen">↗ ' + esc(lk.title || "Reihe") + '</button><button type="button" class="x" data-matunlink="' + k + '" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">×</button></span>'
+              : (r.klasse ? "" : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>')) + "</div>" +
+          cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Kommentar zur Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
+          '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
+      }
       return '<div class="lesson ln-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b>LN</b><button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Planung, Notizen, Dokumente" aria-label="Leistungsnachweis gross öffnen">+</button>' +
         '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diesen Leistungsnachweis entfernen" aria-label="Leistungsnachweis entfernen">×</button></div>' +
         '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="z. B. Prüfung" aria-label="Art des Leistungsnachweises">' +
         '<select class="ln-lekt" data-lnlekt="' + k + '" aria-label="Dauer in Lektionen">' + [[0, "keine Lektion"], [1, "1 Lektion"], [2, "2 Lektionen"]].map(([v, l]) => '<option value="' + v + '"' + ((Number(m.lekt) || 0) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></div>" +
         cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Leistungsnachweis"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
         '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
-    }).join("") + '<div class="ln-add"><button type="button" class="btn ghost" data-lnadd>+ Leistungsnachweis</button></div>';
+    }).join("") + '<div class="ln-add"><button type="button" class="btn ghost" data-lnadd>+ Leistungsnachweis</button><button type="button" class="btn ghost" data-matadd>+ Materialsammlung</button></div>';
   }
   // Dokumente der ganzen Reihe (z. B. Gesamt-PowerPoint), in jeder Lektion verfügbar; mit OneDrive-Link
   function rfRowHtml(r, f, key) {
@@ -3202,6 +3225,20 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return '<span class="r-home">Hauptjahr <select id="r-home" aria-label="Hauptjahr der Reihe"' + (ys.length < 2 ? " disabled" : "") + ">" +
       ys.map((y) => '<option value="' + y + '"' + (y === homeYear(r) ? " selected" : "") + ">" + YEAR_SHORT[y] + "</option>").join("") + "</select>" +
       (none ? '<span class="hint">Kein Schuljahr gewählt – die Reihe steht unter «Anderes».</span>' : "") + "</span>";
+  }
+  // Eine andere Reihe auswählen (für Unterpunkte und Materialsammlungen)
+  function reihePicker(self, cb) {
+    const all = Object.entries(U.reihen).filter(([id, r]) => id !== self && !r.klasse).sort((a, b) => String(a[1].title || "").localeCompare(String(b[1].title || ""), "de"));
+    openModal('<h3>Reihe verknüpfen</h3><input type="text" id="rp-q" class="rp-q" placeholder="Reihe suchen …" spellcheck="false"><div class="fp-list" id="rp-list"></div><div class="actions"><span></span><div class="right"><button type="button" class="btn" id="rp-cancel">Abbrechen</button></div></div>', (root) => {
+      const draw = () => {
+        const q = normTxt(root.querySelector("#rp-q").value);
+        root.querySelector("#rp-list").innerHTML = all.filter(([, r]) => !q || normTxt(r.title || "").includes(q)).map(([id, r]) => '<button type="button" data-rp="' + id + '">' + esc(r.title || "Ohne Titel") + ' <small style="color:var(--muted)">' + yearsOf(r).map((y) => YEAR_SHORT[y]).join(", ") + "</small></button>").join("") || '<span class="msg">Nichts gefunden.</span>';
+      };
+      root.querySelector("#rp-q").addEventListener("input", draw);
+      root.querySelector("#rp-list").addEventListener("click", (e) => { const b = e.target.closest("[data-rp]"); if (!b) return; closeModal(); cb(b.dataset.rp); });
+      root.querySelector("#rp-cancel").onclick = closeModal;
+      draw(); setTimeout(() => root.querySelector("#rp-q").focus(), 30);
+    });
   }
   // Rückgängig: Zustände einer Reihe vor jeder gespeicherten Änderung (nur in dieser Sitzung)
   const RSNAP = {}, RUNDO = {};
@@ -3988,7 +4025,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (moveDoc(r, dd.key, dd.fid, zz.key, bef ? bef.dataset.openFile : null)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
     });
     uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".doc.dragging").forEach((el) => el.classList.remove("dragging")); d = null; justDragged = Date.now(); });
-    uEl.addEventListener("click", (e) => { if (Date.now() - justDragged < 300 && e.target.closest && e.target.closest("[data-dkey]")) { e.stopPropagation(); e.preventDefault(); } }, true);
+    uEl.addEventListener("click", (e) => {
+    const sg = e.target.closest && e.target.closest("[data-subgo]"); if (!sg) return;
+    e.stopPropagation(); e.preventDefault();
+    const o = U.reihen[sg.dataset.subgo]; if (!o) return;
+    U.sel = sg.dataset.subgo; U.year = homeYear(o); U.view = "reihen"; renderU(); window.scrollTo(0, 0);
+  }, true);
+  uEl.addEventListener("click", (e) => { if (Date.now() - justDragged < 300 && e.target.closest && e.target.closest("[data-dkey]")) { e.stopPropagation(); e.preventDefault(); } }, true);
   })();
   uEl.addEventListener("focusout", (e) => { if (e.target.id === "u-search" || e.target.closest && e.target.closest(".u-sres")) setTimeout(() => { const ae = document.activeElement; if (!ae || !ae.closest || !ae.closest(".u-search")) { const bx = $("#u-sres"); if (bx) bx.hidden = true; } }, 150); });
   uEl.addEventListener("focusin", (e) => { if (e.target.id === "u-search" && e.target.value.trim().length > 1) renderSearch(); });
@@ -4040,6 +4083,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     }
     if (b.id === "r-folder-ed" && r0) { folderMenu($("#r-folder") || b, r0); return; }
     if (b.id === "r-print" && r0) { printPicker(r0); return; }
+    if (b.dataset.matadd != null && r0) { r0.lnItems = [...(r0.lnItems || []), { mat: true, name: "", html: "" }]; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
+    if (b.dataset.matlink != null && r0) { const k = +b.dataset.matlink; reihePicker(U.sel, (rid) => { r0.lnItems = (r0.lnItems || []).slice(); r0.lnItems[k] = { ...(r0.lnItems[k] || {}), rid }; saveReihe(U.sel, 0); renderLessonsOnly(r0); }); return; }
+    if (b.dataset.matunlink != null && r0) { const k = +b.dataset.matunlink; r0.lnItems = (r0.lnItems || []).slice(); const it = { ...(r0.lnItems[k] || {}) }; delete it.rid; r0.lnItems[k] = it; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
+    if (b.dataset.sublink != null) { const r = U.reihen[U.sel]; if (!r) return; reihePicker(U.sel, (rid) => { r.subs = [...(Array.isArray(r.subs) ? r.subs : []), "@" + rid]; saveReihe(U.sel, 0); $("#r-subs").innerHTML = subsEdHtml(r); renderRSide(); }); return; }
     if (b.dataset.lnadd != null && r0) { r0.lnItems = [...(r0.lnItems || []), { name: (r0.lnItems || []).length ? "" : r0.ln || "", html: "" }]; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
     if (b.dataset.lnrm != null && r0) {
       const k = +b.dataset.lnrm, it = (r0.lnItems || [])[k] || {}, used = filled(it.html) || hasPlan(it.plan) || filled(it.notesHtml) || (it.files || []).length;
