@@ -1095,6 +1095,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .r-field > .cell { border-radius: 6px; background: var(--bg); }
 .r-field > .cell .inp { min-height: 40px; }
 .r-years-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.r-home { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+.r-home select { font: inherit; color: var(--ink); padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.r-home .hint { font-size: 0.78rem; }
+#r-undo[disabled] { opacity: 0.4; cursor: default; }
 .r-years-pick .lbl { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 3px 11px; font-weight: 700; font-size: 0.85rem; }
@@ -3040,6 +3044,37 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const c = $("#r-count"); if (c) c.textContent = planned(r) + " von " + lessonCount(r) + " Lektionen ausgearbeitet";
   }
   const firstYear = (r) => Math.min(...yearsOf(r));
+  const homeYear = (r) => (typeof r.home === "number" && yearsOf(r).includes(r.home) ? r.home : firstYear(r));
+  function homePick(r) {
+    const ys = yearsOf(r), none = !(r.years && r.years.length);
+    return '<span class="r-home">Hauptjahr <select id="r-home" aria-label="Hauptjahr der Reihe"' + (ys.length < 2 ? " disabled" : "") + ">" +
+      ys.map((y) => '<option value="' + y + '"' + (y === homeYear(r) ? " selected" : "") + ">" + YEAR_SHORT[y] + "</option>").join("") + "</select>" +
+      (none ? '<span class="hint">Kein Schuljahr gewählt – die Reihe steht unter «Anderes».</span>' : "") + "</span>";
+  }
+  // Rückgängig: Zustände einer Reihe vor jeder gespeicherten Änderung (nur in dieser Sitzung)
+  const RSNAP = {}, RUNDO = {};
+  function rSnapBase(id) { const r = U.reihen[id]; if (r && !(id in RSNAP)) RSNAP[id] = JSON.stringify(r); }
+  function rCapture(id) {
+    const r = U.reihen[id]; if (!r) return;
+    const cur = JSON.stringify(r);
+    if (id in RSNAP && RSNAP[id] !== cur) { (RUNDO[id] = RUNDO[id] || []).push(RSNAP[id]); if (RUNDO[id].length > 60) RUNDO[id].shift(); }
+    RSNAP[id] = cur; rUndoBtn();
+  }
+  function rUndoBtn() { const b = $("#r-undo"); if (b) { const n = (RUNDO[U.sel] || []).length; b.disabled = !n; b.title = n ? "Letzte Änderung an dieser Reihe rückgängig machen (" + n + ")" : "Noch nichts rückgängig zu machen"; } }
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z" || e.shiftKey) return;
+    const a = document.activeElement; if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) return;
+    if ($("#view-unterricht").hidden || U.view !== "reihen" || $("#ov")) return;
+    if ((RUNDO[U.sel] || []).length) { e.preventDefault(); rUndo(); }
+  });
+  function rUndo() {
+    const id = U.sel, st = RUNDO[id]; if (!st || !st.length) return;
+    Object.keys(uTimers).forEach((k) => { if (k === "r:" + id) clearTimeout(uTimers[k]); });
+    const prev = st.pop(); U.reihen[id] = normReihe(JSON.parse(prev)); RSNAP[id] = JSON.stringify(U.reihen[id]);
+    const r = U.reihen[id]; if (!r.klasse && !yearsOf(r).includes(U.year)) U.year = homeYear(r);
+    saveReihe(id, 0); uStatus("Rückgängig gemacht");
+    if (r.klasse && typeof renderK === "function") renderK(); else renderU();
+  }
   function relChips(r) {
     return (r.related || []).filter((id) => U.reihen[id]).map((id) => {
       const o = U.reihen[id];
@@ -3252,9 +3287,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (!first) { U.sel = null; box.innerHTML = '<div class="empty">Noch keine Reihe hier. Mit „+ Neue Reihe“ legen Sie eine an.</div>'; return; }
       U.sel = first[0]; r = first[1]; renderRSide();
     }
+    rSnapBase(U.sel); setTimeout(rUndoBtn, 0);
     box.innerHTML =
       '<div class="r-top"><input class="r-title" id="r-title" data-rf="title" value="' + esc(r.title || "") + '" aria-label="Titel der Reihe" placeholder="Titel der Reihe">' +
-      '<div class="r-tools">' + (r.klasse ? "" : '<select id="r-status" class="st-sel st-' + statusOf(r) + '" aria-label="Status der Reihe">' + STATI.map(([v, l]) => '<option value="' + v + '"' + (statusOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>") + '<button class="btn ghost' + (r.folder ? " has-folder" : "") + '" type="button" id="r-folder" title="' + (r.folder ? "Ordnerpfad kopieren: " + esc(r.folder) : "Ordner auf dem Computer hinterlegen") + '">📁 Ordner</button>' + (window.ZLOCAL ? '<button class="btn ghost" type="button" id="r-folder-ed" title="Ordner wählen oder ändern" aria-label="Ordner wählen">✎</button>' : "") + '<button class="btn ghost" type="button" id="r-print" title="Ganze Reihe als Lektionsplanung drucken">Drucken</button><button class="btn ghost" type="button" data-move="-1" title="Reihe in der Liste nach oben schieben" aria-label="Reihe nach oben">↑</button><button class="btn ghost" type="button" data-move="1" title="Reihe in der Liste nach unten schieben" aria-label="Reihe nach unten">↓</button></div></div>' +
+      '<div class="r-tools"><button class="btn ghost" type="button" id="r-undo" disabled title="Noch nichts rückgängig zu machen">↶ Rückgängig</button>' + (r.klasse ? "" : '<select id="r-status" class="st-sel st-' + statusOf(r) + '" aria-label="Status der Reihe">' + STATI.map(([v, l]) => '<option value="' + v + '"' + (statusOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>") + '<button class="btn ghost' + (r.folder ? " has-folder" : "") + '" type="button" id="r-folder" title="' + (r.folder ? "Ordnerpfad kopieren: " + esc(r.folder) : "Ordner auf dem Computer hinterlegen") + '">📁 Ordner</button>' + (window.ZLOCAL ? '<button class="btn ghost" type="button" id="r-folder-ed" title="Ordner wählen oder ändern" aria-label="Ordner wählen">✎</button>' : "") + '<button class="btn ghost" type="button" id="r-print" title="Ganze Reihe als Lektionsplanung drucken">Drucken</button><button class="btn ghost" type="button" data-move="-1" title="Reihe in der Liste nach oben schieben" aria-label="Reihe nach oben">↑</button><button class="btn ghost" type="button" data-move="1" title="Reihe in der Liste nach unten schieben" aria-label="Reihe nach unten">↓</button></div></div>' +
       '<div class="r-meta"><label>Lektionen <input type="number" min="0" max="60" id="r-lekt" data-rf="lektionen" value="' + (r.lektionen ?? "") + '"></label>' + '<span class="ln-sum" id="r-lnsum">' + lnSumText(r) + "</span>" +
       '<label>Leistungsnachweis <input type="text" id="r-ln" data-rf="ln" list="ln-list" value="' + esc(r.ln || "") + '" placeholder="z. B. Prüfung, Abgabe"></label>' +
       '<datalist id="ln-list">' + LN_SUGGEST.map((s) => '<option value="' + esc(s) + '"></option>').join("") + "</datalist>" +
@@ -3262,7 +3298,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       '<span class="prio-pick">Wichtigkeit ' + PRIOS.map(([v, l, c]) => '<button type="button" class="chip prio-chip' + (c ? " f-" + c : "") + '" data-rprio="' + v + '" aria-pressed="' + (prioOf(r) === v) + '">' + l + "</button>").join("") + "</span></div>" +
       (r.klasse
         ? '<div class="k-banner">Kopie von „' + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse.</div>"
-        : '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips" id="r-chips">' + yearChips(r) + "</div></div>") +
+        : '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips" id="r-chips">' + yearChips(r) + '</div><span id="r-homewrap">' + homePick(r) + "</span></div>") +
       '<div class="r-field"><span class="lbl">Leitfrage oder Leitproblem</span>' + cellHtml2('data-rf="leitfrage" id="r-leitfrage" aria-label="Leitfrage"', r.leitfrage) + "</div>" +
       reiheFilesHtml(r) +
       '<div class="lessons" id="r-lessons">' + lessonsHtml(r) + "</div>" +
@@ -3281,7 +3317,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const key = "r:" + id;
     dirtyU.add(id);
     clearTimeout(uTimers[key]); uStatus("Ungespeichert …");
-    uTimers[key] = setTimeout(() => uWrite(key), delay ?? 800);
+    uTimers[key] = setTimeout(() => { rCapture(id); uWrite(key); }, delay ?? 800);
   }
   function savePlan(delay) {
     planDirty = true;
@@ -3506,6 +3542,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   });
   uEl.addEventListener("change", async (e) => {
     const t = e.target;
+    if (t.id === "r-home") { const r = U.reihen[U.sel]; if (!r) return; r.home = +t.value; saveReihe(U.sel, 0); U.year = r.home; renderU(); return; }
     if (t.id === "r-status") { const r = U.reihen[U.sel]; if (!r) return; if (t.value === "progress") delete r.status; else r.status = t.value; t.className = "st-sel st-" + t.value; saveReihe(U.sel, 0); t.blur(); renderRSide(); return; }
     if (t.dataset && t.dataset.lnlekt != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +t.dataset.lnlekt; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), lekt: +t.value || 0 }; if (!r.lnItems[k].lekt) delete r.lnItems[k].lekt; saveReihe(U.sel, 0); t.blur(); const ls = $("#r-lnsum"); if (ls) ls.textContent = lnSumText(r); renderRSide(); return; }
     if (t.dataset && t.dataset.lnname != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +t.dataset.lnname; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), name: t.value.trim() }; saveReihe(U.sel, 0); t.blur(); return; }
@@ -3831,13 +3868,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.dataset.rfrm && r0) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich entfernen?"; return; } r0.files = (r0.files || []).filter((f) => f.id !== b.dataset.rfrm); if (r0.mainFiles) { r0.mainFiles = r0.mainFiles.filter((f) => f.id !== b.dataset.rfrm); if (!r0.mainFiles.length) delete r0.mainFiles; } saveReihe(U.sel, 0); renderU(); return; }
     if (b.dataset.goto) { const o = U.reihen[b.dataset.goto]; if (o) { U.sel = b.dataset.goto; U.year = firstYear(o); renderU(); window.scrollTo(0, 0); } return; }
     if (b.dataset.unrel && r0) { r0.related = (r0.related || []).filter((id) => id !== b.dataset.unrel); if (r0.relNotes && r0.relNotes[b.dataset.unrel] != null) { r0.relNotes = { ...r0.relNotes }; delete r0.relNotes[b.dataset.unrel]; } saveReihe(U.sel, 0); $("#r-relchips").innerHTML = relChips(r0); $("#r-rel-add").innerHTML = '<option value="">+ Reihe verknüpfen …</option>' + relOptions(r0); return; }
+    if (b.id === "r-undo") { rUndo(); return; }
     if (b.dataset.ytoggle != null) {
       const r = U.reihen[U.sel]; if (!r) return;
       const y = +b.dataset.ytoggle, ys = new Set(yearsOf(r).filter((z) => r.years.includes(z)));
       if (ys.has(y)) ys.delete(y); else ys.add(y);
       r.years = [...ys].sort();
+      if (typeof r.home === "number" && !yearsOf(r).includes(r.home)) delete r.home;
+      if (r.years.length === 1) r.home = r.years[0];
       saveReihe(U.sel, 300);
       $("#r-chips").innerHTML = yearChips(r);
+      $("#r-homewrap").innerHTML = homePick(r);
+      if (!yearsOf(r).includes(U.year)) U.year = homeYear(r);
       renderRSide();
       return;
     }
