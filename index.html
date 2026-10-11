@@ -379,6 +379,15 @@
     for (const v of Object.values(mem.vorlagen || {})) { const p = (v && v.path) || ""; const j = p.indexOf("\\0_Planung"); if (j > 0) return p.slice(0, j + 10); }
     return "C:\\OneDrive\\0_Planung";
   }
+  async function mkdirDrive(p) {
+    const m = await getMeta(p); if (m) return m;
+    const i = p.lastIndexOf("/"), parent = p.slice(0, i), name = p.slice(i + 1);
+    if (parent && parent.indexOf("/") >= 0) await mkdirDrive(parent);
+    const r = await g(item(parent) + ":/children", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }) });
+    if (r.ok) return await r.json();
+    const again = await getMeta(p); if (again) return again;
+    throw new Error("Ordner anlegen: " + r.status);
+  }
   async function children(p) { const r = await g(item(p) + ":/children?$top=500&$select=name,folder"); if (!r.ok) return []; return ((await r.json()).value || []).filter((x) => x.folder).map((x) => x.name); }
   async function setupFolders() {
     ROOT = guessRoot();
@@ -424,6 +433,19 @@
         return { ok: true, path: p, existed };
       },
       async saveVersion() { throw new Error("nicht verfügbar"); },
+      async exists(path) { return !!(await getMeta(toDrive(path))); },
+      // Ordner anlegen (auch mehrere Ebenen); vorhandene bleiben unverändert
+      async mkdir(path) { return mkdirDrive(toDrive(path)); },
+      // Datei oder ganzen Ordner in OneDrive kopieren (läuft bei Microsoft, nichts wird heruntergeladen).
+      // src: Windows-Pfad oder { doc: Kennnummer } für ein Dokument der App. Gibt den neuen Pfad zurück.
+      async copy(src, folder, name) {
+        const sm = typeof src === "string" ? await getMeta(toDrive(src)) : await getMeta(DOKS + "/" + src.doc);
+        if (!sm) throw new Error("Quelle nicht gefunden");
+        const dm = await mkdirDrive(toDrive(folder));
+        const r = await g("/me/drive/items/" + sm.id + "/copy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ parentReference: { driveId: (dm.parentReference || {}).driveId, id: dm.id }, name }) });
+        if (!r.ok && r.status !== 202) throw new Error("Kopieren: " + r.status);
+        return folder.replace(/\\+$/, "") + "\\" + name;
+      },
     };
   }
 })();
@@ -643,6 +665,20 @@ html.fit body { touch-action: pan-x pan-y; }
 .sv-row .sv-act { display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
 .sv-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 4px; padding: 0 5px; margin-left: 6px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px; }
 .sv-tag.auto { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.dp-c .dp-t { display: block; font-size: 0.72em; opacity: 0.8; }
+.dp-c .dp-mv { font-style: normal; font-weight: 400; opacity: 0.7; }
+.dp-c.moved { outline: 1px dashed currentColor; outline-offset: -3px; }
+.dp-c.drop-into { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.dp-c.dragging { opacity: 0.4; }
+.dp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) { .dp-grid { grid-template-columns: 1fr; } }
+.dp-time { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dp-time input[type="text"] { width: 4.2em; }
+.ks-time.own { font-weight: 700; }
+.bulk-files small { display: block; color: var(--muted); font-weight: 400; margin-left: 24px; }
+.l-name { outline: none; border-radius: 4px; padding: 0 3px; cursor: text; min-width: 1.5em; }
+.l-name:hover { background: var(--accent-soft); } .l-name:focus { background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+.l-name:empty::before { content: attr(data-ph); color: var(--muted); }
 .sv-h { margin: 14px 0 6px; font-size: 0.95rem; } .sv-h small { font-weight: 400; color: var(--muted); }
 .sv-file { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 700px) { .sv-row { grid-template-columns: 1fr; } .sv-row .sv-act { justify-content: flex-start; } }
@@ -2377,7 +2413,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function lessonPrintHtml(r, i, s) {
     const m = metaOf(r, i), p = m.plan;
-    let h = "<section><h2>" + (isLN(i) ? lnLabel(r, i) : lessonLabel(i, s) + (phaseOf(r, i) ? ' <span class="phase">· ' + esc(phaseOf(r, i)) + "</span>" : "")) + "</h2>";
+    let h = "<section><h2>" + (isLN(i) ? lnLabel(r, i) : esc(lname(r, i, s)) + (phaseOf(r, i) ? ' <span class="phase">· ' + esc(phaseOf(r, i)) + "</span>" : "")) + "</h2>";
     if (filled(htmlOf(r, i))) h += '<div class="box">' + sanitize(htmlOf(r, i)) + "</div>";
     if (p && filled(p.ziele)) h += "<h3>Lernziele</h3><div>" + sanitize(p.ziele) + "</div>";
     if (p && (p.rows || []).some((row) => row.some(filled))) {
@@ -2397,7 +2433,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function printLesson(r, i) {
     const s = isLN(i) ? 1 : Number((r.spans || {})[i]) || 1;
     const body = lessonPrintHtml(r, i, s).replace(/^<section><h2>/, '<section class="one"><h1>' + esc(r.title || "Reihe") + ' <span class="phase">· ').replace(/<\/h2>/, "</span></h1>");
-    printDoc((r.title || "Reihe") + " – " + (isLN(i) ? "Leistungsnachweis" : lessonLabel(i, s)), body);
+    printDoc((r.title || "Reihe") + " – " + (isLN(i) ? "Leistungsnachweis" : lname(r, i, s)), body);
   }
   function printReihe(r, sel) {
     const want = (k) => !sel || sel.keys.has(String(k)), head = !sel || sel.head;
@@ -2419,7 +2455,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   // Auswahl vor dem Drucken: ganze Reihe oder einzelne Lektionen
   function printPicker(r) {
-    const items = [...blocksOf(r).map(([i, s]) => [String(i), lessonLabel(i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : "")]), ...(r.lnItems || []).map((m, k) => ["ln" + k, lnLabel(r, "ln" + k)])];
+    const items = [...blocksOf(r).map(([i, s]) => [String(i), lname(r, i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : "")]), ...(r.lnItems || []).map((m, k) => ["ln" + k, lnLabel(r, "ln" + k)])];
     openModal('<h3>Drucken</h3><p class="help" style="margin:0 0 10px">Was soll gedruckt werden?</p>' +
       '<label class="pp-row pp-head"><input type="checkbox" id="pp-head" checked> Übersicht der Reihe (Titel, Leitfrage, Verbindungen, Zusätzliches)</label>' +
       '<div class="pp-tools"><span class="lbl">Lektionen</span><button type="button" class="btn ghost" id="pp-all">Alle</button><button type="button" class="btn ghost" id="pp-none">Keine</button></div>' +
@@ -3418,6 +3454,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     setDocsAt(r, to, dst); return true;
   }
   const lessonLabel = (i, s) => (s === 1 ? "L" + (i + 1) : s === 2 ? "L" + (i + 1) + " + L" + (i + 2) : "L" + (i + 1) + " – L" + (i + s));
+  // In den Klassen lassen sich die Lektionen umbenennen (r.lnames); sonst gilt L1, L2 …
+  const lname = (r, i, s) => (r && r.lnames && r.lnames[i]) || lessonLabel(i, s);
   const hasPlan = (p) => !!(p && (filled(p.ziele) || (p.rows || []).some((row) => row.some(filled))));
   // Position einer Unterreihe in der Masterreihe: nach Lektion (Blockanfang), -1 = vor L1, sonst am Ende
   function chPos(r, c, bl) { bl = bl || blocksOf(r); if (c.after == null) return 1e9; if (c.after === -1) return -1; const b = bl.find(([a, s]) => c.after >= a && c.after < a + s); return b ? b[0] : 1e9; }
@@ -3475,11 +3513,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const nextLinked = k < bl.length - 1 && !!links[bl[k + 1][0]];
       const joint = k > 0 ? '<button type="button" class="joint' + (linked ? " on" : "") + '" data-joint="' + i + '" title="Verbindung zu ' + lessonLabel(bl[k - 1][0], bl[k - 1][1]) + ' einstellen" aria-label="Verbindung einstellen"><span>' + (linked ? "Doppellektion" : "verbinden") + "</span></button>" : "";
       return '<div class="lesson' + (s > 1 ? " merged" : "") + (linked ? " linked" : "") + (nextLinked ? " link-next" : "") + '" data-li="' + i + '">' + joint +
-        '<div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-ldrag="' + i + '" title="Ziehen, um die Lektion zu verschieben"') + '>' + lessonLabel(i, s) + '</b>' + (r.klasse ? "" : '<button type="button" class="l-menu" data-lmenu="' + i + '" title="Lektion einfügen, verschieben oder löschen" aria-label="Lektion ' + lessonLabel(i, s) + ' bearbeiten">⋮</button>') + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + i + '" title="Gross öffnen: Planung, Details, Dokumente" aria-label="' + lessonLabel(i, s) + ' gross öffnen">+</button></div>' +
+        '<div class="lh"><div class="lh-top">' + (r.klasse ? '<b class="l-name" contenteditable="true" role="textbox" spellcheck="false" data-lname="' + i + '" data-ph="' + lessonLabel(i, s) + '" title="Name der Lektion in dieser Klasse – zum Ändern hineinklicken">' + esc(lname(r, i, s)) + "</b>" : '<b class="l-drag" draggable="true" data-ldrag="' + i + '" title="Ziehen, um die Lektion zu verschieben">' + lessonLabel(i, s) + "</b>") + (r.klasse ? "" : '<button type="button" class="l-menu" data-lmenu="' + i + '" title="Lektion einfügen, verschieben oder löschen" aria-label="Lektion ' + lessonLabel(i, s) + ' bearbeiten">⋮</button>') + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + i + '" title="Gross öffnen: Planung, Details, Dokumente" aria-label="' + lessonLabel(i, s) + ' gross öffnen">+</button></div>' +
         (dates ? '<div class="ldates">' + Array.from({ length: s }, (_, part) => { const key = U.sel + "|" + i + "|" + part, sl = dates.map[key], om = dates.omit.has(key), pin = dates.pins[key];
           return '<button type="button" class="ldate' + (om || !sl ? " none" : "") + (pin && sl ? " pin" : "") + '" data-ldate="' + i + "|" + part + '" title="Datum ändern oder Lektion herausnehmen">' + (om ? "ohne Datum" : sl ? esc(WD[fromKey(sl.date).getDay()] + " " + fmt(fromKey(sl.date)).slice(0, 6) + " " + sl.from) : "noch kein Datum") + "</button>"; }).join("") + "</div>" : "") +
         (s > 1 ? '<button type="button" class="split-btn" data-unmerge="' + i + '" title="L' + (i + s) + ' wieder als eigenes Feld abtrennen">trennen</button>' : "") +
-        '<div class="ph" contenteditable="true" role="textbox" data-phase="' + i + '" data-ph="Phase …" aria-label="Phase ' + lessonLabel(i, s) + '">' + esc(phaseOf(r, i)) + "</div></div>" +
+        '<div class="ph" contenteditable="true" role="textbox" data-phase="' + i + '" data-ph="Phase …" aria-label="Phase ' + esc(lname(r, i, s)) + '">' + esc(phaseOf(r, i)) + "</div></div>" +
         cellHtml2('data-rf="lessons.' + i + '" id="l-' + i + '" aria-label="' + lessonLabel(i, s) + '"', r.lessons[i], { color: m.color, more, cellAttrs: ' data-lesson="' + i + '"' }) +
         '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : i) + "</div></div>" + matAt(i);
     }).join("") + chAt(1e9) + lnRowHtml(r, mp.placed) + hiddenNote(r);
@@ -3968,7 +4006,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     dirtyU.add(id);
     openDetailBox({
       editDocs: !r.klasse,
-      title: r.title || "Reihe", sub: lessonLabel(i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : ""), x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
+      title: r.title || "Reihe", sub: lname(r, i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : ""), x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
       onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
       changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
       onClose: () => { uFlush("r:" + id); renderU(); },
@@ -4076,6 +4114,15 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (e.target.dataset && e.target.dataset.relnote != null) {
       const r = U.reihen[U.sel]; if (!r) return; const rid = e.target.dataset.relnote, v = e.target.value;
       r.relNotes = { ...(r.relNotes || {}) }; if (v.trim()) r.relNotes[rid] = v; else delete r.relNotes[rid];
+      saveReihe(U.sel); return;
+    }
+    const ln = e.target.closest && e.target.closest(".l-name[data-lname]");
+    if (ln) {
+      const r = U.reihen[U.sel]; if (!r) return;
+      const i = ln.dataset.lname, v = ln.textContent.replace(/\s+/g, " ").trim();
+      r.lnames = { ...(r.lnames || {}) };
+      if (!v || v === ln.dataset.ph) delete r.lnames[i]; else r.lnames[i] = v;
+      if (!Object.keys(r.lnames).length) delete r.lnames;
       saveReihe(U.sel); return;
     }
     const ph = e.target.closest && e.target.closest(".ph[data-phase]");
@@ -4337,7 +4384,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   // Dokument ist jetzt mit der echten Datei im OneDrive-Ordner verbunden: überall vermerken
   function linkFilePath(id, path) {
+    const cur = U.reihen[U.sel];
     for (const [rid, r] of Object.entries(U.reihen)) {
+      // Kopien in Klassen haben eigene Dateien (Klassenordner): nur die gerade offene Reihe bzw. nur die Unterrichts-Reihen anpassen
+      if (cur && cur.klasse ? rid !== U.sel : r.klasse) continue;
       let ch = false;
       const fix = (arr) => (Array.isArray(arr) ? arr.map((x) => (x && x.id === id ? ((ch = true), { ...x, path }) : x)) : arr);
       if (r.files) r.files = fix(r.files);
@@ -4703,7 +4753,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     for (const [rid, r] of copiesFor(kid, kCur(k))) {
       if (r.hidden) continue;
       for (const [i, s] of blocksOf(r)) for (let part = 0; part < s; part++) {
-        const u = { rid, i, s, part, title: r.title || "Reihe", label: lessonLabel(i, s), phase: phaseOf(r, i) };
+        const u = { rid, i, s, part, title: r.title || "Reihe", label: lname(r, i, s), phase: phaseOf(r, i) };
         u.key = unitKey(u); u.omitted = omit.has(u.key);
         units.push(u);
       }
@@ -4731,10 +4781,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     for (let d = fromKey(startK), n = 0; keyOf(d) <= endK && n < 420; d = addDays(d, 1), n++) {
       const dk = keyOf(d), wd = d.getDay(), sem = semOf(dk); if (!sem || wd < 1 || wd > 5) continue;
       const list = per[sem.id][wd]; if (!list.length) continue;
-      const hol = holidayOf(dk, "klassen");
-      for (const p of list) {
-        const sk = dk + "|" + p, meta = (k.slots || {})[sk] || {};
-        const slot = { kid, date: dk, p, from: sem.times[p][0], to: sem.times[p][1], sk, note: meta.note || "", topic: meta.topic, kind: meta.kind || "", special: hol && hol.frei === false ? hol.label || "Spezieller Tag" : "" };
+      for (const p0 of list) {
+        const sk = dk + "|" + p0, meta = (k.slots || {})[sk] || {};
+        // nur diese eine Stunde an einen anderen Tag / in eine andere Lektion verschoben (Stundenplan bleibt gleich)
+        const mv = (k.moves || {})[sk], [mdk, mps] = mv ? mv.split("|") : [dk, String(p0)], msem = semOf(mdk) || sem, p = +mps, tt = msem.times[p] || sem.times[p0];
+        const hol = holidayOf(mdk, "klassen");
+        const slot = { kid, date: mdk, p, from: meta.from || tt[0], to: meta.to || tt[1], sk, at: mdk + "|" + p, moved: !!mv, ownTime: !!(meta.from || meta.to), dp: meta.dp || "", note: meta.note || "", topic: meta.topic, kind: meta.kind || "", special: hol && hol.frei === false ? hol.label || "Spezieller Tag" : "" };
         if (hol && hol.frei !== false && meta.ins == null) slot.hol = hol.label || "Ferien";
         else if (meta.skip) slot.skip = true;
         else if (meta.ins != null) slot.ins = meta.ins;
@@ -4742,6 +4794,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         out.push(slot);
       }
     }
+    if (k.moves) out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.p - b.p));
     // Lektionen mit festem Datum (pins) zuerst, die übrigen der Reihe nach auf die freien Stunden
     const pins = k.pins || {}, bySk = {}, freeSet = new Set(out.filter((x) => x.free).map((x) => x.sk));
     for (const un of units) { const sk = pins[un.key]; if (sk && freeSet.has(sk) && !bySk[sk]) { bySk[sk] = un; un.pinned = true; } }
@@ -4789,7 +4842,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     (K.kview === "woche" ? "" : '<div class="dp-tools"><button type="button" class="btn ghost" data-dp-back title="Frühere Wochen zeigen">↑ Früher</button><button type="button" class="btn ghost" data-dp-today>Heute</button><span class="dp-zoom"><button type="button" class="btn ghost" data-dp-zoom="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" data-dp-zoom="1" title="Grösser">A+</button></span></div>') + "</div>";
   function dayPlanHtml() {
     const sem = curSem(), times = sem.times, slots = {}, extra = spGet().extra;
-    for (const kid of activeKids()) for (const s of classSchedule(kid)) slots[s.sk] = s;
+    for (const kid of activeKids()) for (const s of classSchedule(kid)) if (!slots[s.at]) slots[s.at] = s;
     const t0 = today(), mon = addDays(t0, -((t0.getDay() + 6) % 7) - 7 * K.dpBack), tk = keyOf(t0);
     let h = '<div class="dp-wrap" id="dp-wrap" style="height:' + DPH + "px;--dpz:" + DPZ + '"><table class="dp"><thead><tr><th class="dp-dcol">Datum</th>' +
       times.map((t, p) => '<th><span class="dp-p">' + (p + 1) + ".</span> " + esc(t[0]) + "–" + esc(t[1]) + "</th>").join("") + "</tr></thead><tbody>";
@@ -4804,20 +4857,56 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
           let inner = "", cls = "dp-c";
           if (s) {
             const k = K.klassen[s.kid] || {};
-            cls += " has f-" + kColor(s.kid) + (s.skip ? " skip" : "") + (s.hol ? " hol" : "");
-            inner = '<b class="dp-k">' + esc(k.name || "Klasse") + "</b>" + (s.hol || s.skip || s.unit || s.ins != null ? '<span class="dp-u">' + esc(unitText(s)) + "</span>" : "") + (s.note ? '<span class="dp-n">' + esc(s.note) + "</span>" : "");
+            cls += " has f-" + kColor(s.kid) + (s.skip ? " skip" : "") + (s.hol ? " hol" : "") + (s.moved ? " moved" : "");
+            inner = '<b class="dp-k">' + esc(k.name || "Klasse") + (s.moved ? ' <i class="dp-mv" title="Nur diese Stunde verschoben – Stundenplan unverändert">↷</i>' : "") + "</b>" + (s.ownTime || s.moved ? '<span class="dp-t">' + esc(s.from) + "–" + esc(s.to) + "</span>" : "") +
+              (s.dp && !s.hol && !s.skip ? '<span class="dp-u">' + esc(s.dp) + "</span>" : s.hol || s.skip || s.unit || s.ins != null ? '<span class="dp-u">' + esc(unitText(s)) + "</span>" : "") + (s.note ? '<span class="dp-n">' + esc(s.note) + "</span>" : "");
           } else if (x && (x.k || x.t)) {
             const k = x.k && K.klassen[x.k];
             cls += " has once" + (k ? " f-" + kColor(x.k) : "");
             inner = '<b class="dp-k">' + esc(k ? k.name || "Klasse" : x.t) + '</b><span class="dp-u">einmalig</span>' + (x.note ? '<span class="dp-n">' + esc(x.note) + "</span>" : "");
           } else inner = '<span class="dp-plus">+</span>';
-          h += '<td><button type="button" class="' + cls + '" data-dp="' + key + '">' + inner + "</button></td>";
+          h += '<td><button type="button" class="' + cls + '" data-dp="' + key + '"' + (s && !s.hol ? ' draggable="true" title="Klicken: bearbeiten · Ziehen: nur diese Stunde verschieben"' : "") + ">" + inner + "</button></td>";
         });
         h += "</tr>";
       }
     }
     return h + '</tbody></table><div class="dp-more"><button type="button" class="btn ghost" data-dp-more>+ 4 Wochen mehr</button></div></div>';
   }
+  // Eine einzelne Stunde verschieben (nur dieses Datum; der Stundenplan bleibt). Gibt bei Problemen einen Hinweis zurück.
+  function kMove(s, pos) {
+    const k = K.klassen[s.kid]; if (!k) return "";
+    if (pos !== s.sk) {
+      for (const kid of activeKids()) { const hit = classSchedule(kid).find((x) => x.at === pos && x.sk !== s.sk); if (hit) return "Dort ist schon " + ((K.klassen[kid] || {}).name || "eine Klasse") + " – bitte einen freien Platz wählen."; }
+      const ex = spGet().extra[pos]; if (ex && (ex.k || ex.t)) return "Dort steht schon ein Eintrag.";
+    }
+    k.moves = { ...(k.moves || {}) };
+    if (pos === s.sk) delete k.moves[s.sk]; else k.moves[s.sk] = pos;
+    if (!Object.keys(k.moves).length) delete k.moves;
+    kSave(s.kid, 0); return "";
+  }
+  (function dpDrag() {
+    let drag = null;
+    const host = document.getElementById("k-sp"); if (!host) return;
+    const clear = () => host.querySelectorAll(".dp-c.drop-into").forEach((el) => el.classList.remove("drop-into"));
+    host.addEventListener("dragstart", (e) => {
+      const b = e.target.closest && e.target.closest(".dp-c[draggable]"); if (!b) return;
+      let s = null; for (const kid of activeKids()) { const f = classSchedule(kid).find((x) => x.at === b.dataset.dp); if (f) { s = f; break; } }
+      if (!s) return; drag = s; b.classList.add("dragging");
+      try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", s.sk); } catch (err) {}
+    });
+    host.addEventListener("dragover", (e) => {
+      if (!drag) return; const c = e.target.closest(".dp-c"); if (!c) return;
+      e.preventDefault(); clear(); if (c.dataset.dp !== drag.at) c.classList.add("drop-into");
+    });
+    host.addEventListener("drop", (e) => {
+      if (!drag) return; e.preventDefault(); clear();
+      const c = e.target.closest(".dp-c"), s = drag; drag = null; if (!c || c.dataset.dp === s.at) return;
+      const msg = kMove(s, c.dataset.dp);
+      if (msg) kStatus(msg, true); else kStatus("Verschoben: nur diese Stunde – der Stundenplan bleibt. Rückgängig: «↶ Rückgängig» bei der Klasse oder zurückziehen.");
+      renderK(); render();
+    });
+    host.addEventListener("dragend", () => { clear(); host.querySelectorAll(".dragging").forEach((el) => el.classList.remove("dragging")); drag = null; });
+  })();
   function dpAfter() {
     const w = $("#dp-wrap"); if (!w) return;
     if (!K.dpScrolled) { K.dpScrolled = true; const r = w.querySelector(".dp-row.is-today") || w.querySelector(".dp-row:not(.past)"); if (r) { const th = w.querySelector("thead"); w.scrollTop = Math.max(0, w.scrollTop + r.getBoundingClientRect().top - w.getBoundingClientRect().top - (th ? th.getBoundingClientRect().height : 0) - 30); } }
@@ -4827,14 +4916,21 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function dpEdit(key) {
     const [dk, ps] = key.split("|"), p = +ps, sem = semOf(dk) || curSem(), t = sem.times[p] || ["", ""], d = fromKey(dk);
-    let s = null; for (const kid of activeKids()) { const f = classSchedule(kid).find((x) => x.sk === key); if (f) { s = f; break; } }
+    let s = null; for (const kid of activeKids()) { const f = classSchedule(kid).find((x) => x.at === key); if (f) { s = f; break; } }
     const ex = spGet().extra[key] || {};
     const title = TAGE[d.getDay()] + ", " + fmt(d) + " · " + esc(t[0]) + "–" + esc(t[1]);
     let body;
     if (s) {
       const k = K.klassen[s.kid] || {};
-      body = '<p class="msg"><span class="sq f-' + kColor(s.kid) + '"></span> <b>' + esc(k.name || "Klasse") + "</b> laut Stundenplan" + (s.unit ? " · " + esc(unitText(s)) : "") + "</p>" +
-        '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="5" placeholder="z. B. Prüfung zurückgeben, Szene 3 lesen …">' + esc(s.note || "") + "</textarea></label>" +
+      const orig = s.sk.split("|"), osem = semOf(orig[0]) || sem, ot = osem.times[+orig[1]] || ["", ""], meta = (k.slots || {})[s.sk] || {};
+      const lessonTxt = s.unit ? s.unit.title + " · " + s.unit.label + (s.unit.s > 1 ? " (" + (s.unit.part + 1) + "/" + s.unit.s + ")" : "") : "";
+      body = '<p class="msg"><span class="sq f-' + kColor(s.kid) + '"></span> <b>' + esc(k.name || "Klasse") + "</b>" + (s.moved ? " · verschoben, eigentlich " + esc(TAGE[fromKey(orig[0]).getDay()] + ", " + fmt(fromKey(orig[0])) + " · " + ot[0] + "–" + ot[1]) : " laut Stundenplan") + "</p>" +
+        (s.unit || s.ins != null ? '<label class="field"><span class="lbl">Im Tagesplan anzeigen <small>(kurze Notiz für Sie; leer = Titel der Lektion)</small></span><input type="text" id="dp-short" value="' + esc(s.dp || "") + '" placeholder="' + esc(unitText(s)) + '"></label>' : "") +
+        (s.unit ? '<label class="field"><span class="lbl">Lektion an diesem Tag <small>(leer = ' + esc(lessonTxt) + ")</small></span><input type=\"text\" id=\"dp-label\" value=\"" + esc(meta.label != null ? meta.label : "") + '" placeholder="' + esc(lessonTxt) + '"></label>' : "") +
+        '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="4" placeholder="z. B. Prüfung zurückgeben, Szene 3 lesen …">' + esc(s.note || "") + "</textarea></label>" +
+        '<div class="dp-grid"><label class="field"><span class="lbl">Zeit</span><span class="dp-time"><input type="text" id="dp-from" inputmode="numeric" maxlength="5" value="' + esc(s.from) + '"> – <input type="text" id="dp-to" inputmode="numeric" maxlength="5" value="' + esc(s.to) + '"></span></label>' +
+        '<label class="field"><span class="lbl">Verschieben auf</span><span class="dp-time"><input type="date" id="dp-date" value="' + esc(s.date) + '"><select id="dp-p">' + (semOf(s.date) || sem).times.map((x, q) => '<option value="' + q + '"' + (q === s.p ? " selected" : "") + ">" + (q + 1) + ". " + esc(x[0]) + "</option>").join("") + "</select></span></label></div>" +
+        '<p class="msg">Zeit und Verschieben gelten nur für diese eine Stunde – der Stundenplan bleibt, wie er ist. Im Tagesplan können Sie die Stunde auch mit der Maus an einen anderen Platz ziehen.</p>' +
         '<label class="dp-chk"><input type="checkbox" id="dp-skip"' + (s.skip ? " checked" : "") + "> Lektion fällt an diesem Tag aus</label>";
     } else {
       body = '<p class="msg">Hier ist laut Stundenplan nichts. Sie können für diesen einen Tag etwas eintragen.</p>' +
@@ -4842,14 +4938,25 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<label class="field"><span class="lbl">oder eigener Eintrag</span><input type="text" id="dp-t" value="' + esc(ex.t || "") + '" placeholder="z. B. Sitzung, Exkursion"></label>' +
         '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="4">' + esc(ex.note || "") + "</textarea></label>";
     }
-    openModal("<h3>" + title + "</h3>" + body + '<div class="actions">' + (!s && (ex.k || ex.t || ex.note) ? '<button type="button" class="btn ghost danger" id="dp-clear">Eintrag löschen</button>' : "") + '<button type="button" class="btn ghost" id="dp-cancel">Abbrechen</button><button type="button" class="btn primary" id="dp-ok">Speichern</button></div>', (root) => {
+    openModal("<h3>" + title + "</h3>" + body + '<div class="actions">' + (!s && (ex.k || ex.t || ex.note) ? '<button type="button" class="btn ghost danger" id="dp-clear">Eintrag löschen</button>' : "") + (s && (s.moved || s.ownTime) ? '<button type="button" class="btn ghost" id="dp-reset" title="Wieder Zeit und Platz laut Stundenplan">Wie im Stundenplan</button>' : "") + '<button type="button" class="btn ghost" id="dp-cancel">Abbrechen</button><button type="button" class="btn primary" id="dp-ok">Speichern</button></div>', (root) => {
       const done = () => { closeModal(); renderK(); render(); };
       const setExtra = (v) => { const e2 = { ...spGet().extra }; if (v) e2[key] = v; else delete e2[key]; spSet({ extra: e2 }); spSave(0); };
       root.querySelector("#dp-cancel").onclick = closeModal;
       const clr = root.querySelector("#dp-clear"); if (clr) clr.onclick = () => { setExtra(null); done(); };
+      const rs = root.querySelector("#dp-reset"); if (rs) rs.onclick = () => { kSlotSet(s.sk, { from: "", to: "" }, s.kid); kMove(s, s.sk); done(); };
       root.querySelector("#dp-ok").onclick = () => {
         const note = root.querySelector("#dp-note").value.trim();
-        if (s) kSlotSet(key, { note, skip: root.querySelector("#dp-skip").checked }, s.kid);
+        if (s) {
+          const v = (id) => { const el = root.querySelector(id); return el ? el.value.trim() : null; };
+          const tm = (x, d) => { const m = /^(\d{1,2})[:.](\d{2})$/.exec(x || ""); return m && +m[1] < 24 && +m[2] < 60 ? pad(+m[1]) + ":" + m[2] : d; };
+          const pos = v("#dp-date") + "|" + v("#dp-p"), stdT = ((semOf(v("#dp-date")) || sem).times[+v("#dp-p")]) || [];
+          const fr = tm(v("#dp-from"), ""), to = tm(v("#dp-to"), "");
+          const patch = { note, skip: root.querySelector("#dp-skip").checked, from: fr && fr !== stdT[0] ? fr : "", to: to && to !== stdT[1] ? to : "" };
+          if (v("#dp-short") != null) patch.dp = v("#dp-short");
+          if (v("#dp-label") != null) patch.label = v("#dp-label") || null;
+          kSlotSet(s.sk, patch, s.kid);
+          if (pos !== s.at && v("#dp-date")) { const msg = kMove(s, pos); if (msg) { kStatus(msg, true); } }
+        }
         else { const kk = root.querySelector("#dp-k").value, tt = root.querySelector("#dp-t").value.trim(); setExtra(kk || tt || note ? { ...(kk ? { k: kk } : {}), ...(tt ? { t: tt } : {}), ...(note ? { note } : {}) } : null); }
         done();
       };
@@ -4868,6 +4975,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       let ch = false;
       if (k.slots) { const o = {}; for (const [key, v] of Object.entries(k.slots)) { const nk = remapKey(key); if (nk !== key) ch = true; if (nk) o[nk] = v; } k.slots = o; }
       if (k.pins) { const o = {}; for (const [u, sk] of Object.entries(k.pins)) { const nk = remapKey(sk); if (nk !== sk) ch = true; if (nk) o[u] = nk; } k.pins = o; }
+      if (k.moves) { const o = {}; for (const [a, b] of Object.entries(k.moves)) { const na = remapKey(a), nb = remapKey(b); if (na !== a || nb !== b) ch = true; if (na && nb) o[na] = nb; } k.moves = o; }
       if (ch) kSave(kid, 0);
     }
     const ex = {}; for (const [key, v] of Object.entries(spGet().extra)) { const nk = remapKey(key); if (nk) ex[nk] = v; }
@@ -4954,7 +5062,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       else if (s.unit) main = '<div class="ks-unit"><input type="text" class="ks-title" data-klabel="' + s.sk + '" value="' + esc(s.custom != null ? s.custom : s.unit.title + " · " + s.unit.label + (s.unit.s > 1 ? " (" + (s.unit.part + 1) + "/" + s.unit.s + ")" : "")) + '" aria-label="Lektion"' + (s.custom != null ? ' title="Eigentlich: ' + esc(s.unit.title + " " + s.unit.label) + '"' : "") + ">" + topic + "</div>";
       else main = '<div class="ks-unit"><input type="text" class="ks-title empty" data-kins="' + s.sk + '" value="" placeholder="noch nichts geplant – hier schreiben" aria-label="Lektion eintragen"></div>';
       return wk + '<div class="ks-row' + (slotFree(s) ? " skip" : "") + (s.ins != null ? " ins" : "") + (s.kind === "Prüfung" ? " pruef" : s.kind ? " kind" : "") + (s.date === todayK ? " today" : "") + '" data-row="' + s.sk + '"><span class="ks-date">' + WD[d.getDay()] + " " + pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + (s.special ? '<span class="ks-special">' + esc(s.special) + "</span>" : "") + "</span>" +
-        '<span class="ks-time">' + esc(s.from) + "–" + esc(s.to) + "</span>" + main +
+        '<span class="ks-time' + (s.moved || s.ownTime ? " own" : "") + '"' + (s.moved ? ' title="Nur diese Stunde verschoben – Stundenplan unverändert"' : "") + ">" + esc(s.from) + "–" + esc(s.to) + (s.moved ? " ↷" : "") + "</span>" + main +
         '<input type="text" class="ks-note" data-knote="' + s.sk + '" value="' + esc(s.note) + '" placeholder="Notizen" aria-label="Notizen am ' + fmt(d) + '">' +
         (s.hol ? '<span class="ks-kind-ph"></span>' : kindSelect(s)) +
         '<span class="ks-act">' + (s.unit ? '<button type="button" class="ks-btn" data-kgo="' + s.unit.rid + "|" + s.unit.i + '" title="Lektion im Editor öffnen" aria-label="Lektion öffnen">↗</button>' : "") +
@@ -5393,7 +5501,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     openModal('<h3>Reihen für ' + esc(k.name || "Klasse") + " · " + esc((CLASS_YEARS[cy] || {}).label || "") + '</h3><p class="msg">Wählen Sie eine oder mehrere Reihen. Jede wird als eigene Kopie hinzugefügt, in der angeklickten Reihenfolge.</p>' +
       '<div class="bulk">' + groups.map(([y, rs]) => '<div class="bulk-g"><div class="bulk-h">' + YEAR_SHORT[y] + (y === uy ? " · passt zum Schuljahr der Klasse" : "") + "</div>" +
         rs.map(([id, r]) => '<label class="bulk-i"><input type="checkbox" value="' + id + '"><span>' + esc(r.title || "Ohne Titel") + "</span>" + (r.lektionen ? '<span class="n">' + r.lektionen + " L</span>" : "") + (have.has(id) ? '<span class="n">schon dabei</span>' : "") + (earlier(id).length ? '<span class="n warn">schon in ' + esc(earlier(id).join(", ")) + "</span>" : "") + "</label>").join("") + "</div>").join("") + "</div>" +
-      '<p class="msg warn" id="bulk-warn" hidden></p><div class="actions"><button class="btn" type="button" id="bulk-cnl">Abbrechen</button><div class="right"><button class="btn primary" type="button" id="bulk-ok" disabled>Hinzufügen</button></div></div>', (root) => {
+      '<p class="msg warn" id="bulk-warn" hidden></p>' +
+      (canFolders() ? '<label class="dp-chk bulk-files"><input type="checkbox" id="bulk-files" checked> Ordner und Dokumente in den Klassenordner kopieren <small>(' + esc(k.folder ? relPath(k.folder) : "Klassen › " + (k.name || "Klasse")) + " › Name der Reihe). Änderungen dort betreffen nur diese Klasse.</small></label>" : "") +
+      '<div class="actions"><button class="btn" type="button" id="bulk-cnl">Abbrechen</button><div class="right"><button class="btn primary" type="button" id="bulk-ok" disabled>Hinzufügen</button></div></div>', (root) => {
       const order = [];
       root.querySelector(".bulk").addEventListener("change", (e) => {
         const v = e.target.value; if (!v) return;
@@ -5403,14 +5513,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         const ok = $("#bulk-ok"); ok.disabled = !order.length; ok.textContent = order.length ? order.length + " Reihe" + (order.length > 1 ? "n" : "") + " hinzufügen" : "Hinzufügen";
       });
       $("#bulk-cnl").onclick = closeModal;
-      $("#bulk-ok").onclick = () => { const ids = order.slice(); closeModal(); copyManyToClass(ids, kid); };
+      $("#bulk-ok").onclick = () => { const ids = order.slice(), wf = !!($("#bulk-files") || {}).checked; closeModal(); copyManyToClass(ids, kid, wf); };
     });
   }
   function kSlotSet(sk, patch, kid) {
     kid = kid || K.sel; const k = K.klassen[kid]; if (!k) return;
     k.slots = { ...(k.slots || {}) };
     const v = { ...(k.slots[sk] || {}), ...patch };
-    if (!v.note) delete v.note; if (!v.skip) delete v.skip; if (v.ins == null) delete v.ins; if (v.label == null) delete v.label; if (v.topic == null) delete v.topic; if (!v.kind) delete v.kind;
+    if (!v.note) delete v.note; if (!v.skip) delete v.skip; if (v.ins == null) delete v.ins; if (v.label == null) delete v.label; if (v.topic == null) delete v.topic; if (!v.kind) delete v.kind; if (!v.dp) delete v.dp; if (!v.from) delete v.from; if (!v.to) delete v.to;
     if (Object.keys(v).length) k.slots[sk] = v; else delete k.slots[sk];
     kSave(kid);
   }
@@ -5444,7 +5554,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const open = isOpen("k-" + kid);
     let h = '<div class="k-head"><button type="button" class="sec-tog big" data-tog="k-' + kid + '" aria-expanded="' + open + '" title="' + (open ? "Klasse zuklappen" : "Klasse aufklappen") + '"><span class="caret" aria-hidden="true"></span></button>' +
       '<input class="r-title" id="k-name" data-kf="name" value="' + esc(k.name || "") + '" placeholder="Name der Klasse, z. B. 2b" aria-label="Name der Klasse">' +
-      '<div class="r-tools"><button class="btn ghost" type="button" id="k-arch">Klasse archivieren</button></div></div>';
+      '<div class="r-tools">' + (canFolders() ? '<button class="btn ghost" type="button" id="k-folder" title="' + (k.folder ? "Klassenordner öffnen: " + esc(relPath(k.folder)) : "Klassenordner in OneDrive anlegen (Klassen › Name)") + '">📁 Klassenordner</button>' : "") + '<button class="btn ghost" type="button" id="k-arch">Klasse archivieren</button></div></div>';
     if (!open) { main.innerHTML = h + '<p class="msg">Zugeklappt · ' + esc((CLASS_YEARS[cy] || {}).label || "") + " · " + active.length + " Reihe" + (active.length === 1 ? "" : "n") + ".</p>"; det.innerHTML = ""; return; }
     h += '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips">' + CLASS_YEARS.map((y, i) => '<button type="button" class="chip" data-kyear="' + i + '" aria-pressed="' + (i === cy) + '">' + esc(y.label) + "</button>").join("") + "</div>" +
       '<span class="lbl" style="margin-left:8px">Farbe</span><div class="chips">' + K_COLORS.map((c) => '<button type="button" class="kcol f-' + c + '" data-kcolor="' + c + '" aria-pressed="' + (kColor(kid) === c) + '" aria-label="Farbe ' + c + '"></button>').join("") + "</div></div>" +
@@ -5512,9 +5622,56 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     kStatus("Speichert …");
     enqueue("u:" + key, async () => { const ref = state.db.collection("klassen").doc(id); if (data) await ref.set(data); else await ref.delete(); kStatus("Gespeichert"); });
   }
-  function copyManyToClass(ids, kid) {
+  // ---------- Klassenordner in OneDrive: 0_Planung › Klassen › <Name der Klasse> ----------
+  const canFolders = () => !!(window.ZLOCAL && window.ZLOCAL.cloud && window.ZLOCAL.mkdir);
+  async function ensureKFolder(kid) {
+    const k = K.klassen[kid]; if (!k || !canFolders()) return "";
+    if (k.folder) return k.folder;
+    const nm = safeName((k.name || "").trim()); if (!nm || nm === "Neue Klasse") return "";
+    let path = window.ZLOCAL.root + "\\Klassen\\" + nm, n = 2;
+    while (await window.ZLOCAL.exists(path)) path = window.ZLOCAL.root + "\\Klassen\\" + nm + " (" + n++ + ")";
+    await window.ZLOCAL.mkdir(path);
+    const kk = K.klassen[kid]; if (kk) { kk.folder = path; kSave(kid, 0); } return path;
+  }
+  const relPath = (p) => (window.ZLOCAL && p ? p.slice(window.ZLOCAL.root.length + 1).split("\\").join(" › ") : p || "");
+  // Alle Dokumente einer Reihe (ohne Ordner-Verknüpfungen)
+  function eachFile(r, fn) {
+    const go = (arr) => (Array.isArray(arr) ? arr.forEach((f) => { if (f && !f.folder) fn(f); }) : 0);
+    go(r.files); go(r.mainFiles);
+    Object.values(r.meta || {}).forEach((m) => m && go(m.files));
+    (r.lnItems || []).forEach((m) => m && go(m.files));
+  }
+  // Kopie einer Reihe in der Klasse: Ordner der Reihe (falls vorhanden) und alle Dokumente in den Klassenordner kopieren
+  async function copyFilesToClass(cid, src, say) {
+    const c = U.reihen[cid], k = c && K.klassen[c.klasse]; if (!c || !k) return;
+    const base = await ensureKFolder(c.klasse); if (!base) throw new Error("Bitte der Klasse zuerst einen Namen geben.");
+    const Z = window.ZLOCAL, nm = safeName(src.title || "Reihe");
+    let dest = base + "\\" + nm, n = 2;
+    while (await Z.exists(dest)) dest = base + "\\" + nm + " (" + n++ + ")";
+    const old = (src.folder || "").replace(/\\+$/, ""), inOld = (p) => old && p && (p === old || p.startsWith(old + "\\"));
+    if (old && (await Z.exists(old))) await Z.copy(old, base, dest.slice(base.length + 1)); else await Z.mkdir(dest);
+    const used = new Set(), uniq = (name) => { let x = name, i = 2; const m = /^(.*?)(\.[^.]*)?$/.exec(name); while (used.has(x.toLowerCase())) x = m[1] + " (" + i++ + ")" + (m[2] || ""); used.add(x.toLowerCase()); return x; };
+    const files = []; eachFile(c, (f) => files.push({ id: f.id, path: f.path, name: f.name }));
+    const done = {}, newPath = {}; let i = 0;
+    for (const f of files) {
+      say && say(++i, files.length);
+      try {
+        if (inOld(f.path)) { newPath[f.id] = dest + f.path.slice(old.length); continue; }
+        const key = f.path || f.id; if (done[key]) { newPath[f.id] = done[key]; continue; }
+        done[key] = newPath[f.id] = await Z.copy(f.path ? f.path : { doc: f.id }, dest, uniq(f.name || "Dokument"));
+      } catch (e) { console.warn("Kopie", f.name, e); }
+    }
+    // erst jetzt in die (inzwischen evtl. neu geladene) Kopie eintragen
+    const cur = U.reihen[cid]; if (!cur) return dest;
+    eachFile(cur, (f) => { if (newPath[f.id]) f.path = newPath[f.id]; });
+    // Ordner-Verknüpfungen innerhalb des alten Reihenordners zeigen jetzt auf die Kopie
+    (cur.files || []).forEach((f) => { if (f && f.folder && inOld(f.path)) f.path = dest + f.path.slice(old.length); });
+    cur.folder = dest; cur.kfolder = true; saveReihe(cid, 0);
+    return dest;
+  }
+  function copyManyToClass(ids, kid, withFiles) {
     const k = K.klassen[kid]; if (!k) return;
-    const cy = kCur(k);
+    const cy = kCur(k), made = [];
     let n = 0;
     for (const srcId of ids) {
       const src = U.reihen[srcId]; if (!src) continue;
@@ -5524,11 +5681,22 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const id = "k" + Date.now().toString(36) + (n++);
       U.reihen[id] = c; saveReihe(id, 0);
       if (n === 1) K.rsel = id;
+      made.push([id, src]);
     }
     setOpen("k-" + kid + "-reihen", true);
     renderK(); render();
     const dupT = ids.filter((sid) => copiesOf(kid).filter(([, c]) => c.src === sid).length > 1).map((sid) => "«" + ((U.reihen[sid] || {}).title || "Reihe") + "»");
     kStatus((n === 1 ? "1 Reihe wurde hinzugefügt." : n + " Reihen wurden hinzugefügt.") + (dupT.length ? " Hinweis: " + dupT.join(", ") + " gab es in dieser Klasse schon." : ""));
+    if (withFiles && made.length) (async () => {
+      let j = 0;
+      for (const [cid, src] of made) {
+        j++;
+        try { await copyFilesToClass(cid, src, (a, b) => kStatus("Kopiert Dokumente in den Klassenordner … Reihe " + j + "/" + made.length + ", Dokument " + a + "/" + b)); }
+        catch (e) { console.error(e); kStatus("Kopieren in den Klassenordner hat nicht geklappt: " + (e.message || e), true); return; }
+      }
+      kStatus("✓ Dokumente liegen jetzt im Klassenordner: " + relPath(K.klassen[kid].folder));
+      renderK();
+    })();
   }
   function goToSlot(kid, sk) {
     K.sel = kid; setOpen("k-" + kid, true); setOpen("k-" + kid + "-zeit", true);
@@ -5565,6 +5733,15 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       return;
     }
     if (b.dataset.tog) { toggleOpen(b.dataset.tog); renderK(); return; }
+    if (b.id === "k-folder") {
+      (async () => {
+        try {
+          if (!k.folder) { kStatus("Legt den Klassenordner an …"); const p = await ensureKFolder(K.sel); if (!p) { kStatus("Bitte der Klasse zuerst einen Namen geben.", true); return; } kStatus("✓ Klassenordner angelegt: " + relPath(p)); renderK(); }
+          await window.ZLOCAL.open(k.folder);
+        } catch (err) { kStatus("Klassenordner: " + (err.message || err), true); }
+      })();
+      return;
+    }
     if (b.dataset.hol) { openHolidays("klassen"); return; }
     if (b.dataset.kbulk) { openBulkCopy(K.sel); return; }
     if (b.dataset.kmenu) { kSlotMenu(b, b.dataset.kmenu); return; }
@@ -5645,6 +5822,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       return;
     }
     if (t.dataset.kf === "start") { t.blur(); renderK(); render(); return; }
+    if (t.dataset.kf === "name") { const kid = K.sel, kk = K.klassen[kid]; if (kk && !kk.folder && canFolders()) ensureKFolder(kid).then((pp) => { if (pp) { kStatus("✓ Klassenordner angelegt: " + relPath(pp)); renderK(); } }, (err) => console.warn(err)); }
   });
   kEl.addEventListener("input", (e) => {
     const nt = e.target.closest && e.target.closest("[data-knote],[data-kins],[data-klabel],[data-ktopic]");
