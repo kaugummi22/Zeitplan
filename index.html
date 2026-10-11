@@ -2773,7 +2773,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Ohne Wichtigkeiten: Spalte in «In Arbeit», «Fertig geplant» und «Sammlungen» gliedern
   function jpGroups(list, itemHtml) {
     const g = { arbeit: [], fertig: [], samml: [] };
-    list.forEach((e) => { const r = e[1], n = lessonCount(r), pl = planned(r); (isSamml(r) ? g.samml : n && pl >= n ? g.fertig : g.arbeit).push(e); });
+    list.forEach((e) => { const r = e[1], n = lessonCount(r), pl = planned(r); (isSamml(r) && !n ? g.samml : n && pl >= n ? g.fertig : g.arbeit).push(e); });
     return [["arbeit", "In Arbeit"], ["fertig", "Fertig geplant"], ["samml", "Sammlungen"]].filter(([k]) => g[k].length)
       .map(([k, l]) => '<div class="jp-grp jp-grp-' + k + '"><span>' + l + "</span><i>" + g[k].length + "</i></div>" + g[k].map(itemHtml).join("")).join("");
   }
@@ -2821,7 +2821,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const statusOf = (r) => r.status || "progress";
   // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
-  const stVisible = (r) => !(UP.stHide || {})[statusOf(r)] && (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? !isSamml(r) : true);
+  const stVisible = (r) => !(UP.stHide || {})[statusOf(r)] && (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true);
+  // Lektionsreihe: hat Lektionen (auch wenn sie zusätzlich Materialsammlungen enthält) oder ist keine reine Sammlung
+  const isLekt = (r) => lessonCount(r) > 0 || !isSamml(r);
   function showMenu(btn) {
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
