@@ -683,6 +683,8 @@ html.fit body { touch-action: pan-x pan-y; }
 .dp-time input[type="text"] { width: 4.2em; }
 .ks-time.own { font-weight: 700; }
 .bulk-files small { display: block; color: var(--muted); font-weight: 400; margin-left: 24px; }
+#k-detail.kcopy { border: 3px solid var(--kc); box-shadow: 0 0 0 4px color-mix(in srgb, var(--kc) 35%, transparent); }
+.l-grip { cursor: grab; color: var(--muted); padding: 0 2px; font-weight: 400; user-select: none; }
 .l-name { outline: none; border-radius: 4px; padding: 0 3px; cursor: text; min-width: 1.5em; }
 .l-name:hover { background: var(--accent-soft); } .l-name:focus { background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
 .l-name:empty::before { content: attr(data-ph); color: var(--muted); }
@@ -3527,25 +3529,25 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const nextLinked = k < bl.length - 1 && !!links[bl[k + 1][0]];
       const joint = k > 0 ? '<button type="button" class="joint' + (linked ? " on" : "") + '" data-joint="' + i + '" title="Verbindung zu ' + lessonLabel(bl[k - 1][0], bl[k - 1][1]) + ' einstellen" aria-label="Verbindung einstellen"><span>' + (linked ? "Doppellektion" : "verbinden") + "</span></button>" : "";
       return '<div class="lesson' + (s > 1 ? " merged" : "") + (linked ? " linked" : "") + (nextLinked ? " link-next" : "") + '" data-li="' + i + '">' + joint +
-        '<div class="lh"><div class="lh-top">' + (r.klasse ? '<b class="l-name" contenteditable="true" role="textbox" spellcheck="false" data-lname="' + i + '" data-ph="' + lessonLabel(i, s) + '" title="Name der Lektion in dieser Klasse – zum Ändern hineinklicken">' + esc(lname(r, i, s)) + "</b>" : '<b class="l-drag" draggable="true" data-ldrag="' + i + '" title="Ziehen, um die Lektion zu verschieben">' + lessonLabel(i, s) + "</b>") + (r.klasse ? "" : '<button type="button" class="l-menu" data-lmenu="' + i + '" title="Lektion einfügen, verschieben oder löschen" aria-label="Lektion ' + lessonLabel(i, s) + ' bearbeiten">⋮</button>') + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + i + '" title="Gross öffnen: Planung, Details, Dokumente" aria-label="' + lessonLabel(i, s) + ' gross öffnen">+</button></div>' +
+        '<div class="lh"><div class="lh-top">' + (r.klasse ? '<span class="l-drag l-grip" draggable="true" data-ldrag="' + i + '" title="Ziehen, um die Lektion zu verschieben" aria-hidden="true">⠿</span><b class="l-name" contenteditable="true" role="textbox" spellcheck="false" data-lname="' + i + '" data-ph="' + lessonLabel(i, s) + '" title="Name der Lektion in dieser Klasse – zum Ändern hineinklicken">' + esc(lname(r, i, s)) + "</b>" : '<b class="l-drag" draggable="true" data-ldrag="' + i + '" title="Ziehen, um die Lektion zu verschieben">' + lessonLabel(i, s) + "</b>") + '<button type="button" class="l-menu" data-lmenu="' + i + '" title="Lektion einfügen, verschieben oder löschen" aria-label="Lektion ' + esc(lname(r, i, s)) + ' bearbeiten">⋮</button>' + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + i + '" title="Gross öffnen: Planung, Details, Dokumente" aria-label="' + lessonLabel(i, s) + ' gross öffnen">+</button></div>' +
         (dates ? '<div class="ldates">' + Array.from({ length: s }, (_, part) => { const key = U.sel + "|" + i + "|" + part, sl = dates.map[key], om = dates.omit.has(key), pin = dates.pins[key];
           return '<button type="button" class="ldate' + (om || !sl ? " none" : "") + (pin && sl ? " pin" : "") + '" data-ldate="' + i + "|" + part + '" title="Datum ändern oder Lektion herausnehmen">' + (om ? "ohne Datum" : sl ? esc(WD[fromKey(sl.date).getDay()] + " " + fmt(fromKey(sl.date)).slice(0, 6) + " " + sl.from) : "noch kein Datum") + "</button>"; }).join("") + "</div>" : "") +
         (s > 1 ? '<button type="button" class="split-btn" data-unmerge="' + i + '" title="L' + (i + s) + ' wieder als eigenes Feld abtrennen">trennen</button>' : "") +
         '<div class="ph" contenteditable="true" role="textbox" data-phase="' + i + '" data-ph="Phase …" aria-label="Phase ' + esc(lname(r, i, s)) + '">' + esc(phaseOf(r, i)) + "</div></div>" +
         cellHtml2('data-rf="lessons.' + i + '" id="l-' + i + '" aria-label="' + lessonLabel(i, s) + '"', r.lessons[i], { color: m.color, more, cellAttrs: ' data-lesson="' + i + '"' }) +
-        '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : i) + "</div></div>" + matAt(i);
+        '<div class="ldocs">' + filesHtml(m.files, i) + "</div></div>" + matAt(i);
     }).join("") + chAt(1e9) + lnRowHtml(r, mp.placed) + hiddenNote(r);
   }
   function matRowHtml(r, m, k) {
     const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
         const lk = m.rid && U.reihen[m.rid];
-        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-mdrag="' + k + '" title="Ziehen, um die Materialsammlung zwischen die Lektionen zu verschieben"') + ">M" + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
+        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b' + (' class="l-drag" draggable="true" data-mdrag="' + k + '" title="Ziehen, um die Materialsammlung zwischen die Lektionen zu verschieben"') + ">M" + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
           '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diese Materialsammlung entfernen" aria-label="Materialsammlung entfernen">×</button></div>' +
           '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Name, z. B. Bilder" aria-label="Name der Materialsammlung">' +
           (lk ? '<span class="mat-link"><button type="button" class="linkbtn" data-goto="' + esc(m.rid) + '" title="Verknüpfte Reihe öffnen">↗ ' + esc(lk.title || "Reihe") + '</button><button type="button" class="x" data-matunlink="' + k + '" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">×</button></span>'
-              : (r.klasse ? "" : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>')) + "</div>" +
+              : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>') + "</div>" +
           cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Kurzzusammenfassung der Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
-          '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
+          '<div class="ldocs">' + filesHtml(m.files, key) + "</div></div>";
   }
   // Wo eine Materialsammlung steht: nach welcher Lektion (Blockanfang), -1 = vor L1, sonst am Ende
   function matPlace(r, bl) {
@@ -3568,18 +3570,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="z. B. Prüfung" aria-label="Art des Leistungsnachweises">' +
         '<select class="ln-lekt" data-lnlekt="' + k + '" aria-label="Dauer in Lektionen">' + [[0, "keine Lektion"], [1, "1 Lektion"], [2, "2 Lektionen"]].map(([v, l]) => '<option value="' + v + '"' + ((Number(m.lekt) || 0) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></div>" +
         cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Leistungsnachweis"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
-        '<div class="ldocs">' + filesHtml(m.files, r.klasse ? null : key) + "</div></div>";
-    }).join("") + (r.klasse ? "" : '<div class="ln-add">' + (blocksOf(r).length ? '<button type="button" class="btn ghost" data-lnadd>+ Leistungsnachweis</button><button type="button" class="btn ghost" data-matadd>+ Materialsammlung</button>' : '<button type="button" class="btn primary" data-matadd>+ Materialsammlung</button>') + "</div>");
+        '<div class="ldocs">' + filesHtml(m.files, key) + "</div></div>";
+    }).join("") + (false ? "" : '<div class="ln-add">' + (blocksOf(r).length ? '<button type="button" class="btn ghost" data-lnadd>+ Leistungsnachweis</button><button type="button" class="btn ghost" data-matadd>+ Materialsammlung</button>' : '<button type="button" class="btn primary" data-matadd>+ Materialsammlung</button>') + "</div>");
   }
   // Dokumente der ganzen Reihe (z. B. Gesamt-PowerPoint), in jeder Lektion verfügbar; mit OneDrive-Link
   function rfRowHtml(r, f, key) {
     const main = key === "main";
     if (f.folder) {
       const rel = window.ZLOCAL && window.ZLOCAL.root && f.path.startsWith(window.ZLOCAL.root) ? f.path.slice(window.ZLOCAL.root.length + 1).split("\\").join(" › ") : f.path;
-      return '<div class="rf-row' + (main ? " rf-mrow" : "") + '" data-rfid="' + esc(f.id) + '"><button type="button" class="doc rf-folder" data-open-file="' + esc(f.id) + '"' + (r.klasse ? "" : ' draggable="true" data-dkey="' + key + '"') + ' title="Im Explorer öffnen · ' + esc(f.path) + '"><span class="tag">ORDNER</span><span>' + esc(f.name) + '</span><span class="rf-path">' + esc(rel) + "</span></button>" +
-        (r.klasse ? "" : '<button type="button" class="rf-pen" data-rfmenu="' + esc(f.id) + '" title="Entfernen" aria-label="Optionen zu ' + esc(f.name) + '">✎</button>') + "</div>";
+      return '<div class="rf-row' + (main ? " rf-mrow" : "") + '" data-rfid="' + esc(f.id) + '"><button type="button" class="doc rf-folder" data-open-file="' + esc(f.id) + '"' + (' draggable="true" data-dkey="' + key + '"') + ' title="Im Explorer öffnen · ' + esc(f.path) + '"><span class="tag">ORDNER</span><span>' + esc(f.name) + '</span><span class="rf-path">' + esc(rel) + "</span></button>" +
+        '<button type="button" class="rf-pen" data-rfmenu="' + esc(f.id) + '" title="Entfernen" aria-label="Optionen zu ' + esc(f.name) + '">✎</button>' + "</div>";
     }
-    return '<div class="rf-row' + (main ? " rf-mrow" : "") + '" data-rfid="' + esc(f.id) + '"><button type="button" class="doc" data-open-file="' + esc(f.id) + '"' + (r.klasse ? ' title="Ansehen"' : ' draggable="true" data-dkey="' + key + '" title="Ansehen – zum Verschieben ziehen"') + '><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>" +
+    return '<div class="rf-row' + (main ? " rf-mrow" : "") + '" data-rfid="' + esc(f.id) + '"><button type="button" class="doc" data-open-file="' + esc(f.id) + '"' + (' draggable="true" data-dkey="' + key + '" title="Ansehen – zum Verschieben ziehen"') + '><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>" +
       (f.link ? '<a class="btn ghost od-link" href="' + esc(f.link) + '" target="_blank" rel="noopener" title="' + esc(f.link) + '">↗ OneDrive</a>' : "") +
       '<button type="button" class="rf-pen" data-rfmenu="' + esc(f.id) + '" title="Link oder Entfernen" aria-label="Optionen zu ' + esc(f.name) + '">✎</button>' +
       '<input type="url" hidden class="rf-link" data-rflink="' + esc(f.id) + '" value="' + esc(f.link || "") + '" placeholder="OneDrive-Link einfügen (Teilen → Link kopieren)" aria-label="Link zu ' + esc(f.name) + '">' + "</div>";
@@ -3588,12 +3590,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function reiheFilesHtml(r) {
     const files = r.files || [], main = r.mainFiles || [];
     let open = false; try { open = localStorage.getItem("zeitplan-rfdocs") === "1"; } catch (e) {} if (window.__rfdocs != null) open = window.__rfdocs;
-    const mainB = main.length || !r.klasse ? '<div class="r-field rf-main"><span class="lbl">Hauptdokumente</span><div class="rf-mlist">' +
+    const mainB = true ? '<div class="r-field rf-main"><span class="lbl">Hauptdokumente</span><div class="rf-mlist">' +
       (main.length ? main.map((f) => rfRowHtml(r, f, "main")).join("") : '<span class="help">Wichtige Dokumente hierher ziehen, z. B. die PowerPoint der Reihe. Sie bleiben immer sichtbar.</span>') + "</div></div>" : "";
     const head = '<button type="button" class="v-inr-tog rf-tog' + (files.length ? " has" : "") + '" data-rftog aria-expanded="' + open + '"><span class="lbl">Dokumente der ganzen Reihe' + (files.length ? " (" + files.length + ")" : "") + "</span></button>";
     const docsB = !open ? '<div class="r-field rf-docs">' + head + "</div>" : '<div class="r-field rf-docs">' + head + '<div class="rf-list">' +
       (files.length ? [...files.filter((f) => f.folder), ...files.filter((f) => !f.folder)].map((f) => rfRowHtml(r, f, "reihe")).join("") : '<span class="help">Noch keine. Hier gehören Unterlagen hin, die Sie in mehreren Lektionen brauchen.</span>') +
-      "</div>" + (r.klasse || !state.assets ? "" : '<label class="btn ghost rf-up">+ Dokument für die ganze Reihe<input type="file" id="rf-file" multiple hidden accept="application/pdf,image/*,.txt,.md,.csv,.json,.docx,.xlsx,.pptx"></label>' + (window.ZLOCAL && window.ZLOCAL.list ? '<button type="button" class="btn ghost rf-up" id="rf-addfolder" title="Einen ganzen Ordner (z. B. Bilder oder Scans) verknüpfen">+ Ordner</button>' : "") + '<span class="msg" id="rf-msg"></span>') + "</div>";
+      "</div>" + (!state.assets ? "" : '<label class="btn ghost rf-up">+ Dokument für die ganze Reihe<input type="file" id="rf-file" multiple hidden accept="application/pdf,image/*,.txt,.md,.csv,.json,.docx,.xlsx,.pptx"></label>' + (window.ZLOCAL && window.ZLOCAL.list ? '<button type="button" class="btn ghost rf-up" id="rf-addfolder" title="Einen ganzen Ordner (z. B. Bilder oder Scans) verknüpfen">+ Ordner</button>' : "") + '<span class="msg" id="rf-msg"></span>') + "</div>";
     return '<div class="rf-wrap">' + mainB + docsB + "</div>";
   }
   // Verbindung zwischen zwei Lektionen: getrennt, Doppellektion (verbunden) oder ein gemeinsames Feld
@@ -3927,7 +3929,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       '<div class="r-field"><span class="lbl">Leitfrage oder Leitproblem</span>' + cellHtml2('data-rf="leitfrage" id="r-leitfrage" aria-label="Leitfrage"', r.leitfrage) + "</div>" +
       reiheFilesHtml(r) +
       '<div class="lessons" id="r-lessons">' + lessonsHtml(r) + "</div>" +
-      (r.klasse ? "" : '<div class="r-field r-subs"><span class="lbl">Unterpunkte</span><div class="subs-ed" id="r-subs">' + subsEdHtml(r) + "</div></div>") +
+      '<div class="r-field r-subs"><span class="lbl">Unterpunkte</span><div class="subs-ed" id="r-subs">' + subsEdHtml(r) + "</div></div>" +
       '<div class="r-field"><span class="lbl">Zusätzliches, Links, Material</span>' + cellHtml2('data-rf="zusatz" id="r-zusatz" aria-label="Zusätzliches"', r.zusatz) + '<div class="links zus-links" id="r-zuslinks">' + zusLinks(r.zusatz) + "</div></div>" +
       (r.klasse ? "" : vInReihe(U.sel)) +
       '<div class="r-years-pick r-rel"><span class="lbl">Verbindungen</span><div class="chips" id="r-relchips">' + relChips(r) + "</div>" +
@@ -4011,7 +4013,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (isLN(i)) {
       const x = lessonX(r, i); dirtyU.add(id);
       const isMat = !!lnItemOf(r, i).mat;
-      openDetailBox({ editDocs: !r.klasse, title: r.title || "Reihe", sub: lnLabel(r, i), x, textLabel: isMat ? "Kurzzusammenfassung" : "Kurzeintrag in der Tabelle", plan: isMat ? undefined : x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
+      openDetailBox({ editDocs: true, title: r.title || "Reihe", sub: lnLabel(r, i), x, textLabel: isMat ? "Kurzzusammenfassung" : "Kurzeintrag in der Tabelle", plan: isMat ? undefined : x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
         onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
         changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
         onClose: () => { uFlush("r:" + id); renderU(); } });
@@ -4021,7 +4023,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const x = lessonX(r, i);
     dirtyU.add(id);
     openDetailBox({
-      editDocs: !r.klasse,
+      editDocs: true,
       title: r.title || "Reihe", sub: lname(r, i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : ""), x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
       onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
       changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
@@ -4205,7 +4207,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function jointMenu(btn, r, i) {
     closeMenu();
     const bl = blocksOf(r), k = bl.findIndex(([a]) => a === i); if (k < 1) return;
-    const prev = lessonLabel(bl[k - 1][0], bl[k - 1][1]), cur = lessonLabel(i, bl[k][1]);
+    const prev = lname(r, bl[k - 1][0], bl[k - 1][1]), cur = lname(r, i, bl[k][1]);
     const state0 = (r.links || {})[i] ? "link" : "none";
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
@@ -4227,19 +4229,20 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return blocksOf(r).map(([i, s]) => ({ s, link: !!(r.links || {})[i],
       les: Array.from({ length: s }, (_, k) => (r.lessons || [])[i + k] || ""),
       ph: Array.from({ length: s }, (_, k) => phaseOf(r, i + k)),
-      me: Array.from({ length: s }, (_, k) => (r.meta || {})[i + k]) }));
+      me: Array.from({ length: s }, (_, k) => (r.meta || {})[i + k]), nm: (r.lnames || {})[i] }));
   }
   function writeBlocks(r, bl) {
-    const n0 = lessonCount(r), old = r.lessons || [], lessons = [], phases = {}, meta = {}, spans = {}, links = {};
+    const n0 = lessonCount(r), old = r.lessons || [], lessons = [], phases = {}, meta = {}, spans = {}, links = {}, lnames = {};
     let i = 0;
     bl.forEach((b, k) => {
-      if (b.s > 1) spans[i] = b.s; if (b.link && k > 0) links[i] = true;
+      if (b.s > 1) spans[i] = b.s; if (b.link && k > 0) links[i] = true; if (b.nm) lnames[i] = b.nm;
       for (let j = 0; j < b.s; j++) { lessons.push(b.les[j] || ""); if (typeof b.ph[j] === "string") phases[i + j] = b.ph[j]; if (b.me[j]) meta[i + j] = b.me[j]; }
       i += b.s;
     });
     const n1 = i;
     for (let t = n0; t < old.length; t++) { const ni = n1 + (t - n0); lessons.push(old[t] || ""); if (r.phases && typeof r.phases[t] === "string") phases[ni] = r.phases[t]; if (r.meta && r.meta[t]) meta[ni] = r.meta[t]; }
     r.lessons = lessons; r.phases = phases; r.meta = meta; r.spans = spans; r.links = links; r.lektionen = n1;
+    if (Object.keys(lnames).length) r.lnames = lnames; else delete r.lnames;
   }
   function lessonOp(r, i, op, to) {
     const bl = blocksData(r), k = blocksOf(r).findIndex(([a]) => a === i); if (k < 0) return false;
@@ -4254,7 +4257,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function lessonMenu(btn, r, i) {
     closeMenu();
     const bl = blocksOf(r), k = bl.findIndex(([a]) => a === i); if (k < 0) return;
-    const lab = lessonLabel(i, bl[k][1]);
+    const lab = lname(r, i, bl[k][1]);
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     m.innerHTML = '<div class="cm-title">' + lab + "</div>" +
@@ -4304,7 +4307,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     });
     uEl.addEventListener("drop", (e) => {
       if (d == null) return; const tb = uEl.querySelector(".m-drop-before"), ta = uEl.querySelector(".m-drop-after"); clear();
-      const [rid, li] = d.split("|"); d = null; const r = U.reihen[U.sel]; if (!r || r.klasse) return; const t = tb || ta; if (!t) return; e.preventDefault();
+      const [rid, li] = d.split("|"); d = null; const r = U.reihen[U.sel]; if (!r) return; const t = tb || ta; if (!t) return; e.preventDefault();
       let v;
       if (t.dataset.crid === rid && !t.dataset.cmoved) v = null; // zurück in den eigenen Abschnitt
       else { const a = dropAfter(r, t, !!tb); if (a === null) return; v = a === undefined ? 1e9 : a; }
@@ -4325,7 +4328,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     });
     uEl.addEventListener("drop", (e) => {
       if (d == null) return; const tb = uEl.querySelector(".m-drop-before"), ta = uEl.querySelector(".m-drop-after"); clear();
-      const rid = d; d = null; const r = U.reihen[U.sel]; if (!r || r.klasse) return; const t = tb || ta; if (!t) return; e.preventDefault();
+      const rid = d; d = null; const r = U.reihen[U.sel]; if (!r) return; const t = tb || ta; if (!t) return; e.preventDefault();
       const after = dropAfter(r, t, !!tb); if (after === null) return;
       r.children = (r.children || []).map((c) => { if (c.rid !== rid) return c; const n = { ...c }; if (after === undefined) delete n.after; else n.after = after; return n; });
       const bl = blocksOf(r); r.children = r.children.map((c, j) => [c, j]).sort((x, y) => chPos(r, x[0], bl) - chPos(r, y[0], bl) || x[1] - y[1]).map((x) => x[0]);
@@ -4348,7 +4351,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     });
     uEl.addEventListener("drop", (e) => {
       if (d == null) return; const tb = uEl.querySelector(".m-drop-before"), ta = uEl.querySelector(".m-drop-after"); clear();
-      const k = d; d = null; const r = U.reihen[U.sel]; if (!r || r.klasse) return; const t = tb || ta; if (!t) return; e.preventDefault();
+      const k = d; d = null; const r = U.reihen[U.sel]; if (!r) return; const t = tb || ta; if (!t) return; e.preventDefault();
       const it = r.lnItems && r.lnItems[k]; if (!it) return;
       const bl = blocksOf(r), rows = [...uEl.querySelectorAll("#r-lessons .lesson, .lesson")].filter((x) => x.closest("#r-detail") || true);
       const after = dropAfter(r, t, !!tb); if (after === null) return;
@@ -4374,7 +4377,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     });
     uEl.addEventListener("drop", (e) => {
       if (d == null) return; const tb = uEl.querySelector(".l-drop-before"), ta = uEl.querySelector(".l-drop-after"); clear();
-      const from = d; d = null; const r = U.reihen[U.sel]; if (!r || r.klasse) return;
+      const from = d; d = null; const r = U.reihen[U.sel]; if (!r) return;
       const t = tb || ta; if (!t) return; e.preventDefault();
       const bl = blocksOf(r), ti = bl.findIndex(([a]) => a === +t.dataset.li); if (ti < 0) return;
       if (lessonOp(r, from, "move", tb ? ti : ti + 1)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
@@ -4511,7 +4514,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.innerHTML = '<div class="cm-title">' + esc(f.name) + "</div>" +
       (f.folder ? "" : '<button type="button" role="menuitem" data-rfa="link">' + (f.link ? "OneDrive-Link ändern" : "OneDrive-Link hinzufügen") + "</button>") +
       (f.link && !f.folder ? '<button type="button" role="menuitem" data-rfa="unlink">Link entfernen</button>' : "") +
-      (r.klasse ? "" : '<button type="button" role="menuitem" class="cm-danger" data-rfa="rm">' + (f.folder ? "Ordner-Verknüpfung entfernen" : "Dokument entfernen") + "</button>");
+      ('<button type="button" role="menuitem" class="cm-danger" data-rfa="rm">' + (f.folder ? "Ordner-Verknüpfung entfernen" : "Dokument entfernen") + "</button>");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-rfa]"); if (!b) return;
@@ -4556,7 +4559,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     uEl.addEventListener("drop", (e) => {
       if (!d) return; const zz = zoneOf(e.target), bef = uEl.querySelector(".ddrop-before"); clear();
       const dd = d; d = null; justDragged = Date.now(); if (!zz) return; e.preventDefault();
-      const r = U.reihen[U.sel]; if (!r || r.klasse) return;
+      const r = U.reihen[U.sel]; if (!r) return;
       if (moveDoc(r, dd.key, dd.fid, zz.key, bef ? bef.dataset.openFile : null)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
     });
     uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".doc.dragging").forEach((el) => el.classList.remove("dragging")); d = null; justDragged = Date.now(); });
@@ -5600,6 +5603,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (K.rsel && isOpen("k-" + kid + "-reihen")) {
       if (U.sel && U.reihen[U.sel] && !U.reihen[U.sel].klasse) U.lastMaster = U.sel;
       U.sel = K.rsel; renderRDetail(det);
+      det.classList.add("kcopy"); det.style.setProperty("--kc", "var(--c-" + kColor(kid) + ")");
     } else det.innerHTML = "";
   }
   // Rückgängig: Zustand der Klasse (Stunden, weggelassene Lektionen, feste Daten, Reihenfolge der Reihen)
