@@ -2802,7 +2802,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (U.view === "vorlagen") { $("#u-legend").hidden = true; renderV(); return; }
     if (U.view === "jahresplan") renderJP(); else { renderRSide(); renderRDetail(); }
   }
-  // Unterpunkte einer Reihe (z. B. Partikel: Konjunktion, Präposition …)
+  // Unterpunkte einer Reihe (z. B. Wortarten: Nomen, Verb …)
   const subsOf = (r) => (Array.isArray(r.subs) ? r.subs.filter((x) => String(x || "").trim()) : []);
   const subsOpen = (id) => { const o = (UP.subOpen || {})[id]; return o == null ? !!UP.subs : o; };
   function subsHtml(id, r) {
@@ -3058,7 +3058,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (packed) { const r = await state.assets.upload(new Blob([await blobToB64(file)], { type: "text/plain" }), { type: "text/plain" }); return { id: r.id, name: file.name, size: file.size, type: file.type || ext, enc: "b64" }; }
     const r = await state.assets.upload(file, { type }); return { id: r.id, name: file.name, size: r.sizeBytes, type: r.contentType };
   }
-  // Schuljahr und Reihe aus dem Ordnerpfad erraten, z. B. "Deutsch/2. SJ/Barock/AB.docx"
+  // Schuljahr und Reihe aus dem Ordnerpfad erraten, z. B. "Deutsch/2. SJ/Thema/AB.docx"
   function vGuess(path) {
     const segs = String(path).split("/"), dirs = segs.slice(0, -1).map(normTxt), all = dirs.join(" / ");
     let year = null;
@@ -3642,7 +3642,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const m = document.createElement("div");
     m.className = "cmenu fold-menu"; m.id = "cmenu";
     m.innerHTML = '<div class="cm-title">Ordner auf dem Computer</div>' +
-      '<input type="text" id="fold-path" spellcheck="false" placeholder="z. B. C:\\Users\\…\\OneDrive\\Unterricht\\Faust" value="' + esc(r.folder || "") + '">' +
+      '<input type="text" id="fold-path" spellcheck="false" placeholder="z. B. C:\\Users\\…\\OneDrive\\Unterricht\\Thema" value="' + esc(r.folder || "") + '">' +
       '<div class="fold-btns"><button type="button" class="btn" id="fold-copy">' + (r.folder ? "Pfad kopieren" : "Speichern") + '</button>' +
       (r.folder ? '<button type="button" class="btn ghost" id="fold-rm">Entfernen</button>' : "") + "</div>" +
       '<div class="fold-msg" id="fold-msg">' + (r.folder ? "Danach im Explorer: <kbd>Strg</kbd>+<kbd>L</kbd>, <kbd>Strg</kbd>+<kbd>V</kbd>, <kbd>Enter</kbd>." : "Im Explorer den Ordner öffnen, oben in die Adresszeile klicken, den Pfad kopieren und hier einfügen.") + "</div>";
