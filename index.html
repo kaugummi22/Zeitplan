@@ -27,6 +27,28 @@
   const _fetch = window.fetch.bind(window);
   const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 
+  // ---------- Zwischenspeicher auf diesem Gerät (für die Arbeit ohne Internet) ----------
+  // Pro Sammlung: Daten, Versionsstand von OneDrive und noch nicht hochgeladene Änderungen.
+  let idbP = null;
+  function idb() {
+    if (!idbP) idbP = new Promise((res) => {
+      try { const rq = indexedDB.open("zeitplan-offline", 1); rq.onupgradeneeded = () => rq.result.createObjectStore("cols"); rq.onsuccess = () => res(rq.result); rq.onerror = () => res(null); } catch (e) { res(null); }
+    });
+    return idbP;
+  }
+  async function cacheGet(c) {
+    const d = await idb(); if (!d) return null;
+    return new Promise((res) => { try { const rq = d.transaction("cols").objectStore("cols").get(c); rq.onsuccess = () => res(rq.result || null); rq.onerror = () => res(null); } catch (e) { res(null); } });
+  }
+  const cacheT = {}; let cacheOk = false;
+  function cachePut(c) {
+    return idb().then((d) => d && new Promise((res) => {
+      try { const tx = d.transaction("cols", "readwrite"); tx.objectStore("cols").put({ data: mem[c], tags: tags[c] || null, dirty: dirty[c], at: Date.now() }, c); tx.oncomplete = () => { cacheOk = true; res(true); }; tx.onerror = () => res(false); } catch (e) { res(false); }
+    }));
+  }
+  function cacheSave(c) { clearTimeout(cacheT[c]); cacheT[c] = setTimeout(() => { cacheT[c] = 0; cachePut(c); }, 60); }
+  const isOffline = (e) => !navigator.onLine || (e && (e.name === "TypeError" || e.offline));
+
   // ---------- Anmeldung (OAuth 2.0 mit PKCE, ohne Passwort in der App) ----------
   const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const rnd = (n) => b64url(crypto.getRandomValues(new Uint8Array(n)));
@@ -60,7 +82,11 @@
   async function token(acc) {
     let t = ls.get("zp-tok-" + acc);
     if (t && t.access && t.exp > Date.now()) return t.access;
-    if (t && t.refresh) { try { return (await tokenRequest(acc, { grant_type: "refresh_token", refresh_token: t.refresh })).access; } catch (e) {} }
+    if (t && t.refresh) {
+      try { return (await tokenRequest(acc, { grant_type: "refresh_token", refresh_token: t.refresh })).access; }
+      catch (e) { if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; } }
+    }
+    if (!navigator.onLine) { const x = new Error("offline"); x.offline = true; throw x; }
     await login(acc); await new Promise(() => {}); // Seite wird umgeleitet
   }
   async function g(path, opts, acc) {
@@ -90,7 +116,7 @@
     let el = document.getElementById("zl-gate");
     if (!el) {
       const css = document.createElement("style");
-      css.textContent = "#zl-gate{position:fixed;inset:0;z-index:99999;background:#eef2f6;display:flex;align-items:center;justify-content:center;font:16px/1.5 system-ui,sans-serif}#zl-gate .b{background:#fff;color:#1d2733;max-width:440px;margin:16px;padding:26px 26px;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.12)}#zl-gate h2{margin:0 0 8px;font-size:1.3rem}#zl-gate p{margin:0 0 14px;color:#4a5866}#zl-gate button{font:inherit;font-weight:700;background:#1f5f8b;color:#fff;border:0;border-radius:10px;padding:11px 18px;cursor:pointer}#zl-gate small{display:block;margin-top:14px;color:#6b7785}#zl-badge{position:fixed;left:10px;bottom:10px;z-index:9999;font:12px system-ui,sans-serif;background:#e8f1f8;color:#1f5f8b;border:1px solid #c5dbea;border-radius:999px;padding:3px 10px;opacity:.85}html.mob #zl-badge,html.fit #zl-badge{display:none}";
+      css.textContent = "#zl-gate{position:fixed;inset:0;z-index:99999;background:#eef2f6;display:flex;align-items:center;justify-content:center;font:16px/1.5 system-ui,sans-serif}#zl-gate .b{background:#fff;color:#1d2733;max-width:440px;margin:16px;padding:26px 26px;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.12)}#zl-gate h2{margin:0 0 8px;font-size:1.3rem}#zl-gate p{margin:0 0 14px;color:#4a5866}#zl-gate button{font:inherit;font-weight:700;background:#1f5f8b;color:#fff;border:0;border-radius:10px;padding:11px 18px;cursor:pointer}#zl-gate small{display:block;margin-top:14px;color:#6b7785}#zl-badge{position:fixed;left:10px;bottom:10px;z-index:9999;font:12px system-ui,sans-serif;background:#e8f1f8;color:#1f5f8b;border:1px solid #c5dbea;border-radius:999px;padding:3px 10px;opacity:.85}#zl-badge.off{background:#fff4e0;color:#8a5a00;border-color:#f0d29a;opacity:1}html.mob #zl-badge:not(.off),html.fit #zl-badge:not(.off){display:none}";
       document.head.appendChild(css);
       el = document.createElement("div"); el.id = "zl-gate"; (document.body || document.documentElement).appendChild(el);
     }
@@ -115,20 +141,68 @@
     try { await handleRedirect(); } catch (e) { gate("Die Anmeldung hat nicht geklappt: " + esc(e.message || e), "Nochmals anmelden", () => login("privat", "select_account")); return; }
     const t = ls.get("zp-tok-privat");
     if (!t || !t.refresh) { gate("Bitte melden Sie sich mit Ihrem <b>privaten Microsoft-Konto</b> an (dasselbe wie für OneDrive).", "Mit Microsoft anmelden", () => login("privat", "select_account")); return; }
+    if (!navigator.onLine && (await startOffline())) return;
     gate("Lädt Ihre Daten aus OneDrive …");
     try {
       if (!t.user) { const me = await (await g("/me")).json(); const tt = ls.get("zp-tok-privat"); tt.user = me.userPrincipalName || me.mail || ""; ls.set("zp-tok-privat", tt); }
       const metas = await listDaten();
       if (!metas.reihen && !metas.days) { gate("In Ihrem OneDrive fehlt der Ordner <b>0_Planung › Zeitplan-App › daten</b>. Ist das das richtige Konto?", "Anderes Konto wählen", () => { ls.del("zp-tok-privat"); login("privat", "select_account"); }); return; }
       await Promise.all(COLS.map((c) => loadCol(c, metas[c])));
+      // Änderungen, die ohne Internet gemacht und noch nicht hochgeladen wurden, nachtragen
+      for (const c of COLS) {
+        const k = await cacheGet(c);
+        if (k && k.dirty && Object.keys(k.dirty).length) {
+          Object.entries(k.dirty).forEach(([id, op]) => { if (op === "del") delete mem[c][id]; else if (k.data && id in k.data) mem[c][id] = k.data[id]; });
+          dirty[c] = { ...k.dirty }; persist(c);
+        }
+        cachePut(c);
+      }
       await setupFolders();
-      document.getElementById("zl-gate").remove();
-      const b = document.createElement("div"); b.id = "zl-badge"; b.textContent = "OneDrive · gespeichert"; document.body.appendChild(b);
-      readyRes();
-      setInterval(() => { if (document.visibilityState === "visible") { refresh(); dailyBackup(); } }, 60000);
-      setTimeout(dailyBackup, 4000);
-      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
-    } catch (e) { console.error(e); gate("Die Daten konnten nicht geladen werden (" + esc(e.message || e) + "). Bitte Internetverbindung prüfen.", "Nochmals versuchen", () => location.reload()); }
+      begin(false);
+    } catch (e) {
+      console.error(e);
+      if (await startOffline()) return;
+      gate("Die Daten konnten nicht geladen werden (" + esc(e.message || e) + "). Bitte Internetverbindung prüfen.", "Nochmals versuchen", () => location.reload());
+    }
+  }
+  // Ohne Internet: mit dem letzten Stand auf diesem Gerät arbeiten
+  async function startOffline() {
+    const ks = await Promise.all(COLS.map(cacheGet));
+    if (!ks.some((k) => k && k.data && Object.keys(k.data).length)) return false;
+    COLS.forEach((c, i) => { const k = ks[i] || {}; mem[c] = k.data || {}; tags[c] = k.tags || null; dirty[c] = k.dirty || {}; });
+    try { await setupFolders(); } catch (e) {}
+    begin(true);
+    return true;
+  }
+  let begun = false;
+  function begin(offline) {
+    if (begun) return; begun = true;
+    const gt = document.getElementById("zl-gate"); if (gt) gt.remove();
+    const b = document.createElement("div"); b.id = "zl-badge"; document.body.appendChild(b);
+    readyRes();
+    if (offline) goneOffline(); else setBadge(COLS.some((c) => Object.keys(dirty[c]).length) ? "Speichert …" : "OneDrive · gespeichert");
+    setInterval(() => { if (document.visibilityState === "visible") { if (OFF) reconnect(); else { refresh(); dailyBackup(); } } }, 60000);
+    setTimeout(() => { if (!OFF) dailyBackup(); }, 4000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") (OFF ? reconnect() : refresh()); });
+    window.addEventListener("online", () => setTimeout(reconnect, 1500));
+    window.addEventListener("offline", goneOffline);
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  }
+  let OFF = false;
+  function goneOffline() {
+    OFF = true;
+    const n = COLS.reduce((s, c) => s + Object.keys(dirty[c]).length, 0);
+    setBadge("Offline · " + (n ? n + " Änderung" + (n > 1 ? "en" : "") + " auf diesem Gerät, wird später hochgeladen" : "Stand auf diesem Gerät"));
+    const b = document.getElementById("zl-badge"); if (b) b.classList.add("off");
+  }
+  // Wieder online: offene Änderungen hochladen (mit Abgleich), dann neuesten Stand holen
+  async function reconnect() {
+    if (!navigator.onLine) return;
+    try { await listDaten(); } catch (e) { return; }
+    OFF = false; const b = document.getElementById("zl-badge"); if (b) b.classList.remove("off");
+    const pend = COLS.filter((c) => Object.keys(dirty[c]).length);
+    if (pend.length) pend.forEach((c) => persist(c)); else setBadge("OneDrive · gespeichert");
+    refresh(); dailyBackup();
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
@@ -156,6 +230,22 @@
     } catch (e) { console.warn("Sicherung", e); backupDone = ""; }
   }
 
+  // Für «Speicherpunkte»: die täglichen Sicherungen auflisten und laden
+  window.ZBACKUP = {
+    async list() {
+      const r = await g(item(BACKUP) + ":/children?$top=500&$select=name,folder"); if (!r.ok) return [];
+      return ((await r.json()).value || []).filter((x) => x.folder && /^\d{4}-\d{2}-\d{2}$/.test(x.name)).map((x) => x.name).sort().reverse();
+    },
+    async load(day) {
+      const out = { app: "zeitplan", version: 1, at: day + "T12:00:00", collections: {} };
+      for (const c of COLS) { const m = await getMeta(BACKUP + "/" + day + "/" + c + ".json"); out.collections[c] = m ? JSON.parse((await (await download(m)).text()) || "{}") || {} : {}; }
+      if (!Object.keys(out.collections.reihen || {}).length && !Object.keys(out.collections.days || {}).length) throw new Error("Sicherung leer");
+      const m = await getMeta(BACKUP + "/" + day + "/reihen.json"); if (m && m.lastModifiedDateTime) out.at = m.lastModifiedDateTime;
+      return out;
+    },
+    offline: () => OFF,
+  };
+
   // Änderungen von anderen Geräten (PC, Handy) übernehmen
   let refreshing = false;
   async function refresh() {
@@ -164,39 +254,51 @@
       const metas = await listDaten();
       for (const c of COLS) {
         const m = metas[c]; if (!m || (tags[c] && tags[c].c === m.cTag)) continue;
-        if (timers[c]) continue; // eigene Änderung wird gerade gespeichert – Abgleich passiert dort
-        await loadCol(c, m); notify(c);
+        if (timers[c] || Object.keys(dirty[c]).length) continue; // eigene Änderung wird gerade gespeichert – Abgleich passiert dort
+        await loadCol(c, m); cachePut(c); notify(c);
       }
     } catch (e) { console.warn(e); } finally { refreshing = false; }
   }
 
   // ---------- Speichern (mit Abgleich, falls ein anderes Gerät gleichzeitig gespeichert hat) ----------
   let warned = false;
+  // timers[c]: Speichern geplant oder unterwegs · ver[c]: zählt Änderungen, damit nichts verloren geht, was während des Hochladens dazukam
+  const ver = {}, busy = {};
+  COLS.forEach((c) => { ver[c] = 0; });
   function persist(c) {
+    if (OFF) { goneOffline(); return; }
+    if (busy[c]) { busy[c].again = true; return; }
     clearTimeout(timers[c]);
-    timers[c] = setTimeout(async () => {
-      try {
-        let r = await putFile(DATEN + "/" + c + ".json", new Blob([JSON.stringify(mem[c])], { type: "application/json" }), tags[c] && tags[c].e);
-        if (r.status === 412) {
-          const m = await getMeta(DATEN + "/" + c + ".json");
-          const remote = JSON.parse((await (await download(m)).text()) || "{}") || {};
-          Object.entries(dirty[c]).forEach(([id, op]) => { if (op === "del") delete remote[id]; else remote[id] = mem[c][id]; });
-          mem[c] = remote; notify(c);
-          r = await putFile(DATEN + "/" + c + ".json", new Blob([JSON.stringify(mem[c])], { type: "application/json" }), m.eTag);
-        }
-        if (!r.ok) throw new Error("OneDrive " + r.status);
-        const j = await r.json(); tags[c] = { e: j.eTag, c: j.cTag }; dirty[c] = {};
-        timers[c] = 0; setBadge("OneDrive · gespeichert");
-      } catch (e) {
-        console.error(e); setBadge("Nicht gespeichert – versucht es erneut …");
-        if (!warned) { warned = true; setTimeout(() => { if (timers[c]) alert("Speichern in OneDrive klappt gerade nicht (keine Verbindung?). Die App versucht es weiter – bitte das Fenster offen lassen."); }, 20000); }
-        timers[c] = setTimeout(() => persist(c), 5000);
-      }
-    }, 400);
+    timers[c] = setTimeout(() => upload(c), 400);
     setBadge("Speichert …");
   }
+  async function upload(c) {
+    const run = (busy[c] = { again: false }), v0 = ver[c] || 0;
+    try {
+      let r = await putFile(DATEN + "/" + c + ".json", new Blob([JSON.stringify(mem[c])], { type: "application/json" }), tags[c] && tags[c].e);
+      if (r.status === 412) {
+        const m = await getMeta(DATEN + "/" + c + ".json");
+        const remote = JSON.parse((await (await download(m)).text()) || "{}") || {};
+        Object.entries(dirty[c]).forEach(([id, op]) => { if (op === "del") delete remote[id]; else if (id in mem[c]) remote[id] = mem[c][id]; });
+        mem[c] = remote; notify(c);
+        r = await putFile(DATEN + "/" + c + ".json", new Blob([JSON.stringify(mem[c])], { type: "application/json" }), m.eTag);
+      }
+      if (!r.ok) throw new Error("OneDrive " + r.status);
+      const j = await r.json(); tags[c] = { e: j.eTag, c: j.cTag };
+      if ((ver[c] || 0) === v0) dirty[c] = {}; // sonst: neuere Änderungen bleiben offen und werden gleich nochmals hochgeladen
+      busy[c] = null; timers[c] = 0; cachePut(c);
+      if (run.again || Object.keys(dirty[c]).length) persist(c);
+      else if (!COLS.some((x) => timers[x])) setBadge("OneDrive · gespeichert");
+    } catch (e) {
+      console.error(e); busy[c] = null; timers[c] = 0;
+      if (isOffline(e) && cacheOk) { goneOffline(); return; } // bleibt auf diesem Gerät gespeichert; Upload, sobald wieder online
+      setBadge("Nicht gespeichert – versucht es erneut …");
+      if (!warned && !cacheOk) { warned = true; setTimeout(() => { if (timers[c]) alert("Speichern in OneDrive klappt gerade nicht (keine Verbindung?). Die App versucht es weiter – bitte das Fenster offen lassen."); }, 20000); }
+      timers[c] = setTimeout(() => persist(c), 5000);
+    }
+  }
   function setBadge(t) { const b = document.getElementById("zl-badge"); if (b) b.textContent = t; }
-  window.addEventListener("beforeunload", (e) => { if (Object.values(timers).some(Boolean)) { e.preventDefault(); e.returnValue = ""; } });
+  window.addEventListener("beforeunload", (e) => { if (!cacheOk && Object.values(timers).some(Boolean)) { e.preventDefault(); e.returnValue = ""; } });
 
   // ---------- Schnittstelle wie bei claude.ai ----------
   const colSnap = (c) => ({ docs: Object.keys(mem[c]).map((id) => ({ id, exists: true, data: () => clone(mem[c][id]) })) });
@@ -211,9 +313,9 @@
         limit() { return { get: async () => colSnap(c) }; },
         doc(id) {
           return {
-            async set(d) { mem[c][id] = clone(d); dirty[c][id] = "set"; persist(c); notify(c); },
-            async update(d) { mem[c][id] = { ...(mem[c][id] || {}), ...clone(d) }; dirty[c][id] = "set"; persist(c); notify(c); },
-            async delete() { delete mem[c][id]; dirty[c][id] = "del"; persist(c); notify(c); },
+            async set(d) { mem[c][id] = clone(d); dirty[c][id] = "set"; ver[c] = (ver[c] || 0) + 1; cacheSave(c); persist(c); notify(c); },
+            async update(d) { mem[c][id] = { ...(mem[c][id] || {}), ...clone(d) }; dirty[c][id] = "set"; ver[c] = (ver[c] || 0) + 1; cacheSave(c); persist(c); notify(c); },
+            async delete() { delete mem[c][id]; dirty[c][id] = "del"; ver[c] = (ver[c] || 0) + 1; cacheSave(c); persist(c); notify(c); },
             get: async () => docSnap(c, id),
             onSnapshot(cb) { const s = { cb, id }; subs[c].push(s); setTimeout(() => cb(docSnap(c, id)), 0); return () => { subs[c] = subs[c].filter((x) => x !== s); }; },
           };
@@ -541,6 +643,7 @@ html.fit body { touch-action: pan-x pan-y; }
 .sv-row .sv-act { display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
 .sv-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 4px; padding: 0 5px; margin-left: 6px; background: var(--accent-soft); color: var(--accent); vertical-align: 1px; }
 .sv-tag.auto { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.sv-h { margin: 14px 0 6px; font-size: 0.95rem; } .sv-h small { font-weight: 400; color: var(--muted); }
 .sv-file { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 700px) { .sv-row { grid-template-columns: 1fr; } .sv-row .sv-act { justify-content: flex-start; } }
 .panel.code { width: min(1100px, 100%); }
@@ -1302,7 +1405,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         <button role="tab" aria-selected="false" data-tab="unterricht">Unterricht</button>
         <button role="tab" aria-selected="false" data-tab="klassen">Klassen</button>
       </nav>
-      <button class="codebtn savebtn" id="saveBtn" type="button" title="Sicherungskopie erstellen und herunterladen" aria-label="Sicherungskopie erstellen">💾</button>
+      <button class="codebtn savebtn" id="saveBtn" type="button" title="Speicherpunkte und Sicherungen – zu einem früheren Stand zurückkehren" aria-label="Speicherpunkte und Sicherungen">💾</button>
       <button class="codebtn" id="codeBtn" type="button" title="Code der Seite ansehen und ändern" aria-label="Code der Seite ansehen und ändern"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4 1.5 8l4 4M10.5 4l4 4-4 4"/></svg></button>
     </div>
   </div>
@@ -4931,15 +5034,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const svWhen = (iso) => { const d = new Date(iso); return TAGE[d.getDay()] + " " + fmt(d) + ", " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
   const svKind = { manuell: "", auto: '<span class="sv-tag auto">automatisch</span>', vorher: '<span class="sv-tag auto">vor Zurückkehren</span>', datei: '<span class="sv-tag">aus Datei</span>' };
   function openSaves() {
-    let items = null, msg = "", armed = null, busy = false;
-    const canUse = !!(state.db && state.assets);
+    let items = null, msg = "", armed = null, busy = false, days = null, allDays = false;
+    const ZB = window.ZBACKUP, off = !!(ZB && ZB.offline());
+    const canUse = !!(state.db && state.assets) && !off;
+    const dayLbl = (d) => { const x = new Date(d + "T12:00:00"); return TAGE[x.getDay()] + " " + fmt(x); };
     const draw = () => {
       const list = (items || []).slice().sort((a, b) => (a.at < b.at ? 1 : -1));
       return '<h3>Speicherpunkte</h3><p class="sv-info">Ihre Änderungen werden laufend automatisch gespeichert. Speicherpunkte sind zusätzliche, vollständige Kopien aller Termine, Notizen, Reihen und Klassen. Zu jedem können Sie zurückkehren – vorher wird der aktuelle Stand automatisch nochmals gesichert. Beim Öffnen der Seite entsteht jeden Tag ein automatischer Speicherpunkt.</p>' +
-        (canUse ? '<div class="sv-new"><input type="text" id="sv-name" class="rtfield" placeholder="Name, z. B. „Vor den Herbstferien“" maxlength="80"' + (busy ? " disabled" : "") + '><button type="button" class="btn primary" id="sv-make"' + (busy ? " disabled" : "") + ">Speicherpunkt setzen</button></div>" : (state.local ? '<p class="msg warn">Diese Kopie läuft ohne Claude: Ihre Daten werden nur in diesem Browser gespeichert. Laden Sie unten eine Sicherungsdatei, um Ihren Stand hierher zu holen.</p>' : '<p class="msg warn">Speicherpunkte funktionieren nur in der Claude-Ansicht der Seite.</p>')) +
+        (canUse ? '<div class="sv-new"><input type="text" id="sv-name" class="rtfield" placeholder="Name, z. B. „Vor den Herbstferien“" maxlength="80"' + (busy ? " disabled" : "") + '><button type="button" class="btn primary" id="sv-make"' + (busy ? " disabled" : "") + ">Speicherpunkt setzen</button></div>" : (off ? '<p class="msg warn">Ohne Internet: Speicherpunkte setzen und zurückkehren geht erst wieder mit Verbindung. Ihre Änderungen bleiben auf diesem Gerät gespeichert.</p>' : state.local ? '<p class="msg warn">Diese Kopie läuft ohne Claude: Ihre Daten werden nur in diesem Browser gespeichert. Laden Sie unten eine Sicherungsdatei, um Ihren Stand hierher zu holen.</p>' : '<p class="msg warn">Speicherpunkte funktionieren nur in der Claude-Ansicht der Seite.</p>')) +
         (msg ? '<p class="msg" id="sv-msg">' + msg + "</p>" : "") +
         '<div class="sv-list">' + (items == null ? '<div class="empty">Wird geladen …</div>' : list.length ? list.map((x) => '<div class="sv-row" data-svid="' + esc(x.id) + '"><div><b>' + esc(x.name || svWhen(x.at)) + (svKind[x.kind] || "") + "</b><small>" + (x.name ? esc(svWhen(x.at)) + " · " : "") + (x.counts ? x.counts.tage + " Tage, " + x.counts.reihen + " Reihen, " + x.counts.klassen + " Klassen" : "") + "</small></div>" +
           '<div class="sv-act"><button type="button" class="btn ghost" data-sva="back"' + (busy ? " disabled" : "") + ">" + (armed === "back" + x.id ? "Wirklich zurückkehren?" : "Zurückkehren") + '</button><button type="button" class="btn ghost" data-sva="dl">Herunterladen</button><button type="button" class="btn ghost danger" data-sva="del"' + (busy ? " disabled" : "") + ">" + (armed === "del" + x.id ? "Wirklich löschen?" : "Löschen") + "</button></div></div>").join("") : '<div class="empty">Noch keine Speicherpunkte.</div>') + "</div>" +
+        (ZB ? '<h4 class="sv-h">Tägliche Sicherungen in OneDrive <small>(je Tag eine, 90 Tage lang)</small></h4>' + (off ? '<p class="msg warn">Ohne Internet nicht verfügbar.</p>' : '<div class="sv-list">' + (days == null ? '<div class="empty">Wird geladen …</div>' : days.length ? (allDays ? days : days.slice(0, 7)).map((d) => '<div class="sv-row" data-bkday="' + esc(d) + '"><div><b>' + esc(dayLbl(d)) + '<span class="sv-tag auto">Tagessicherung</span></b><small>Stand beim ersten Öffnen an diesem Tag</small></div><div class="sv-act"><button type="button" class="btn ghost" data-sva="back"' + (busy ? " disabled" : "") + ">" + (armed === "backday" + d ? "Wirklich zurückkehren?" : "Zurückkehren") + '</button><button type="button" class="btn ghost" data-sva="dl">Herunterladen</button></div></div>').join("") + (days.length > 7 && !allDays ? '<button type="button" class="btn ghost" id="sv-alldays">Alle ' + days.length + " Tage anzeigen</button>" : "") : '<div class="empty">Noch keine Tagessicherungen.</div>') + "</div>") : "") +
         '<div class="sv-file"><button type="button" class="btn ghost" id="sv-dlnow">Aktuellen Stand als Datei herunterladen</button>' + (canUse || state.local ? '<label class="btn ghost" style="cursor:pointer">Sicherungsdatei laden …<input type="file" id="sv-up" accept=".json,application/json" hidden></label>' : "") + "</div>" +
         '<div class="actions"><div class="right"><button class="btn primary" type="button" id="sv-ok"' + (busy ? " disabled" : "") + ">Schliessen</button></div></div>";
     };
@@ -4959,6 +5065,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         catch (e) { console.error(e); busy = false; say("Das hat nicht geklappt: " + esc(e.message || String(e))); }
       };
       if (canUse && !state.local) svIndex().then((x) => { items = x; redraw(); }, () => { items = []; redraw(); }); else { items = []; redraw(); }
+      if (ZB && !off) ZB.list().then((x) => { days = x; redraw(); }, () => { days = []; redraw(); });
       panel.addEventListener("change", async (e) => {
         if (e.target.id !== "sv-up" || !e.target.files[0]) return;
         try { const data = JSON.parse(await e.target.files[0].text()); if (!data || data.app !== "zeitplan") throw new Error("Das ist keine Sicherung dieser Seite.");
@@ -4977,6 +5084,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
           return;
         }
         if (b.id === "sv-dlnow") { if (state.local) { save(svLocalData(), "aktuell"); return; } if (!state.db) { say("Nur in der Claude-Ansicht möglich."); return; } try { save(await svCollect(), "aktuell"); } catch (err) { say("Nicht möglich."); } return; }
+        if (b.id === "sv-alldays") { allDays = true; redraw(); return; }
+        const drow = b.closest("[data-bkday]");
+        if (drow) {
+          const d = drow.dataset.bkday, a = b.dataset.sva;
+          if (a === "dl") { try { save(await ZB.load(d), "Tagessicherung " + d); } catch (err) { say("Sicherung nicht lesbar."); } return; }
+          if (a === "back") {
+            if (armed !== "backday" + d) { armed = "backday" + d; redraw(); return; }
+            armed = null;
+            try { doRestore(await ZB.load(d), "Tagessicherung " + dayLbl(d)); } catch (err) { say("Sicherung nicht lesbar."); }
+          }
+          return;
+        }
         const row = b.closest("[data-svid]"); if (!row) return;
         const x = (items || []).find((y) => y.id === row.dataset.svid); if (!x) return;
         const a = b.dataset.sva;
@@ -5006,7 +5125,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   $("#saveBtn").addEventListener("click", async () => {
     const b = $("#saveBtn");
     if (state.local) { const d = svLocalData(); svBlobDownload("Zeitplan-Sicherung " + d.at.slice(0, 16).replace("T", " ").replace(":", "-") + ".json", JSON.stringify(d, null, 1)); svToast("✓ Sicherung heruntergeladen."); return; }
-    if (!state.db || !state.assets) { openSaves(); return; }
+    if (!state.db || !state.assets || window.ZBACKUP) { openSaves(); return; }
     b.classList.add("busy"); svToast("Sicherung wird erstellt …");
     try {
       const items = await svCreate("Sicherung", "manuell"), x = items[items.length - 1];
