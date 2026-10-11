@@ -288,6 +288,7 @@
     window.ZLOCAL = {
       cloud: true, root: ROOT, dirs,
       async open(path) { if (await viaHelper(path)) return; await openUrl(path, window.open("", "_blank")); },
+      async list(path) { return (await children(toDrive(path))).sort((x, y) => x.localeCompare(y, "de")); },
       async read(path) { const m = await getMeta(toDrive(path)); if (!m) throw new Error("nicht gefunden"); return download(m); },
       async place(folder, name, blob, open) {
         const p = folder.replace(/\\+$/, "") + "\\" + name;
@@ -981,8 +982,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .jp-items[data-zone="act"]:empty { min-height: 26px; }
 .jp-items.drop-into { outline: 2px dashed var(--accent); outline-offset: -3px; border-radius: 6px; }
 .jp-grid:not(.show-prio) .jp-items { gap: 3px; }
-.jp-grid:not(.show-prio) .jp-item { border: 1px solid color-mix(in srgb, var(--line) 70%, var(--muted)); background: var(--surface, var(--bg)); }
-.jp-grid:not(.show-prio) .jp-item:hover { background: var(--accent-soft); }
+.jp-grid:not(.show-prio) .jp-item, .jp-grid.show-prio .jp-item.prio-keine { border: 1px solid color-mix(in srgb, var(--c-blau) 70%, var(--accent)); background: color-mix(in srgb, var(--c-blau) 45%, var(--surface)); }
+.jp-grid:not(.show-prio) .jp-item:hover, .jp-grid.show-prio .jp-item.prio-keine:hover { background: color-mix(in srgb, var(--c-blau) 80%, var(--surface)); }
 .prio-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .chip.prio-chip { font-size: 0.78rem; padding: 2px 9px; color: var(--ink); }
 .chip.prio-chip[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; background-color: var(--surface); color: var(--ink); border-color: var(--line); }
@@ -1095,6 +1096,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .r-field > .cell { border-radius: 6px; background: var(--bg); }
 .r-field > .cell .inp { min-height: 40px; }
 .r-years-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.rf-folder .tag { background: color-mix(in srgb, var(--c-gelb) 80%, var(--surface)); }
+.rf-folder .rf-path { display: block; font-size: 0.72rem; color: var(--muted); overflow-wrap: anywhere; }
+.fp-crumb { font-size: 0.85rem; color: var(--muted); margin: 0 0 8px; overflow-wrap: anywhere; }
+.fp-list { display: grid; gap: 3px; max-height: 50vh; overflow: auto; margin-bottom: 10px; }
+.fp-list button { text-align: left; font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.fp-list button:hover { border-color: var(--accent); background: var(--accent-soft); }
 .r-home { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
 .r-home select { font: inherit; color: var(--ink); padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .r-home .hint { font-size: 0.78rem; }
@@ -3001,6 +3008,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Dokumente der ganzen Reihe (z. B. Gesamt-PowerPoint), in jeder Lektion verfügbar; mit OneDrive-Link
   function rfRowHtml(r, f, key) {
     const main = key === "main";
+    if (f.folder) {
+      const rel = window.ZLOCAL && window.ZLOCAL.root && f.path.startsWith(window.ZLOCAL.root) ? f.path.slice(window.ZLOCAL.root.length + 1).split("\\").join(" › ") : f.path;
+      return '<div class="rf-row' + (main ? " rf-mrow" : "") + '" data-rfid="' + esc(f.id) + '"><button type="button" class="doc rf-folder" data-open-file="' + esc(f.id) + '"' + (r.klasse ? "" : ' draggable="true" data-dkey="' + key + '"') + ' title="Im Explorer öffnen · ' + esc(f.path) + '"><span class="tag">ORDNER</span><span>' + esc(f.name) + '</span><span class="rf-path">' + esc(rel) + "</span></button>" +
+        (r.klasse ? "" : '<button type="button" class="rf-pen" data-rfmenu="' + esc(f.id) + '" title="Entfernen" aria-label="Optionen zu ' + esc(f.name) + '">✎</button>') + "</div>";
+    }
     return '<div class="rf-row' + (main ? " rf-mrow" : "") + '" data-rfid="' + esc(f.id) + '"><button type="button" class="doc" data-open-file="' + esc(f.id) + '"' + (r.klasse ? ' title="Ansehen"' : ' draggable="true" data-dkey="' + key + '" title="Ansehen – zum Verschieben ziehen"') + '><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>" +
       (f.link ? '<a class="btn ghost od-link" href="' + esc(f.link) + '" target="_blank" rel="noopener" title="' + esc(f.link) + '">↗ OneDrive</a>' : "") +
       '<button type="button" class="rf-pen" data-rfmenu="' + esc(f.id) + '" title="Link oder Entfernen" aria-label="Optionen zu ' + esc(f.name) + '">✎</button>' +
@@ -3014,8 +3026,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       (main.length ? main.map((f) => rfRowHtml(r, f, "main")).join("") : '<span class="help">Wichtige Dokumente hierher ziehen, z. B. die PowerPoint der Reihe. Sie bleiben immer sichtbar.</span>') + "</div></div>" : "";
     const head = '<button type="button" class="v-inr-tog rf-tog' + (files.length ? " has" : "") + '" data-rftog aria-expanded="' + open + '"><span class="lbl">Dokumente der ganzen Reihe' + (files.length ? " (" + files.length + ")" : "") + "</span></button>";
     const docsB = !open ? '<div class="r-field rf-docs">' + head + "</div>" : '<div class="r-field rf-docs">' + head + '<div class="rf-list">' +
-      (files.length ? files.map((f) => rfRowHtml(r, f, "reihe")).join("") : '<span class="help">Noch keine. Hier gehören Unterlagen hin, die Sie in mehreren Lektionen brauchen.</span>') +
-      "</div>" + (r.klasse || !state.assets ? "" : '<label class="btn ghost rf-up">+ Dokument für die ganze Reihe<input type="file" id="rf-file" multiple hidden accept="application/pdf,image/*,.txt,.md,.csv,.json,.docx,.xlsx,.pptx"></label><span class="msg" id="rf-msg"></span>') + "</div>";
+      (files.length ? [...files.filter((f) => f.folder), ...files.filter((f) => !f.folder)].map((f) => rfRowHtml(r, f, "reihe")).join("") : '<span class="help">Noch keine. Hier gehören Unterlagen hin, die Sie in mehreren Lektionen brauchen.</span>') +
+      "</div>" + (r.klasse || !state.assets ? "" : '<label class="btn ghost rf-up">+ Dokument für die ganze Reihe<input type="file" id="rf-file" multiple hidden accept="application/pdf,image/*,.txt,.md,.csv,.json,.docx,.xlsx,.pptx"></label>' + (window.ZLOCAL && window.ZLOCAL.list ? '<button type="button" class="btn ghost rf-up" id="rf-addfolder" title="Einen ganzen Ordner (z. B. Bilder oder Scans) verknüpfen">+ Ordner</button>' : "") + '<span class="msg" id="rf-msg"></span>') + "</div>";
     return '<div class="rf-wrap">' + mainB + docsB + "</div>";
   }
   // Verbindung zwischen zwei Lektionen: getrennt, Doppellektion (verbunden) oder ein gemeinsames Feld
@@ -3749,15 +3761,45 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.style.top = Math.max(8, Math.min(br.bottom + 4, innerHeight - mr.height - 8)) + "px";
     if (!r.folder) inp.focus();
   }
+  // Ordner in 0_Planung auswählen und als Verknüpfung zur Reihe legen (öffnet später im Explorer)
+  function folderPicker(r) {
+    const Z = window.ZLOCAL; if (!Z || !Z.list) return;
+    let cur = r.folder && r.folder.startsWith(Z.root) ? r.folder : Z.root + "\\Reihen";
+    openModal('<h3>Ordner verknüpfen</h3><p class="fp-crumb" id="fp-crumb"></p><div class="fp-list" id="fp-list"></div>' +
+      '<div class="actions"><button type="button" class="btn ghost" id="fp-cancel">Abbrechen</button><button type="button" class="btn primary" id="fp-ok">Diesen Ordner verknüpfen</button></div>', (root) => {
+      const draw = async () => {
+        const rel = cur.slice(Z.root.length).split("\\").filter(Boolean);
+        root.querySelector("#fp-crumb").textContent = ["0_Planung", ...rel].join(" › ");
+        const list = root.querySelector("#fp-list"); list.innerHTML = '<span class="msg">Lädt …</span>';
+        let names = []; try { names = await Z.list(cur); } catch (e) {}
+        list.innerHTML = (cur !== Z.root ? '<button type="button" data-fpup>↑ Eine Ebene höher</button>' : "") +
+          names.map((n) => '<button type="button" data-fpin="' + esc(n) + '">📁 ' + esc(n) + "</button>").join("") +
+          (names.length ? "" : '<span class="msg">Keine Unterordner.</span>');
+      };
+      root.querySelector("#fp-list").addEventListener("click", (e) => {
+        const b = e.target.closest("button"); if (!b) return;
+        if (b.dataset.fpup != null) cur = cur.split("\\").slice(0, -1).join("\\"); else cur = cur + "\\" + b.dataset.fpin;
+        draw();
+      });
+      root.querySelector("#fp-cancel").onclick = closeModal;
+      root.querySelector("#fp-ok").onclick = () => {
+        if (cur === Z.root) return;
+        const name = cur.split("\\").pop();
+        r.files = [...(r.files || []), { id: "fold-" + Date.now().toString(36), folder: true, name, path: cur }];
+        window.__rfdocs = true; saveReihe(U.sel, 0); closeModal(); renderU();
+      };
+      draw();
+    });
+  }
   function rfMenu(btn, r, fid) {
     closeMenu();
     const f = [...(r.mainFiles || []), ...(r.files || [])].find((x) => x.id === fid); if (!f) return;
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     m.innerHTML = '<div class="cm-title">' + esc(f.name) + "</div>" +
-      '<button type="button" role="menuitem" data-rfa="link">' + (f.link ? "OneDrive-Link ändern" : "OneDrive-Link hinzufügen") + "</button>" +
-      (f.link ? '<button type="button" role="menuitem" data-rfa="unlink">Link entfernen</button>' : "") +
-      (r.klasse ? "" : '<button type="button" role="menuitem" class="cm-danger" data-rfa="rm">Dokument entfernen</button>');
+      (f.folder ? "" : '<button type="button" role="menuitem" data-rfa="link">' + (f.link ? "OneDrive-Link ändern" : "OneDrive-Link hinzufügen") + "</button>") +
+      (f.link && !f.folder ? '<button type="button" role="menuitem" data-rfa="unlink">Link entfernen</button>' : "") +
+      (r.klasse ? "" : '<button type="button" role="menuitem" class="cm-danger" data-rfa="rm">' + (f.folder ? "Ordner-Verknüpfung entfernen" : "Dokument entfernen") + "</button>");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-rfa]"); if (!b) return;
@@ -3848,8 +3890,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.dataset.unmerge != null && r0) { unmergeLast(r0, +b.dataset.unmerge); saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
     if (b.dataset.openFile && r0) {
       const f = [...Object.values(r0.meta || {}).flatMap((m) => m.files || []), ...(r0.mainFiles || []), ...(r0.files || []), ...(r0.lnItems || []).flatMap((m) => m.files || [])].find((ff) => ff.id === b.dataset.openFile);
+      if (f && f.folder) { if (window.ZLOCAL) window.ZLOCAL.open(f.path).catch(() => uStatus("Ordner nicht gefunden", true)); else uStatus("Ordner: " + f.path); return; }
       if (f) openViewer(f); return;
     }
+    if (b.id === "rf-addfolder" && r0) { folderPicker(r0); return; }
     if (b.id === "r-folder" && r0) {
       if (window.ZLOCAL && r0.folder) { uStatus("Öffnet den Ordner …"); window.ZLOCAL.open(r0.folder).then(() => uStatus(window.ZLOCAL.cloud ? "Ordner in OneDrive geöffnet" : "Ordner im Explorer geöffnet")).catch(() => { uStatus("Ordner nicht gefunden – bitte über ✎ neu wählen", true); folderMenu(b, r0); }); return; }
       folderMenu(b, r0); return;
