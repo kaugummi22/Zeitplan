@@ -1096,6 +1096,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .r-field > .cell { border-radius: 6px; background: var(--bg); }
 .r-field > .cell .inp { min-height: 40px; }
 .r-years-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.jp-grp { display: flex; align-items: center; gap: 6px; margin: 8px 2px 2px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.jp-grp:first-child { margin-top: 0; }
+.jp-grp::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.jp-grp i { font-style: normal; font-weight: 600; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; }
+.jp-grp-fertig span { color: color-mix(in srgb, var(--accent) 70%, var(--ink)); }
+.jp-grid:not(.show-prio) .jp-item .bar-mini i { background: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .rf-folder .tag { background: color-mix(in srgb, var(--c-gelb) 80%, var(--surface)); }
 .rf-folder .rf-path { display: block; font-size: 0.72rem; color: var(--muted); overflow-wrap: anywhere; }
 .fp-crumb { font-size: 0.85rem; color: var(--muted); margin: 0 0 8px; overflow-wrap: anywhere; }
@@ -2627,6 +2633,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const byYear = (y) => Object.entries(U.reihen).filter(([, r]) => !r.klasse && yearsOf(r).includes(y)).sort((a, b) => (a[1].order ?? 0) - (b[1].order ?? 0));
   const filled = (h) => !!(h && htmlToPlain(h).trim());
   const lastFilled = (r) => { for (let i = (r.lessons || []).length - 1; i >= 0; i--) if (filled(r.lessons[i])) return i + 1; return 0; };
+  // Ohne Wichtigkeiten: Spalte in «In Arbeit», «Fertig geplant» und «Sammlungen» gliedern
+  function jpGroups(list, itemHtml) {
+    const g = { arbeit: [], fertig: [], samml: [] };
+    list.forEach((e) => { const r = e[1], n = lessonCount(r), pl = planned(r); (n ? (pl >= n ? g.fertig : g.arbeit) : g.samml).push(e); });
+    return [["arbeit", "In Arbeit"], ["fertig", "Fertig geplant"], ["samml", "Sammlungen"]].filter(([k]) => g[k].length)
+      .map(([k, l]) => '<div class="jp-grp jp-grp-' + k + '"><span>' + l + "</span><i>" + g[k].length + "</i></div>" + g[k].map(itemHtml).join("")).join("");
+  }
   const lessonCount = (r) => (Number(r.lektionen) > 0 ? Math.min(60, Math.floor(Number(r.lektionen))) : lastFilled(r));
   const planned = (r) => { const n = lessonCount(r); let c = 0; for (let i = 0; i < n; i++) if (filled(r.lessons[i])) { const sp = Math.max(1, Number((r.spans || {})[i]) || 1); c += Math.min(sp, n - i); i += sp - 1; } return Math.min(c, n); };
   const labelOf = (y) => (U.plan && U.plan.labels && U.plan.labels[y]) || DEFAULT_LABELS[y];
@@ -2912,7 +2925,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
-        act.map(itemHtml).join("") + "</div>" +
+        (UP.prio ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
         '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button>' +
