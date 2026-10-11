@@ -850,7 +850,7 @@ mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b 
 .sp .sp-tcol input { width: 54px; text-align: center; border: 1px solid transparent; border-radius: 4px; background: none; padding: 2px 3px; font-variant-numeric: tabular-nums; }
 .sp .sp-tcol input:hover, .sp .sp-tcol input:focus { border-color: var(--line); background: var(--bg); }
 .sp .sp-tcol span { color: var(--muted); padding: 0 2px; }
-.sp .rm { width: 44px; }
+.sp .rm { width: 132px; }
 .sp-cell { width: 100%; min-height: 30px; border: 1px dashed transparent; border-radius: 5px; font-weight: 700; font-size: 0.85rem; color: var(--ink); }
 .sp-cell:hover { border-color: var(--accent); }
 .sp-cell:not([class*="f-"]):not(.own) { background: none; }
@@ -1096,6 +1096,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .r-field > .cell { border-radius: 6px; background: var(--bg); }
 .r-field > .cell .inp { min-height: 40px; }
 .r-years-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.sp td.sp-ops { white-space: nowrap; width: auto; }
+.sp td.sp-ops .btn { padding: 2px 6px; min-width: 0; }
+.sp td.sp-ops .btn[disabled] { opacity: 0.3; cursor: default; }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
@@ -4234,6 +4237,23 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     });
   }
 
+  // Lektionen im Stundenplan verschieben/einfügen/löschen: Klassen, Kommentare, feste Termine und Einzel-Einträge wandern mit
+  function spReorder(sem, map, times) {
+    const mv = (q) => (q >= 0 && q < map.length ? map[q] : q);
+    const cells = {};
+    for (const [ck, c] of Object.entries(sem.cells)) { const [d, q] = ck.split("-").map(Number), n = mv(q); if (n >= 0) cells[d + "-" + n] = c; }
+    const inSem = (dk) => dk >= sem.from && dk <= sem.to;
+    const remapKey = (key) => { const [dk, q] = key.split("|"); if (!inSem(dk) || q == null || isNaN(+q)) return key; const n = mv(+q); return n < 0 ? null : dk + "|" + n; };
+    for (const [kid, k] of Object.entries(K.klassen)) {
+      let ch = false;
+      if (k.slots) { const o = {}; for (const [key, v] of Object.entries(k.slots)) { const nk = remapKey(key); if (nk !== key) ch = true; if (nk) o[nk] = v; } k.slots = o; }
+      if (k.pins) { const o = {}; for (const [u, sk] of Object.entries(k.pins)) { const nk = remapKey(sk); if (nk !== sk) ch = true; if (nk) o[u] = nk; } k.pins = o; }
+      if (ch) kSave(kid, 0);
+    }
+    const ex = {}; for (const [key, v] of Object.entries(spGet().extra)) { const nk = remapKey(key); if (nk) ex[nk] = v; }
+    spSet({ extra: ex });
+    semPatch({ times, cells }); spSave(0); renderK(); render();
+  }
   // ---------- Darstellung: Stundenplan ----------
   function spHtml() {
     const sp = spGet(), sem = curSem(), list = kSorted(false);
@@ -4246,7 +4266,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         [1, 2, 3, 4, 5].map((d) => { const c = sem.cells[d + "-" + p], k = c && c.k && K.klassen[c.k];
           const inner = k ? esc(k.name || "Klasse") : c && c.t ? esc(c.t) : '<span class="sp-empty">+</span>';
           return '<td><button type="button" class="sp-cell' + (k ? " f-" + kColor(c.k) : c && c.t ? " own" : "") + (k && k.archived ? " arch" : "") + '" data-spc="' + d + "-" + p + '" title="Klasse oder eigenen Eintrag wählen">' + inner + "</button></td>"; }).join("") +
-        '<td class="rm"><button type="button" class="btn ghost danger" data-sprm="' + p + '" title="Zeile löschen" aria-label="Zeile löschen">×</button></td></tr>').join("") +
+        '<td class="rm sp-ops"><button type="button" class="btn ghost" data-spmv="' + p + ':-1"' + (p ? "" : " disabled") + ' title="Lektion nach oben">↑</button><button type="button" class="btn ghost" data-spmv="' + p + ':1"' + (p < sem.times.length - 1 ? "" : " disabled") + ' title="Lektion nach unten">↓</button><button type="button" class="btn ghost" data-spins="' + p + '" title="Darunter eine Lektion einfügen">＋</button><button type="button" class="btn ghost danger" data-sprm="' + p + '" title="Zeile löschen" aria-label="Zeile löschen">×</button></td></tr>').join("") +
       '</tbody></table></div><div class="ptools"><button class="btn ghost" type="button" id="sp-add">+ Lektion</button>' + (list.length ? "" : '<span class="msg">Legen Sie unten zuerst eine Klasse an.</span>') + "</div></section>";
     return h;
   }
@@ -4862,10 +4882,23 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       semPatch({ times: [...sem.times, [add(last[1], 5), add(last[1], 50)]] }); spSave(0); renderK(); return;
     }
     if (b.dataset.sprm != null) {
-      if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich löschen?"; b.classList.add("armed"); return; }
-      const p = +b.dataset.sprm, sem = curSem(), cells = {};
-      for (const [ck, c] of Object.entries(sem.cells)) { const [d, q] = ck.split("-").map(Number); if (q < p) cells[ck] = c; else if (q > p) cells[d + "-" + (q - 1)] = c; }
-      semPatch({ times: sem.times.filter((_, i) => i !== p), cells }); spSave(0); renderK(); render(); return;
+      if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Löschen?"; b.classList.add("armed"); return; }
+      const p = +b.dataset.sprm, sem = curSem();
+      spReorder(sem, sem.times.map((_, i) => (i === p ? -1 : i < p ? i : i - 1)), sem.times.filter((_, i) => i !== p)); return;
+    }
+    if (b.dataset.spmv) {
+      const [p, dir] = b.dataset.spmv.split(":").map(Number), q = p + dir, sem = curSem(); if (q < 0 || q >= sem.times.length) return;
+      const times = sem.times.slice(); [times[p], times[q]] = [times[q], times[p]];
+      spReorder(sem, sem.times.map((_, i) => (i === p ? q : i === q ? p : i)), times); return;
+    }
+    if (b.dataset.spins != null) {
+      const p = +b.dataset.spins, sem = curSem(), prev = sem.times[p] || ["07:00", "07:45"], next = sem.times[p + 1];
+      const add = (t, m) => { const [hh, mm] = (t || "07:00").split(":").map(Number), x = hh * 60 + mm + m; return pad(Math.floor(x / 60) % 24) + ":" + pad(x % 60); };
+      // passende Standardzeit dazwischen suchen (z. B. 09:40–10:25), sonst direkt anschliessend
+      const fit = DEF_TIMES.find((t) => t[0] >= (prev[1] || "") && (!next || t[1] <= (next[0] || "99:99")));
+      const nt = fit ? fit.slice() : [add(prev[1], 5), add(prev[1], 50)];
+      const times = [...sem.times.slice(0, p + 1), nt, ...sem.times.slice(p + 1)];
+      spReorder(sem, sem.times.map((_, i) => (i <= p ? i : i + 1)), times); return;
     }
     if (b.dataset.kcolor) { if (k) { k.color = b.dataset.kcolor; kSave(K.sel, 0); renderK(); render(); } return; }
     if (b.dataset.khide) { const r = U.reihen[b.dataset.khide]; if (r) { r.hidden = true; saveReihe(b.dataset.khide, 0); if (K.rsel === b.dataset.khide) K.rsel = null; renderK(); render(); } return; }
