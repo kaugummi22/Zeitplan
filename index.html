@@ -1096,6 +1096,35 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .r-field > .cell { border-radius: 6px; background: var(--bg); }
 .r-field > .cell .inp { min-height: 40px; }
 .r-years-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
+.dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.dp-zoom { display: inline-flex; gap: 2px; margin-left: 6px; }
+.dp-wrap { overflow: auto; resize: vertical; min-height: 200px; max-height: none; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); margin-bottom: 16px; font-size: calc(0.82rem * var(--dpz, 1)); }
+.dp { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 760px; table-layout: fixed; }
+.dp th, .dp td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; vertical-align: top; }
+.dp thead th { position: sticky; top: 0; z-index: 3; background: var(--bg); font-weight: 600; font-size: 0.85em; padding: 6px 6px; text-align: left; white-space: nowrap; color: var(--muted); }
+.dp .dp-p { color: var(--ink); }
+.dp .dp-dcol { position: sticky; left: 0; z-index: 2; width: 92px; background: var(--surface); padding: 6px 8px; text-align: left; font-weight: 600; white-space: nowrap; }
+.dp thead .dp-dcol { z-index: 4; background: var(--bg); }
+.dp-hol { display: block; font-weight: 400; font-size: 0.8em; color: var(--muted); white-space: normal; }
+.dp-week td { position: sticky; left: 0; background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface)); padding: 4px 8px; font-size: 0.78em; font-weight: 700; letter-spacing: 0.04em; color: var(--muted); }
+.dp-row.is-today .dp-dcol { background: var(--accent); color: var(--surface); }
+.dp-row.past { opacity: 0.6; }
+.dp-c { display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: calc(2.6em); padding: 5px 6px; border: 0; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.dp-c:not([class*=" f-"]) { background: none; }
+.dp-c[class*=" f-"] { border-radius: 0; }
+.dp-c:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dp-c .dp-k { font-weight: 700; }
+.dp-c .dp-u { font-size: 0.82em; color: color-mix(in srgb, var(--ink) 70%, transparent); }
+.dp-c .dp-n { font-size: 0.86em; font-style: italic; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dp-c.skip .dp-k { text-decoration: line-through; opacity: 0.6; }
+.dp-c.hol { opacity: 0.55; }
+.dp-c.once { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--ink) 35%, transparent); }
+.dp-plus { color: var(--line); font-size: 1.1em; }
+.dp-c:hover .dp-plus { color: var(--accent); }
+.dp-more { padding: 8px; text-align: center; }
+.dp-chk { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+#dp-note { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
 .jp-grp { display: flex; align-items: center; gap: 6px; margin: 8px 2px 2px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .jp-grp:first-child { margin-top: 0; }
 .jp-grp::after { content: ""; flex: 1; height: 1px; background: var(--line); }
@@ -1993,16 +2022,22 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     }
   }
   // Lektionsplanung (nur im grossen Feld der Lektionen): Lernziele und eine Tabelle wann / was / wie
-  const DEF_COLS = ["Zeit", "Phase / Was", "Inhalt und Vorgehen / Wie", "Sozialform / Material", "Notizen / Kommentare"];
-  const DEF_W = [9, 14, 37, 18, 22]; // Spaltenbreiten in Prozent
+  const DEF_COLS = ["Zeit", "Phase / Was", "Inhalt und Vorgehen / Wie", "Sozialform, Material, Notizen"];
+  const DEF_W = [8, 13, 49, 30]; // Spaltenbreiten in Prozent
+  const OLD_COLS = ["Zeit", "Phase / Was", "Inhalt und Vorgehen / Wie", "Sozialform / Material", "Notizen / Kommentare"];
   function ensurePlan(p) {
     if (!Array.isArray(p.cols) || !p.cols.length) p.cols = DEF_COLS.slice();
     // frühere Aufteilung „Sozialform | Material“ zu einer Spalte zusammenführen, dafür Notizen / Kommentare
     if (p.cols.length === 5 && p.cols[3] === "Sozialform" && p.cols[4] === "Material") {
-      p.rows = (p.rows || []).map((r) => [r[0] || "", r[1] || "", r[2] || "", [r[3], r[4]].filter(filled).join("<br>"), ""]);
+      p.rows = (p.rows || []).map((r) => [r[0] || "", r[1] || "", r[2] || "", [r[3], r[4]].filter(filled).join("<br>")]);
       p.cols = DEF_COLS.slice(); p.widths = DEF_W.slice();
     }
-    if (!Array.isArray(p.rows) || !p.rows.length) p.rows = [0, 1, 2].map(() => p.cols.map(() => ""));
+    // bisherige 5 Spalten: «Sozialform / Material» und «Notizen» zu einem grösseren Feld zusammenführen
+    if (p.cols.length === 5 && p.cols.every((c, j) => c === OLD_COLS[j])) {
+      p.rows = (p.rows || []).map((r) => [r[0] || "", r[1] || "", r[2] || "", [r[3], r[4]].filter(filled).join("<br>")]);
+      p.cols = DEF_COLS.slice(); p.widths = DEF_W.slice();
+    }
+    if (!Array.isArray(p.rows) || !p.rows.length) p.rows = [0, 1].map(() => p.cols.map(() => ""));
     if (!Array.isArray(p.widths) || p.widths.length !== p.cols.length) p.widths = p.cols.length === DEF_W.length ? DEF_W.slice() : p.cols.map(() => +(100 / p.cols.length).toFixed(1));
     return p;
   }
@@ -3982,7 +4017,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     let sems = Array.isArray(sp.semesters) && sp.semesters.length ? sp.semesters : null;
     if (!sems) { const d = semDefault(); if (Array.isArray(sp.times) && sp.times.length) d.times = sp.times; if (sp.cells) d.cells = sp.cells; sems = [d]; }
     sems = sems.map((s) => ({ ...s, times: Array.isArray(s.times) && s.times.length ? s.times : DEF_TIMES.map((t) => t.slice()), cells: s.cells || {} }));
-    return { semesters: sems, show: sp.show !== false, showHol: sp.showHol !== false, holidays: Array.isArray(sp.holidays) ? sp.holidays : [], kinds: Array.isArray(sp.kinds) ? sp.kinds : [] };
+    return { semesters: sems, show: sp.show !== false, showHol: sp.showHol !== false, holidays: Array.isArray(sp.holidays) ? sp.holidays : [], kinds: Array.isArray(sp.kinds) ? sp.kinds : [], extra: sp.extra && typeof sp.extra === "object" ? sp.extra : {} };
   }
   const semOf = (dk) => spGet().semesters.find((s) => dk >= s.from && dk <= s.to) || null;
   function curSem() {
@@ -4103,6 +4138,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const map = {};
     if (!spGet().show) return map;
     for (const kid of activeKids()) for (const s of classSchedule(kid)) (map[s.date] = map[s.date] || []).push(s);
+    const act = new Set(activeKids());
+    for (const [key, x] of Object.entries(spGet().extra)) {
+      if (!x || !x.k || !act.has(x.k)) continue;
+      const [dk, ps] = key.split("|"), pn = +ps, t = (semOf(dk) || curSem()).times[pn]; if (!t) continue;
+      (map[dk] = map[dk] || []).push({ kid: x.k, date: dk, p: pn, from: t[0], to: t[1], sk: key });
+    }
     for (const d in map) {
       const list = map[d].sort((a, b) => a.from.localeCompare(b.from)), merged = [];
       for (const s of list) {
@@ -4115,6 +4156,83 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return map;
   }
   const unitText = (s) => s.hol ? s.hol : s.skip ? "fällt aus" : s.ins != null ? s.ins : s.unit ? (s.custom != null ? s.custom : s.unit.title + " · " + s.unit.label) : "noch nichts geplant";
+
+  // ---------- Darstellung: Tagesplan (Daten links, Lektionszeiten oben, scrollbar) ----------
+  try { K.kview = localStorage.getItem("zeitplan-kview") === "woche" ? "woche" : "tag"; } catch (e) { K.kview = "tag"; }
+  K.dpWeeks = 6; K.dpBack = 0;
+  let DPZ = 1, DPH = 560;
+  try { DPZ = +localStorage.getItem("zeitplan-dpz") || 1; DPH = +localStorage.getItem("zeitplan-dph") || 560; } catch (e) {}
+  const kViewSeg = () => '<div class="k-vbar"><div class="seg" role="group" aria-label="Ansicht"><button type="button" data-kview="tag" aria-pressed="' + (K.kview !== "woche") + '">Tagesplan</button><button type="button" data-kview="woche" aria-pressed="' + (K.kview === "woche") + '">Wochenstundenplan</button></div>' +
+    (K.kview === "woche" ? "" : '<div class="dp-tools"><button type="button" class="btn ghost" data-dp-back title="Frühere Wochen zeigen">↑ Früher</button><button type="button" class="btn ghost" data-dp-today>Heute</button><span class="dp-zoom"><button type="button" class="btn ghost" data-dp-zoom="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" data-dp-zoom="1" title="Grösser">A+</button></span></div>') + "</div>";
+  function dayPlanHtml() {
+    const sem = curSem(), times = sem.times, slots = {}, extra = spGet().extra;
+    for (const kid of activeKids()) for (const s of classSchedule(kid)) slots[s.sk] = s;
+    const t0 = today(), mon = addDays(t0, -((t0.getDay() + 6) % 7) - 7 * K.dpBack), tk = keyOf(t0);
+    let h = '<div class="dp-wrap" id="dp-wrap" style="height:' + DPH + "px;--dpz:" + DPZ + '"><table class="dp"><thead><tr><th class="dp-dcol">Datum</th>' +
+      times.map((t, p) => '<th><span class="dp-p">' + (p + 1) + ".</span> " + esc(t[0]) + "–" + esc(t[1]) + "</th>").join("") + "</tr></thead><tbody>";
+    for (let w = 0; w < K.dpWeeks + K.dpBack; w++) {
+      const ws = addDays(mon, 7 * w);
+      h += '<tr class="dp-week"><td colspan="' + (times.length + 1) + '">KW ' + isoWeek(ws) + " · " + fmt(ws).slice(0, 6) + "–" + fmt(addDays(ws, 4)) + "</td></tr>";
+      for (let i = 0; i < 5; i++) {
+        const d = addDays(ws, i), dk = keyOf(d), hol = holidayOf(dk, "klassen"), past = dk < tk;
+        h += '<tr class="dp-row' + (dk === tk ? " is-today" : "") + (past ? " past" : "") + '" data-dpday="' + dk + '"><th class="dp-dcol">' + TAGE[d.getDay()].slice(0, 2) + " " + fmt(d).slice(0, 6) + (hol ? '<span class="dp-hol">' + esc(hol.label || "Ferien") + "</span>" : "") + "</th>";
+        times.forEach((t, p) => {
+          const key = dk + "|" + p, s = slots[key], x = extra[key];
+          let inner = "", cls = "dp-c";
+          if (s) {
+            const k = K.klassen[s.kid] || {};
+            cls += " has f-" + kColor(s.kid) + (s.skip ? " skip" : "") + (s.hol ? " hol" : "");
+            inner = '<b class="dp-k">' + esc(k.name || "Klasse") + "</b>" + (s.hol || s.skip || s.unit || s.ins != null ? '<span class="dp-u">' + esc(unitText(s)) + "</span>" : "") + (s.note ? '<span class="dp-n">' + esc(s.note) + "</span>" : "");
+          } else if (x && (x.k || x.t)) {
+            const k = x.k && K.klassen[x.k];
+            cls += " has once" + (k ? " f-" + kColor(x.k) : "");
+            inner = '<b class="dp-k">' + esc(k ? k.name || "Klasse" : x.t) + '</b><span class="dp-u">einmalig</span>' + (x.note ? '<span class="dp-n">' + esc(x.note) + "</span>" : "");
+          } else inner = '<span class="dp-plus">+</span>';
+          h += '<td><button type="button" class="' + cls + '" data-dp="' + key + '">' + inner + "</button></td>";
+        });
+        h += "</tr>";
+      }
+    }
+    return h + '</tbody></table><div class="dp-more"><button type="button" class="btn ghost" data-dp-more>+ 4 Wochen mehr</button></div></div>';
+  }
+  function dpAfter() {
+    const w = $("#dp-wrap"); if (!w) return;
+    if (!K.dpScrolled) { K.dpScrolled = true; const r = w.querySelector(".dp-row.is-today") || w.querySelector(".dp-row:not(.past)"); if (r) { const th = w.querySelector("thead"); w.scrollTop = Math.max(0, w.scrollTop + r.getBoundingClientRect().top - w.getBoundingClientRect().top - (th ? th.getBoundingClientRect().height : 0) - 30); } }
+    else if (K.dpTop != null) w.scrollTop = K.dpTop;
+    w.addEventListener("scroll", () => { K.dpTop = w.scrollTop; }, { passive: true });
+    try { new ResizeObserver(() => { const hh = Math.round(w.getBoundingClientRect().height); if (hh > 120 && hh !== DPH) { DPH = hh; try { localStorage.setItem("zeitplan-dph", String(hh)); } catch (e) {} } }).observe(w); } catch (e) {}
+  }
+  function dpEdit(key) {
+    const [dk, ps] = key.split("|"), p = +ps, sem = semOf(dk) || curSem(), t = sem.times[p] || ["", ""], d = fromKey(dk);
+    let s = null; for (const kid of activeKids()) { const f = classSchedule(kid).find((x) => x.sk === key); if (f) { s = f; break; } }
+    const ex = spGet().extra[key] || {};
+    const title = TAGE[d.getDay()] + ", " + fmt(d) + " · " + esc(t[0]) + "–" + esc(t[1]);
+    let body;
+    if (s) {
+      const k = K.klassen[s.kid] || {};
+      body = '<p class="msg"><span class="sq f-' + kColor(s.kid) + '"></span> <b>' + esc(k.name || "Klasse") + "</b> laut Stundenplan" + (s.unit ? " · " + esc(unitText(s)) : "") + "</p>" +
+        '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="5" placeholder="z. B. Prüfung zurückgeben, Szene 3 lesen …">' + esc(s.note || "") + "</textarea></label>" +
+        '<label class="dp-chk"><input type="checkbox" id="dp-skip"' + (s.skip ? " checked" : "") + "> Lektion fällt an diesem Tag aus</label>";
+    } else {
+      body = '<p class="msg">Hier ist laut Stundenplan nichts. Sie können für diesen einen Tag etwas eintragen.</p>' +
+        '<label class="field"><span class="lbl">Klasse</span><select id="dp-k"><option value="">– keine Klasse –</option>' + kSorted(false).map(([id, k]) => '<option value="' + id + '"' + (ex.k === id ? " selected" : "") + ">" + esc(k.name || "Klasse") + "</option>").join("") + "</select></label>" +
+        '<label class="field"><span class="lbl">oder eigener Eintrag</span><input type="text" id="dp-t" value="' + esc(ex.t || "") + '" placeholder="z. B. Sitzung, Exkursion"></label>' +
+        '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="4">' + esc(ex.note || "") + "</textarea></label>";
+    }
+    openModal("<h3>" + title + "</h3>" + body + '<div class="actions">' + (!s && (ex.k || ex.t || ex.note) ? '<button type="button" class="btn ghost danger" id="dp-clear">Eintrag löschen</button>' : "") + '<button type="button" class="btn ghost" id="dp-cancel">Abbrechen</button><button type="button" class="btn primary" id="dp-ok">Speichern</button></div>', (root) => {
+      const done = () => { closeModal(); renderK(); render(); };
+      const setExtra = (v) => { const e2 = { ...spGet().extra }; if (v) e2[key] = v; else delete e2[key]; spSet({ extra: e2 }); spSave(0); };
+      root.querySelector("#dp-cancel").onclick = closeModal;
+      const clr = root.querySelector("#dp-clear"); if (clr) clr.onclick = () => { setExtra(null); done(); };
+      root.querySelector("#dp-ok").onclick = () => {
+        const note = root.querySelector("#dp-note").value.trim();
+        if (s) kSlotSet(key, { note, skip: root.querySelector("#dp-skip").checked }, s.kid);
+        else { const kk = root.querySelector("#dp-k").value, tt = root.querySelector("#dp-t").value.trim(); setExtra(kk || tt || note ? { ...(kk ? { k: kk } : {}), ...(tt ? { t: tt } : {}), ...(note ? { note } : {}) } : null); }
+        done();
+      };
+      setTimeout(() => root.querySelector("#dp-note").focus(), 30);
+    });
+  }
 
   // ---------- Darstellung: Stundenplan ----------
   function spHtml() {
@@ -4564,13 +4682,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       $("#bulk-ok").onclick = () => { const ids = order.slice(); closeModal(); copyManyToClass(ids, kid); };
     });
   }
-  function kSlotSet(sk, patch) {
-    const k = K.klassen[K.sel]; if (!k) return;
+  function kSlotSet(sk, patch, kid) {
+    kid = kid || K.sel; const k = K.klassen[kid]; if (!k) return;
     k.slots = { ...(k.slots || {}) };
     const v = { ...(k.slots[sk] || {}), ...patch };
     if (!v.note) delete v.note; if (!v.skip) delete v.skip; if (v.ins == null) delete v.ins; if (v.label == null) delete v.label; if (v.topic == null) delete v.topic; if (!v.kind) delete v.kind;
     if (Object.keys(v).length) k.slots[sk] = v; else delete k.slots[sk];
-    kSave(K.sel);
+    kSave(kid);
   }
 
   // ---------- Darstellung: Klasse ----------
@@ -4578,7 +4696,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (kEl.hidden) return;
     if (kEditing()) { K.pending = true; return; }
     K.pending = false;
-    $("#k-sp").innerHTML = spHtml();
+    $("#k-sp").innerHTML = kViewSeg() + (K.kview === "woche" ? spHtml() : dayPlanHtml());
+    if (K.kview !== "woche") dpAfter();
     const list = kSorted(false), arch = kSorted(true);
     const btn = ([id, k]) => '<button type="button" data-ksel="' + id + '" aria-current="' + (id === K.sel) + '"><span><i class="kdot f-' + kColor(id) + '"></i>' + esc(k.name || "Ohne Namen") + '</span><span class="n">' + esc((CLASS_YEARS[kCur(k)] || {}).label || "") + "</span></button>";
     $("#k-list").innerHTML = (list.length ? list.map(btn).join("") : '<div class="empty">Noch keine Klassen.</div>') +
@@ -4706,6 +4825,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 
   kEl.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.kview) { K.kview = b.dataset.kview; try { localStorage.setItem("zeitplan-kview", K.kview); } catch (err) {} renderK(); return; }
+    if (b.dataset.dp) { dpEdit(b.dataset.dp); return; }
+    if (b.dataset.dpMore != null) { K.dpWeeks += 4; renderK(); return; }
+    if (b.dataset.dpBack != null) { K.dpBack += 2; K.dpTop = 0; renderK(); const w = $("#dp-wrap"); if (w) w.scrollTop = 0; return; }
+    if (b.dataset.dpToday != null) { K.dpBack = 0; K.dpScrolled = false; renderK(); return; }
+    if (b.dataset.dpZoom) { DPZ = Math.max(0.7, Math.min(1.6, +(DPZ + 0.1 * +b.dataset.dpZoom).toFixed(2))); try { localStorage.setItem("zeitplan-dpz", String(DPZ)); } catch (err) {} const w = $("#dp-wrap"); if (w) w.style.setProperty("--dpz", DPZ); return; }
     const k = K.klassen[K.sel];
     if (b.id === "k-add") {
       const id = "c" + Date.now().toString(36);
