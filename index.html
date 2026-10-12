@@ -552,6 +552,44 @@ nav.tabs button[aria-selected="true"], .seg button[aria-pressed="true"] { backgr
 .cal-l.skip { text-decoration: line-through; opacity: 0.6; }
 .cal-dayview { display: none; }
 html.mob .layout { grid-template-columns: minmax(0, 1fr) !important; }
+/* Eingepasste Ansicht (Jahresplan, Termin-Tabelle am Handy): Leisten trotzdem in normaler Grösse */
+html.fit .bar, html.fit .k-vbar { zoom: calc(1 / var(--fitz, 0.33)); flex-wrap: wrap; }
+/* Handy: Reihen und Klassen untereinander, in normaler Grösse */
+html.phone .r-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+html.phone .r-side { position: static; max-height: none; overflow: visible; }
+html.phone #r-list, html.phone #k-list { max-height: 34vh; overflow: auto; }
+html.phone .r-list button { padding: 9px 10px; }
+html.phone .bar { flex-wrap: wrap; gap: 6px; }
+html.phone .bar .seg button, html.phone .k-vbar .seg button, html.phone .r-years button { padding: 8px 12px; }
+html.phone .r-years { flex-wrap: wrap; }
+html.phone .u-search { flex: 1 1 100%; } html.phone .u-search input { width: 100%; }
+html.phone .r-detail { padding: 10px; grid-template-columns: minmax(0, 1fr); }
+html.phone .r-detail > * { min-width: 0; max-width: 100%; }
+html.phone .lessons-head { display: none; }
+html.phone .lesson { grid-template-columns: minmax(0, 1fr); }
+html.phone .lesson .lh { border-right: 0; border-bottom: 1px solid var(--line); grid-template-columns: none; }
+html.phone .ldocs { border-left: 0; border-top: 1px dashed var(--line); }
+html.phone .ldocs:empty { display: none; }
+html.phone .r-top, html.phone .r-tools, html.phone .r-meta, html.phone .r-years-pick, html.phone .chips { flex-wrap: wrap; }
+html.phone .r-title { font-size: 1.15rem; flex-basis: 100%; }
+html.phone .tabs button { padding: 8px 14px; }
+html.phone .k-vbar { flex-wrap: wrap; gap: 8px; }
+.dpm-nav { display: flex; align-items: center; gap: 6px; } .dpm-nav span { font-weight: 600; }
+.dpm { display: grid; gap: 10px; margin: 8px 0 14px; }
+.dpm-day { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; display: grid; gap: 6px; }
+.dpm-day.is-today { border: 2px solid var(--accent); }
+.dpm-day.past { opacity: 0.7; }
+.dpm-day h3 { margin: 0; font-size: 1rem; }
+.dpm-row { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); gap: 10px; align-items: start; text-align: left; border: 0; border-radius: 8px; padding: 8px 10px; font: inherit; color: var(--ink); cursor: pointer; }
+.dpm-row.once { background: var(--bg); border: 1px dashed var(--line); }
+.dpm-row.skip b { text-decoration: line-through; opacity: 0.6; }
+.dpm-row.moved { outline: 1px dashed currentColor; outline-offset: -3px; }
+.dpm-t { font-size: 0.8rem; font-variant-numeric: tabular-nums; line-height: 1.35; opacity: 0.8; }
+.dpm-m { display: grid; gap: 2px; min-width: 0; }
+.dpm-m small { font-size: 0.8em; opacity: 0.75; }
+.dpm-u { font-size: 0.9rem; }
+.dpm-n { font-size: 0.85rem; font-style: italic; opacity: 0.85; }
+.dpm-empty { margin: 0; color: var(--muted); font-size: 0.88rem; }
 html.mob aside.side { position: static; }
 html.mob .side-rz { display: none !important; }
 /* Handy: Woche als Liste untereinander, Monat mit Punkten und Tagesliste darunter */
@@ -722,7 +760,14 @@ html.fit body { touch-action: pan-x pan-y; }
 /* Geteilte Zelle: zwei Einträge in einem Feld */
 .cell .parts { flex: 1; display: flex; min-width: 0; }
 .cell .parts > .inp { min-width: 0; }
-.parts-v > .inp { flex: 1 1 0; }
+.parts-v > .inp, .parts-v > .pw { flex: 1 1 0; }
+.cell .parts > .pw { position: relative; display: flex; min-width: 0; }
+.cell .parts > .pw > .inp { flex: 1; min-width: 0; }
+.parts-v > .pw + .pw { border-left: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
+.parts-h > .pw { flex: 0 0 auto; }
+.parts-h > .pw > .inp { min-height: 25px; padding-block: 4px; }
+.parts-h > .pw + .pw { border-top: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
+.pw.has-time > .inp { padding-bottom: 20px; }
 .parts-v > .inp + .inp { border-left: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
 .parts-h { flex-direction: column; }
 .parts-h > .inp { flex: 0 0 auto; min-height: 25px; padding-block: 4px; }
@@ -1099,6 +1144,10 @@ mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b 
 .bulk-h { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 2px 4px; }
 .bulk-i { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 5px; cursor: pointer; }
 .bulk-i:hover { background: var(--accent-soft); }
+.bulk-line { display: flex; align-items: center; gap: 6px; } .bulk-line .bulk-i { flex: 1; min-width: 0; }
+.bulk-lt { font-size: 0.78rem; white-space: nowrap; }
+.bulk-ls { display: grid; gap: 1px; margin: 0 0 6px 30px; padding: 4px 6px; border-left: 2px solid var(--line); }
+.bulk-l { display: flex; gap: 8px; align-items: center; font-size: 0.86rem; padding: 2px 4px; border-radius: 4px; cursor: pointer; } .bulk-l:hover { background: var(--accent-soft); }
 .bulk-i span:nth-child(2) { flex: 1; }
 .bulk-i .n { font-size: 0.78rem; color: var(--muted); }
 .bulk-i .n.warn { color: var(--danger); }
@@ -1588,8 +1637,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const kb = (n) => n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
 
   const state = { days: {}, nb: { termine: [], unterricht: [] }, view: "kommend", weeks: 6, db: null, assets: null, local: false, cal: { mode: "monat", anchor: null } };
-  try { if (!localStorage.getItem("zeitplan-tview") && Math.min(innerWidth, screen.width || innerWidth) < 900) { state.view = "kalender"; state.cal.mode = "woche"; } } catch (e) {}
-  try { const tv = localStorage.getItem("zeitplan-tview"); if (["kommend", "archiv", "kalender"].includes(tv)) state.view = tv; const cm = localStorage.getItem("zeitplan-calmode"); if (cm === "woche" || cm === "monat") state.cal.mode = cm; } catch (e) {}
+  // Start: am Handy/Tablet immer der Kalender, am Computer immer die Tabelle
+  const SMALL0 = Math.min(innerWidth, screen.width || innerWidth) < 900;
+  try { state.view = SMALL0 ? "kalender" : "kommend"; if (SMALL0 && !localStorage.getItem("zeitplan-calmode")) state.cal.mode = "woche"; const cm = localStorage.getItem("zeitplan-calmode"); if (cm === "woche" || cm === "monat") state.cal.mode = cm; } catch (e) {}
   const dirty = new Set();
   const timers = {};
   let pendingRender = false;
@@ -1606,7 +1656,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (x.from) d[s].from = String(x.from); if (x.to) d[s].to = String(x.to);
         if (x.split === "v" || x.split === "h") {
           d[s].split = x.split; d[s].nparts = Math.max(2, Math.min(4, x.nparts | 0 || 2));
-          for (let n = 2; n <= d[s].nparts; n++) { d[s]["text" + n] = x["text" + n] || ""; if (typeof x["html" + n] === "string") d[s]["html" + n] = x["html" + n]; }
+          for (let n = 2; n <= d[s].nparts; n++) { d[s]["text" + n] = x["text" + n] || ""; if (typeof x["html" + n] === "string") d[s]["html" + n] = x["html" + n]; if (x["from" + n]) d[s]["from" + n] = String(x["from" + n]); if (x["to" + n]) d[s]["to" + n] = String(x["to" + n]); }
           if (Array.isArray(x.pcolors)) d[s].pcolors = x.pcolors.slice(0, 4);
         }
       }
@@ -1665,9 +1715,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (clean[s].html == null) delete clean[s].html;
       if (clean[s].split) {
         const np = clean[s].nparts || 2;
-        for (let n = 2; n <= 4; n++) { if (n > np) { delete clean[s]["text" + n]; delete clean[s]["html" + n]; continue; } clean[s]["text" + n] = (clean[s]["text" + n] || "").replace(/\s+$/, ""); if (clean[s]["html" + n] == null) delete clean[s]["html" + n]; }
+        for (let n = 2; n <= 4; n++) { if (n > np) { delete clean[s]["text" + n]; delete clean[s]["html" + n]; delete clean[s]["from" + n]; delete clean[s]["to" + n]; continue; } clean[s]["text" + n] = (clean[s]["text" + n] || "").replace(/\s+$/, ""); if (clean[s]["html" + n] == null) delete clean[s]["html" + n]; }
         if (!clean[s].pcolors || !clean[s].pcolors.some(Boolean)) delete clean[s].pcolors;
-      } else { delete clean[s].split; delete clean[s].nparts; delete clean[s].pcolors; for (let n = 2; n <= 4; n++) { delete clean[s]["text" + n]; delete clean[s]["html" + n]; } }
+      } else { delete clean[s].split; delete clean[s].nparts; delete clean[s].pcolors; for (let n = 2; n <= 4; n++) { delete clean[s]["text" + n]; delete clean[s]["html" + n]; delete clean[s]["from" + n]; delete clean[s]["to" + n]; } }
     }
     if (d && !isDefaultW(d.widths)) clean.widths = d.widths.slice();
     if (state.local) { lsSave(); dirty.delete(key); setStatus("Gespeichert (nur in diesem Browser)"); return; }
@@ -1811,7 +1861,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const w = DEFAULT_W.slice(), has = (j) => !slotEmpty(d && d[SPAN_SLOTS[j]]) || seriesOn(key, SPAN_SLOTS[j]).length > 0;
     for (let i = 0; i < 2; i++) {
       if (w[i] <= 0) continue;
-      const sl = SPAN_SLOTS[i], ends = [d && d[sl] && d[sl].to, ...seriesOn(key, sl).map((x) => x.to)].filter(Boolean);
+      const sl = SPAN_SLOTS[i], xs = d && d[sl], ends = [xs && xs.to, xs && xs.to2, xs && xs.to3, xs && xs.to4, ...seriesOn(key, sl).map((x) => x.to)].filter(Boolean);
       if (!ends.length) continue;
       const e = Math.max(...ends.map(endSlot));
       for (let j = i + 1; j <= e; j++) { if (has(j)) break; w[i] += w[j]; w[j] = 0; }
@@ -1841,11 +1891,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const tip = more ? "Gross öffnen (enthält Details" + (x.files && x.files.length ? " und " + x.files.length + " Dokument" + (x.files.length > 1 ? "e" : "") : "") + ")" : "Gross öffnen";
     const band = slot === "morgen" || slot === "nachmittag" ? lessonBand(key, slot) : "";
     const sband = serBand(key, slot);
-    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from ? " has-time" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
+    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
       (x && x.split
-        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => ta(key, slot, label, n + 1, x)).join("") + '</div>'
+        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + '">' + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + "</div>"; }).join("") + '</div>'
         : ta(key, slot, label, 1, x)) +
-      (x && x.from ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
+      (x && x.from && !x.split ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
       (more ? '<span class="dot" aria-hidden="true"></span>' : "") +
       '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + rz + '</div>';
   }
@@ -2190,10 +2240,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     scheduleSave(key, 300);
   }
   // Zelle teilen: die Grösse bleibt gleich, darin entstehen zwei bis vier Einträge mit Linien dazwischen
-  function partsOf(x) { const n = x.split ? x.nparts || 2 : 1, out = []; for (let i = 1; i <= n; i++) out.push({ html: richOf(x, i), color: (x.pcolors || [])[i - 1] || "" }); return out; }
+  function partsOf(x) { const n = x.split ? x.nparts || 2 : 1, out = []; for (let i = 1; i <= n; i++) out.push({ html: richOf(x, i), color: (x.pcolors || [])[i - 1] || "", from: x["from" + sfx(i)] || "", to: x["to" + sfx(i)] || "" }); return out; }
   function putParts(x, parts) {
-    for (let i = 1; i <= 4; i++) { delete x["html" + sfx(i)]; delete x["text" + sfx(i)]; }
-    parts.forEach((p, i) => { x["html" + sfx(i + 1)] = p.html; x["text" + sfx(i + 1)] = htmlToPlain(p.html); });
+    for (let i = 1; i <= 4; i++) { delete x["html" + sfx(i)]; delete x["text" + sfx(i)]; delete x["from" + sfx(i)]; delete x["to" + sfx(i)]; }
+    parts.forEach((p, i) => { x["html" + sfx(i + 1)] = p.html; x["text" + sfx(i + 1)] = htmlToPlain(p.html); if (p.from) { x["from" + sfx(i + 1)] = p.from; if (p.to) x["to" + sfx(i + 1)] = p.to; } });
     if (parts.length > 1) { x.nparts = parts.length; x.pcolors = parts.map((p) => p.color || ""); } else { delete x.split; delete x.nparts; delete x.pcolors; }
   }
   function afterSplit(key, slot, focusPart) {
@@ -2206,20 +2256,21 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   function setSplit(key, slot, mode) {
     const x = slotOf(key, slot);
     if (mode) { const parts = partsOf(x); x.split = mode; if (parts.length < 2) parts.push({ html: "", color: "" }); putParts(x, parts); afterSplit(key, slot, 2); return; }
-    // Teilung aufheben: nichts verlieren, alle Teile untereinander in ein Feld
-    const html = partsOf(x).map((p) => p.html).filter((h) => htmlToPlain(h).trim()).join("<br>");
-    putParts(x, [{ html, color: "" }]);
+    // Teilung aufheben: nichts verlieren, alle Teile untereinander in ein Feld (erste Zeit bleibt)
+    const ps = partsOf(x), html = ps.map((p) => p.html).filter((h) => htmlToPlain(h).trim()).join("<br>"), tp = ps.find((p) => p.from) || {};
+    putParts(x, [{ html, color: "", from: tp.from || "", to: tp.to || "" }]);
     afterSplit(key, slot, 1);
   }
   function splitPart(key, slot, part) {
     const x = slotOf(key, slot), parts = partsOf(x); if (parts.length >= 4) return;
-    parts.splice(part, 0, { html: "", color: parts[part - 1] ? parts[part - 1].color : "" });
+    parts.splice(part, 0, { html: "", color: parts[part - 1] ? parts[part - 1].color : "", from: "", to: "" });
     putParts(x, parts); afterSplit(key, slot, part + 1);
   }
   function removePart(key, slot, part) {
     const x = slotOf(key, slot), parts = partsOf(x); if (parts.length < 2) return;
     const [gone] = parts.splice(part - 1, 1), keep = Math.max(0, part - 2);
     if (htmlToPlain(gone.html).trim()) parts[keep].html = (htmlToPlain(parts[keep].html).trim() ? parts[keep].html + "<br>" : "") + gone.html;
+    if (!parts[keep].from && gone.from) { parts[keep].from = gone.from; parts[keep].to = gone.to; }
     putParts(x, parts); afterSplit(key, slot, keep + 1);
   }
   function setPartColor(key, slot, part, color) {
@@ -2229,7 +2280,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (el) el.className = el.className.replace(/\s?f-\w+/g, "") + (color ? " f-" + color : "");
   }
   list.addEventListener("contextmenu", (e) => {
-    const t = e.target.closest(".inp"); if (!t || document.activeElement !== t) return;
+    const t = e.target.closest(".inp"); if (!t || !t.closest(".cell") || !t.closest(".day")) return;
     e.preventDefault(); closeMenu();
     const cell = t.closest(".cell"), cur = (cell.className.match(/f-(\w+)/) || [])[1] || "";
     const m = document.createElement("div");
@@ -2244,8 +2295,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       (!curSplit ? '<button type="button" role="menuitem" data-split="v">' + ico('<path d="M8 2v12"/>') + "Teilen: nebeneinander</button>" +
         '<button type="button" role="menuitem" data-split="h">' + ico('<path d="M2 8h12"/>') + "Teilen: untereinander</button>"
         : (np < 4 ? '<button type="button" role="menuitem" data-psplit="1">' + ico(curSplit === "v" ? '<path d="M8 2v12"/>' : '<path d="M2 8h12"/>') + "Diesen Teil nochmals teilen</button>" : "") +
-          '<button type="button" role="menuitem" data-pdel="1">' + ico('<path d="M5 5l6 6M11 5l-6 6"/>') + "Diesen Teil entfernen</button>" +
-          '<button type="button" role="menuitem" data-split="">' + ico("") + "Teilung ganz aufheben</button>");
+          (part < np ? '<button type="button" role="menuitem" data-pjoin="1">' + ico(curSplit === "v" ? '<path d="M6 8h4"/>' : '<path d="M8 6v4"/>') + "Mit dem nächsten Teil verbinden</button>" : "") +
+          (part > 1 ? '<button type="button" role="menuitem" data-pdel="1">' + ico('<path d="M6 8h4"/>') + "Mit dem vorherigen Teil verbinden</button>" : "") +
+          '<button type="button" role="menuitem" data-split="">' + ico("") + "Alle Teile verbinden</button>") +
+      (() => { const i = SPAN_SLOTS.indexOf(slot); if (i < 0) return ""; const w = effW(key), dw = (state.days[key] || {}).widths;
+        return (i < 2 && w[i] > 0 && w[i + 1] > 0 && slotEmpty((state.days[key] || {})[SPAN_SLOTS[i + 1]]) ? '<hr><button type="button" role="menuitem" data-wjoin="1">' + ico('<path d="M10 5l3 3-3 3M3 8h10"/>') + "Mit dem Feld rechts verbinden</button>" : "") +
+          (dw && !isDefaultW(dw) ? '<button type="button" role="menuitem" data-wreset="1">' + ico('<path d="M8 2v12"/>') + "Felder wieder trennen</button>" : ""); })();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("button"); if (!b) return;
@@ -2253,6 +2308,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (b.dataset.split !== undefined) setSplit(key, slot, b.dataset.split);
       else if (b.dataset.psplit) splitPart(key, slot, part);
       else if (b.dataset.pdel) removePart(key, slot, part);
+      else if (b.dataset.pjoin) removePart(key, slot, part + 1);
+      else if (b.dataset.wjoin) { const i = SPAN_SLOTS.indexOf(slot), w = effW(key).slice(); w[i] += w[i + 1]; w[i + 1] = 0; state.days[key] = state.days[key] || {}; state.days[key].widths = w; scheduleSave(key, 0); const ae = document.activeElement; if (ae && ae.blur) ae.blur(); render(); }
+      else if (b.dataset.wreset) { if (state.days[key]) delete state.days[key].widths; scheduleSave(key, 0); const ae = document.activeElement; if (ae && ae.blur) ae.blur(); render(); }
       else if (curSplit) setPartColor(key, slot, part, b.dataset.color);
       else setCellColor(cell, b.dataset.color);
     });
@@ -2761,7 +2819,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
         '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div>' +
         notesF + actionsF;
-    } else body = textF + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button></div></div>' : "") + colorF + notesF + docsF + actionsF;
+    } else body = textF + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
+      (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, k) => { const n = k + 2; return '<div class="d-time" data-ptime="' + n + '"><input type="time" class="pf" value="' + esc(x["from" + n] || "") + '" aria-label="Teil ' + n + ' von"><span>bis</span><input type="time" class="pt" value="' + esc(x["to" + n] || "") + '" aria-label="Teil ' + n + ' bis"><button type="button" class="btn ghost pc" title="Zeit entfernen">×</button><span class="msg">(Teil ' + n + ")</span></div>"; }).join("") : "") + '</div>' : "") + colorF + notesF + docsF + actionsF;
     openModal(
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
       (root) => {
@@ -2771,6 +2830,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
           const tf = () => { const a = $("#d-from").value, b2 = $("#d-to").value; if (a) x.from = a; else delete x.from; if (a && b2) x.to = b2; else delete x.to; opt.changed(); };
           $("#d-from").addEventListener("change", tf); $("#d-to").addEventListener("change", tf);
           $("#d-tclr").onclick = () => { $("#d-from").value = ""; $("#d-to").value = ""; tf(); };
+          root.querySelectorAll("[data-ptime]").forEach((row) => {
+            const n = +row.dataset.ptime, f = row.querySelector(".pf"), t = row.querySelector(".pt");
+            const up = () => { const a = f.value, b2 = t.value; if (a) x["from" + n] = a; else delete x["from" + n]; if (a && b2) x["to" + n] = b2; else delete x["to" + n]; opt.changed(); };
+            f.addEventListener("change", up); t.addEventListener("change", up);
+            row.querySelector(".pc").onclick = () => { f.value = ""; t.value = ""; up(); };
+          });
         }
         if (opt.onPrint) $("#d-print").onclick = () => { opt.changed(); opt.onPrint(); };
         const changed = () => opt.changed();
@@ -2990,6 +3055,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Schuljahre: 0 = LZG, 1–4 = Schuljahre, 5 = Anderes / mehrfach möglich
   const U = { reihen: {}, plan: null, loaded: false, view: "jahresplan", year: 1, sel: null, pending: false };
   try { const up = JSON.parse(localStorage.getItem("zeitplan-upos") || "null"); if (up) { if (["jahresplan", "reihen", "vorlagen"].includes(up.view)) U.view = up.view; if (typeof up.year === "number") U.year = up.year; if (up.sel) U.sel = up.sel; } } catch (e) {}
+  // Am Handy beginnt der Unterricht immer mit den Reihen (der Jahresplan bleibt über «Jahresplan» erreichbar)
+  if (Math.min(innerWidth, screen.width || innerWidth) < 700) U.view = "reihen";
   const YEARS = [0, 1, 2, 3, 4, 5];
   const YEAR_SHORT = ["LZG", "1. SJ", "2. SJ", "3. SJ", "4. SJ", "Anderes"];
   const DEFAULT_LABELS = ["LZG-Teil", "1. Schuljahr", "2. Schuljahr", "3. Schuljahr", "4. Schuljahr / Maturajahr", "Anderes oder mehrfach möglich"];
@@ -3324,6 +3391,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function renderU() {
     try { localStorage.setItem("zeitplan-upos", JSON.stringify({ view: U.view, year: U.year, sel: U.sel })); } catch (e) {}
+    if (window.__fit) window.__fit();
     if ($("#view-unterricht").hidden) return;
     if (uEditing()) { U.pending = true; return; }
     U.pending = false;
@@ -3952,7 +4020,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 
       '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label></div>" +
       (r.klasse
-        ? '<div class="k-banner">Kopie von „' + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse." +
+        ? '<div class="k-banner">' + (r.partial ? "Ausgewählte Lektionen aus" : "Kopie von") + " „" + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse." +
           (canFolders() ? (r.kfolder ? '<br>Die Dokumente sind Kopien im Klassenordner (' + esc(relPath(r.folder)) + '). Die Originale im Unterricht bleiben unverändert. Ein bearbeitetes Dokument können Sie beim Ansehen mit «Als Original übernehmen» zurück in den Unterricht geben.'
             : '<br><b>Achtung:</b> Die Dokumente dieser Kopie sind noch die Originale aus dem Unterricht – wenn Sie sie in Word bearbeiten, ändern sich die Originale. <button type="button" class="btn ghost" data-kcopyfiles="1">In den Klassenordner kopieren</button>') : "") + "</div>"
         : '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips" id="r-chips">' + yearChips(r) + '</div><span id="r-homewrap">' + homePick(r) + "</span></div>") +
@@ -4906,8 +4974,30 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   K.dpWeeks = 6; K.dpBack = 0;
   let DPZ = 1, DPH = 560;
   try { DPZ = +localStorage.getItem("zeitplan-dpz") || 1; DPH = +localStorage.getItem("zeitplan-dph") || 560; } catch (e) {}
+  const isPhone = () => document.documentElement.classList.contains("phone");
+  K.dpWk = 0;
+  // Handy: aktuelle Woche als Liste, Tag für Tag, gross und gut antippbar
+  function dayPlanPhoneHtml() {
+    const sem = curSem(), extra = spGet().extra, t0 = today(), tk = keyOf(t0), mon = addDays(t0, -((t0.getDay() + 6) % 7) + 7 * K.dpWk);
+    const all = []; for (const kid of activeKids()) for (const sl of classSchedule(kid)) all.push(sl);
+    let h = '<div class="dpm">';
+    for (let i = 0; i < 5; i++) {
+      const d = addDays(mon, i), dk = keyOf(d), hol = holidayOf(dk, "klassen");
+      const rows = all.filter((x) => x.date === dk).map((x) => ({ x, p: x.p, from: x.from }));
+      for (const [key, x] of Object.entries(extra)) { const [ek, ep] = key.split("|"); if (ek === dk && x && (x.k || x.t) && !rows.some((r) => r.x.at === key)) { const tt = (semOf(dk) || sem).times[+ep] || ["", ""]; rows.push({ e: x, key, p: +ep, from: tt[0], to: tt[1] }); } }
+      rows.sort((a, b) => a.from.localeCompare(b.from) || a.p - b.p);
+      h += '<section class="dpm-day' + (dk === tk ? " is-today" : "") + (dk < tk ? " past" : "") + '"><h3>' + TAGE[d.getDay()] + " " + fmt(d).slice(0, 6) + (hol ? ' <span class="dp-hol">' + esc(hol.label || "Ferien") + "</span>" : "") + "</h3>" +
+        (rows.length ? rows.map((r) => {
+          if (r.e) { const k = r.e.k && K.klassen[r.e.k]; return '<button type="button" class="dpm-row' + (k ? " f-" + kColor(r.e.k) : " once") + '" data-dp="' + r.key + '"><span class="dpm-t">' + esc(r.from) + "<br>" + esc(r.to) + '</span><span class="dpm-m"><span class="xl"><b>' + esc(k ? k.name || "Klasse" : r.e.t) + '</b><small>einmalig</small></span>' + (r.e.note ? '<span class="dpm-n">' + esc(r.e.note) + "</span>" : "") + "</span></button>"; }
+          const x = r.x, k = K.klassen[x.kid] || {};
+          return '<button type="button" class="dpm-row f-' + kColor(x.kid) + (x.skip ? " skip" : "") + (x.hol ? " hol" : "") + (x.moved ? " moved" : "") + '" data-dp="' + x.at + '"><span class="dpm-t">' + esc(x.from) + "<br>" + esc(x.to) + '</span><span class="dpm-m"><span class="xl"><b>' + esc(k.name || "Klasse") + (x.moved ? " ↷" : "") + "</b>" + (x.x ? "<small>" + esc(x.x) + "</small>" : "") + "</span>" +
+            (x.dp && !x.hol && !x.skip ? '<span class="dpm-u">' + esc(x.dp) + "</span>" : x.hol || x.skip || x.unit || x.ins != null ? '<span class="dpm-u">' + esc(unitText(x)) + "</span>" : "") + (x.note ? '<span class="dpm-n">' + esc(x.note) + "</span>" : "") + "</span></button>";
+        }).join("") : '<p class="dpm-empty">' + (hol ? "" : "Keine Lektionen") + "</p>") + "</section>";
+    }
+    return h + "</div>";
+  }
   const kViewSeg = () => '<div class="k-vbar"><div class="seg" role="group" aria-label="Ansicht"><button type="button" data-kview="tag" aria-pressed="' + (K.kview !== "woche") + '">Tagesplan</button><button type="button" data-kview="woche" aria-pressed="' + (K.kview === "woche") + '">Wochenstundenplan</button></div>' +
-    (K.kview === "woche" ? "" : '<div class="dp-tools"><button type="button" class="btn ghost" data-dp-back title="Frühere Wochen zeigen">↑ Früher</button><button type="button" class="btn ghost" data-dp-today>Heute</button><span class="dp-zoom"><button type="button" class="btn ghost" data-dp-zoom="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" data-dp-zoom="1" title="Grösser">A+</button></span></div>') + "</div>";
+    (K.kview === "woche" ? "" : isPhone() ? (() => { const mon = addDays(today(), -((today().getDay() + 6) % 7) + 7 * K.dpWk); return '<div class="dp-tools dpm-nav"><button type="button" class="btn ghost" data-dpw="-1" aria-label="Woche zurück">‹</button><span>KW ' + isoWeek(mon) + " · " + fmt(mon).slice(0, 6) + "–" + fmt(addDays(mon, 4)).slice(0, 6) + '</span><button type="button" class="btn ghost" data-dpw="1" aria-label="Woche weiter">›</button>' + (K.dpWk ? '<button type="button" class="btn ghost" data-dpw="0">Heute</button>' : "") + "</div>"; })() : '<div class="dp-tools"><button type="button" class="btn ghost" data-dp-back title="Frühere Wochen zeigen">↑ Früher</button><button type="button" class="btn ghost" data-dp-today>Heute</button><span class="dp-zoom"><button type="button" class="btn ghost" data-dp-zoom="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" data-dp-zoom="1" title="Grösser">A+</button></span></div>') + "</div>";
   function dayPlanHtml() {
     const sem = curSem(), times = sem.times, slots = {}, extra = spGet().extra;
     for (const kid of activeKids()) for (const s of classSchedule(kid)) if (!slots[s.at]) slots[s.at] = s;
@@ -5573,22 +5663,54 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const homeY = (r) => (typeof r.home === "number" && yearsOf(r).includes(r.home) ? r.home : Math.min(...yearsOf(r)));
     const groups = YEARS.map((y) => [y, byYear(y).filter(([, r]) => homeY(r) === y)]).filter(([, rs]) => rs.length);
     groups.sort((a, b) => ((b[0] === uy) - (a[0] === uy)) || a[0] - b[0]);
-    openModal('<h3>Reihen für ' + esc(k.name || "Klasse") + " · " + esc((CLASS_YEARS[cy] || {}).label || "") + '</h3><p class="msg">Wählen Sie eine oder mehrere Reihen. Jede wird als eigene Kopie hinzugefügt, in der angeklickten Reihenfolge.</p>' +
+    openModal('<h3>Reihen für ' + esc(k.name || "Klasse") + " · " + esc((CLASS_YEARS[cy] || {}).label || "") + '</h3><p class="msg">Wählen Sie eine oder mehrere Reihen. Jede wird als eigene Kopie hinzugefügt, in der angeklickten Reihenfolge. Mit «Lektionen wählen …» übernehmen Sie nur einzelne Lektionen einer Reihe.</p>' +
       '<div class="bulk">' + groups.map(([y, rs]) => '<div class="bulk-g"><div class="bulk-h">' + YEAR_SHORT[y] + (y === uy ? " · passt zum Schuljahr der Klasse" : "") + "</div>" +
-        rs.map(([id, r]) => '<label class="bulk-i"><input type="checkbox" value="' + id + '"><span>' + esc(r.title || "Ohne Titel") + "</span>" + (r.lektionen ? '<span class="n">' + r.lektionen + " L</span>" : "") + (have.has(id) ? '<span class="n">schon dabei</span>' : "") + (earlier(id).length ? '<span class="n warn">schon in ' + esc(earlier(id).join(", ")) + "</span>" : "") + "</label>").join("") + "</div>").join("") + "</div>" +
+        rs.map(([id, r]) => '<div class="bulk-r" data-brow="' + id + '"><div class="bulk-line"><label class="bulk-i"><input type="checkbox" value="' + id + '"><span>' + esc(r.title || "Ohne Titel") + "</span>" + (r.lektionen ? '<span class="n">' + r.lektionen + " L</span>" : "") + (have.has(id) ? '<span class="n">schon dabei</span>' : "") + (earlier(id).length ? '<span class="n warn">schon in ' + esc(earlier(id).join(", ")) + "</span>" : "") + "</label>" +
+          (blocksOf(r).length + (r.lnItems || []).length > 1 ? '<button type="button" class="linkbtn bulk-lt" data-blt="' + id + '" title="Nur einzelne Lektionen dieser Reihe übernehmen">Lektionen wählen …</button>' : "") + "</div></div>").join("") + "</div>").join("") + "</div>" +
       '<p class="msg warn" id="bulk-warn" hidden></p>' +
       (canFolders() ? '<label class="dp-chk bulk-files"><input type="checkbox" id="bulk-files" checked> Ordner und Dokumente in den Klassenordner kopieren <small>(' + esc(k.folder ? relPath(k.folder) : "Klassen › " + (k.name || "Klasse")) + " › Name der Reihe). Änderungen dort betreffen nur diese Klasse.</small></label>" : "") +
       '<div class="actions"><button class="btn" type="button" id="bulk-cnl">Abbrechen</button><div class="right"><button class="btn primary" type="button" id="bulk-ok" disabled>Hinzufügen</button></div></div>', (root) => {
-      const order = [];
+      const order = [], part = {}; // part[rid] = { b: Set(Blockanfänge), l: Set(LN/Materialsammlung) } – nur einzelne Lektionen
+      const lessonList = (rid) => {
+        const r = U.reihen[rid], bl = blocksOf(r), items = r.lnItems || [];
+        const at = (m) => (m.after == null ? 1e9 : m.after === -1 ? -1 : ((bl.find(([a, sp]) => m.after >= a && m.after < a + sp) || [1e9])[0]));
+        const rows = [];
+        items.forEach((m, k) => { if (m && m.mat && at(m) === -1) rows.push([-1, "l", k]); });
+        bl.forEach(([i, sp]) => { rows.push([i, "b", i, sp]); items.forEach((m, k) => { if (m && m.mat && at(m) === i) rows.push([i, "l", k]); }); });
+        items.forEach((m, k) => { if (m && (!m.mat || at(m) === 1e9)) rows.push([1e9, "l", k]); });
+        return '<div class="bulk-ls">' + rows.map(([, t, a, sp]) => {
+          const lab = t === "b" ? lname(r, a, sp) + (phaseOf(r, a) ? " · " + phaseOf(r, a) : "") : (items[a].mat ? "Materialsammlung" : "Leistungsnachweis") + (items[a].name ? ": " + items[a].name : "");
+          return '<label class="bulk-l"><input type="checkbox" data-bl="' + rid + "|" + t + "|" + a + '"><span>' + esc(lab) + "</span></label>"; }).join("") + "</div>";
+      };
+      root.querySelector(".bulk").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-blt]"); if (!b) return;
+        const row = b.closest(".bulk-r"), ex = row.querySelector(".bulk-ls");
+        if (ex) { ex.remove(); b.textContent = "Lektionen wählen …"; return; }
+        row.insertAdjacentHTML("beforeend", lessonList(b.dataset.blt)); b.textContent = "Lektionen ▴";
+        const p = part[b.dataset.blt]; if (p) row.querySelectorAll("[data-bl]").forEach((c) => { const [, t, a] = c.dataset.bl.split("|"); c.checked = (t === "b" ? p.b : p.l).has(+a); });
+      });
       root.querySelector(".bulk").addEventListener("change", (e) => {
+        if (e.target.dataset.bl) {
+          const [rid, t, a] = e.target.dataset.bl.split("|"), p = part[rid] = part[rid] || { b: new Set(), l: new Set() };
+          (t === "b" ? p.b : p.l)[e.target.checked ? "add" : "delete"](+a);
+          const whole = e.target.closest(".bulk-r").querySelector('input[value="' + rid + '"]'), any = p.b.size + p.l.size > 0;
+          if (whole.checked) whole.checked = false;
+          if (any && !order.includes(rid)) order.push(rid); if (!any) { delete part[rid]; order.splice(order.indexOf(rid), 1); }
+          upd(); return;
+        }
         const v = e.target.value; if (!v) return;
-        if (e.target.checked) order.push(v); else order.splice(order.indexOf(v), 1);
+        if (e.target.checked) { if (!order.includes(v)) order.push(v); delete part[v]; e.target.closest(".bulk-r").querySelectorAll("[data-bl]").forEach((c) => { c.checked = false; }); }
+        else order.splice(order.indexOf(v), 1);
+        upd();
+      });
+      function upd() {
         const dup = order.map((rid) => { const r = U.reihen[rid] || {}, e = earlier(rid); return have.has(rid) ? "«" + (r.title || "Reihe") + "» ist in diesem Jahr schon dabei" : e.length ? "«" + (r.title || "Reihe") + "» hat diese Klasse bereits in " + e.join(", ") + " gemacht" : ""; }).filter(Boolean);
         const w = $("#bulk-warn"); w.hidden = !dup.length; w.textContent = dup.length ? "Hinweis: " + dup.join("; ") + ". Sie können sie trotzdem hinzufügen." : "";
-        const ok = $("#bulk-ok"); ok.disabled = !order.length; ok.textContent = order.length ? order.length + " Reihe" + (order.length > 1 ? "n" : "") + " hinzufügen" : "Hinzufügen";
-      });
+        const nl = Object.values(part).reduce((s2, p) => s2 + p.b.size + p.l.size, 0), nw = order.filter((x) => !part[x]).length;
+        const ok = $("#bulk-ok"); ok.disabled = !order.length; ok.textContent = !order.length ? "Hinzufügen" : [nw ? nw + " Reihe" + (nw > 1 ? "n" : "") : "", nl ? nl + " einzelne Lektion" + (nl > 1 ? "en" : "") : ""].filter(Boolean).join(" und ") + " hinzufügen";
+      }
       $("#bulk-cnl").onclick = closeModal;
-      $("#bulk-ok").onclick = () => { const ids = order.slice(), wf = !!($("#bulk-files") || {}).checked; closeModal(); copyManyToClass(ids, kid, wf); };
+      $("#bulk-ok").onclick = () => { const ids = order.slice(), wf = !!($("#bulk-files") || {}).checked, sel = {}; Object.entries(part).forEach(([rid, p]) => { sel[rid] = { b: new Set(p.b), l: new Set(p.l) }; }); closeModal(); copyManyToClass(ids, kid, wf, sel); };
     });
   }
   function kSlotSet(sk, patch, kid) {
@@ -5605,8 +5727,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (kEl.hidden) return;
     if (kEditing()) { K.pending = true; return; }
     K.pending = false;
-    $("#k-sp").innerHTML = kViewSeg() + (K.kview === "woche" ? spHtml() : dayPlanHtml());
-    if (K.kview !== "woche") dpAfter();
+    $("#k-sp").innerHTML = kViewSeg() + (K.kview === "woche" ? spHtml() : isPhone() ? dayPlanPhoneHtml() : dayPlanHtml());
+    if (K.kview !== "woche" && !isPhone()) dpAfter();
     const list = kSorted(false), arch = kSorted(true);
     const btn = ([id, k]) => '<button type="button" data-ksel="' + id + '" aria-current="' + (id === K.sel) + '"><span><i class="kdot f-' + kColor(id) + '"></i>' + esc(k.name || "Ohne Namen") + '</span><span class="n">' + esc((CLASS_YEARS[kCur(k)] || {}).label || "") + "</span></button>";
     $("#k-list").innerHTML = (list.length ? list.map(btn).join("") : '<div class="empty">Noch keine Klassen.</div>') +
@@ -5784,13 +5906,26 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     copyFilesToClass(U.sel, { title: r.title, folder: r.folder }, (a, n) => kStatus("Kopiert Dokumente in den Klassenordner … " + a + "/" + n))
       .then((d) => { kStatus("✓ Dokumente liegen jetzt im Klassenordner: " + relPath(d)); renderK(); }, (err) => { b.disabled = false; kStatus("Kopieren hat nicht geklappt: " + (err.message || err), true); });
   });
-  function copyManyToClass(ids, kid, withFiles) {
+  // Kopie auf ausgewählte Lektionen (und Materialsammlungen/LN) kürzen
+  function trimToSelection(c, sel) {
+    const bl = blocksOf(c), data = blocksData(c), keep = [], map = {}; let pos = 0;
+    bl.forEach(([a, sp], k) => { if (sel.b.has(a)) { keep.push(data[k]); map[a] = pos; pos += sp; } });
+    const newStart = (old) => { if (old == null || old === -1) return old; const blk = bl.find(([a, sp]) => old >= a && old < a + sp); if (!blk) return undefined;
+      if (map[blk[0]] != null) return map[blk[0]]; const prev = bl.filter(([a]) => a < blk[0] && map[a] != null).pop(); return prev ? map[prev[0]] : -1; };
+    writeBlocks(c, keep);
+    c.lessons = (c.lessons || []).slice(0, pos);
+    c.lnItems = (c.lnItems || []).map((m, k) => [m, k]).filter(([m, k]) => m && sel.l.has(k)).map(([m]) => { if (!m.mat || m.after == null) return m; const n = { ...m }, v = newStart(m.after); if (v === undefined) delete n.after; else n.after = v; return n; });
+    if (!c.lnItems.length) delete c.lnItems;
+    c.partial = true;
+  }
+  function copyManyToClass(ids, kid, withFiles, sel) {
     const k = K.klassen[kid]; if (!k) return;
     const cy = kCur(k), made = [];
     let n = 0;
     for (const srcId of ids) {
       const src = U.reihen[srcId]; if (!src) continue;
       const c = normReihe(clone(flattenMaster(src)));
+      if (sel && sel[srcId]) trimToSelection(c, sel[srcId]);
       c.klasse = kid; c.kyear = cy; c.src = srcId; c.srcTitle = src.title || ""; c.copiedAt = keyOf(today());
       c.order = copiesOf(kid).reduce((m, [, r]) => Math.max(m, (r.order ?? 0) + 1), 0);
       const id = "k" + Date.now().toString(36) + (n++);
@@ -5835,6 +5970,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.dataset.kview) { K.kview = b.dataset.kview; try { localStorage.setItem("zeitplan-kview", K.kview); } catch (err) {} renderK(); return; }
     if (b.dataset.dp) { dpEdit(b.dataset.dp); return; }
     if (b.dataset.dpMore != null) { K.dpWeeks += 4; renderK(); return; }
+    if (b.dataset.dpw != null) { K.dpWk = b.dataset.dpw === "0" ? 0 : K.dpWk + +b.dataset.dpw; renderK(); return; }
     if (b.dataset.dpBack != null) { K.dpBack += 2; K.dpTop = 0; renderK(); const w = $("#dp-wrap"); if (w) w.scrollTop = 0; return; }
     if (b.dataset.dpToday != null) { K.dpBack = 0; K.dpScrolled = false; renderK(); return; }
     if (b.dataset.dpZoom) { DPZ = Math.max(0.7, Math.min(1.6, +(DPZ + 0.1 * +b.dataset.dpZoom).toFixed(2))); try { localStorage.setItem("zeitplan-dpz", String(DPZ)); } catch (err) {} const w = $("#dp-wrap"); if (w) w.style.setProperty("--dpz", DPZ); return; }
@@ -6043,9 +6179,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (cx != null) scrollTo((sx + cx) * k - cx, (sy + cy) * k - cy);
     };
     const check = () => {
-      const small = Math.min(innerWidth, screen.width || innerWidth) < 900;
-      const cal = small && !$("#view-termine").hidden && state.view === "kalender";
+      const sw = Math.min(innerWidth, screen.width || innerWidth), small = sw < 900, phone = sw < 700;
+      const tT = !$("#view-termine").hidden, tU = !$("#view-unterricht").hidden, tK = !$("#view-klassen").hidden;
+      const cal = small && ((tT && state.view === "kalender") || (phone && ((tU && U.view !== "jahresplan") || tK)));
       const narrow = small && !cal;
+      root.classList.toggle("phone", phone && cal);
       root.classList.toggle("mob", cal);
       root.classList.toggle("fit", narrow);
       if (!narrow) { root.style.removeProperty("--fitz"); z = 1; return; }
