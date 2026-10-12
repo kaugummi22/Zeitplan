@@ -932,6 +932,12 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-item .bar-mini { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .jp-item .bar-mini > i { display: block; height: 100%; background: var(--c-gruen); background: color-mix(in srgb, var(--accent) 55%, var(--c-gruen)); }
 .jp-add { margin: 0 4px 6px; justify-self: start; }
+.jp-box { display: grid; align-content: start; min-height: 0; }
+.jp-grid.eqh .jp-box { height: var(--jph, 560px); overflow: auto; resize: vertical; min-height: 120px; }
+.jp-grid.eqh .jp-col { align-self: start; }
+.jp-eye { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 0.8rem; cursor: pointer; vertical-align: middle; }
+.jp-eye:hover { border-color: var(--danger); color: var(--danger); }
+.jp-parked .jp-eye:hover { border-color: var(--accent); color: var(--accent); }
 .jp-sec { border-top: 1px solid var(--line); padding: 8px 6px 6px; }
 .jp-sec .lbl, .r-field > .lbl { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 8px 2px; display: block; }
 
@@ -1566,6 +1572,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         <button id="u-reihen" aria-pressed="false">Reihen</button>
         <button id="u-vorlagen" aria-pressed="false">Vorlagen</button>
       </div>
+      <button type="button" class="btn ghost toggle" id="u-eye" aria-pressed="false" title="Ausblenden: bei jeder Reihe erscheint ein Symbol, mit dem Sie sie nach unten zu «ausgeblendet» schieben">⊘ Ausblenden</button>
       <button type="button" class="btn ghost" id="u-show" aria-haspopup="menu" title="Unterpunkte, Mehrfach-Reihen, Fortschritt">Anzeigen ▾</button>
       <button type="button" class="btn ghost toggle u-moved" id="u-subs" aria-pressed="false" title="Unterpunkte aller Reihen aus- oder einklappen">Unterpunkte</button>
       <button type="button" class="btn ghost toggle" id="u-prio" aria-pressed="true">Wichtigkeiten</button>
@@ -3271,14 +3278,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const allOpen = YEARS.every((y) => PARK_OPEN[y]);
-    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
+    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["eqh", "Spalten gleich hoch (scrollbar, unten ziehen)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
     m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-shw]"); if (!b) return;
       const k = b.dataset.shw;
       if (k === "park") { const open = !YEARS.every((y) => PARK_OPEN[y]); YEARS.forEach((y) => { PARK_OPEN[y] = open; }); renderU(); showMenu(btn); return; }
-      if (k === "subs") { UP.subs = !UP.subs; UP.subOpen = {}; } else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else UP.bars = UP.bars === false;
+      if (k === "subs") { UP.subs = !UP.subs; UP.subOpen = {}; } else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else if (k === "eqh") UP.eqh = UP.eqh === false; else UP.bars = UP.bars === false;
       saveUP(); renderU(); showMenu(btn);
     });
     document.body.appendChild(m);
@@ -3335,6 +3342,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (Object.keys(pk).length) r.parked = pk; else delete r.parked;
     saveReihe(id, 0); return true;
   }
+  document.addEventListener("click", (e) => {
+    const ey = e.target.closest && e.target.closest("[data-jpeye]"); if (!ey) return;
+    e.preventDefault(); e.stopPropagation();
+    const id = ey.dataset.jpeye, y = +ey.dataset.y, r = U.reihen[id]; if (!r) return;
+    setParked(id, y, !isParked(r, y)); renderU();
+  }, true);
   (function jpDrag() {
     const box = document.getElementById("jp-main"); if (!box) return;
     let drag = null, justDragged = 0;
@@ -3443,6 +3456,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     $("#u-view-reihen").hidden = U.view !== "reihen";
     $("#u-view-vorlagen").hidden = U.view !== "vorlagen";
     ["#u-prio", "#u-show", "#u-stmenu"].forEach((x) => { $(x).hidden = U.view === "vorlagen"; });
+    { const eb = $("#u-eye"); if (eb) eb.hidden = U.view !== "jahresplan"; }
     $("#u-stmenu").textContent = "Status" + (UP.kind === "samml" ? " · Sammlungen" : UP.kind === "lekt" ? " · Lektionsreihen" : "") + " ▾";
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
@@ -3515,7 +3529,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false)); $("#u-legend").hidden = !UP.prio;
     const hideP = UP.hide || {};
     { const nOff = PRIOS.filter(([v]) => hideP[v]).length; $("#u-legend").textContent = nOff ? "Filter (" + (PRIOS.length - nOff) + " von " + PRIOS.length + ") ▾" : "Filter ▾"; }
-    let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + '">';
+    let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + (UP.eqh !== false ? " eqh" : "") + (UP.eye ? " eye-on" : "") + '" style="--jph:' + JPH + 'px">';
     for (const y of YEARS) {
       const multi = (r) => yearsOf(r).length > 1;
       const vis = byYear(y).filter(([, r]) => !(UP.prio && (UP.hide || {})[prioOf(r)]) && stVisible(r))
@@ -3530,19 +3544,34 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="n">' +
+          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + '</span><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
-      h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
+      h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-box\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
         (UP.prio || !UP.groups ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
-        '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button>' +
+        '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button></div>' +
         (p.wichtig && filled(p.wichtig[y]) ? '<div class="jp-sec"><span class="lbl">Wichtig (alt)</span>' + edHtml('data-plan="wichtig.' + y + '" aria-label="Wichtig ' + YEAR_SHORT[y] + '"', p.wichtig[y], "…") + "</div>" : "") +
         (p.fakultativ && filled(p.fakultativ[y]) ? '<div class="jp-sec"><span class="lbl">Fakultativ (alt)</span>' + edHtml('data-plan="fakultativ.' + y + '" aria-label="Fakultativ ' + YEAR_SHORT[y] + '"', p.fakultativ[y], "…") + "</div>" : "") + "</section>";
     }
     $("#jp-main").innerHTML = h + "</div></div>";
+    const eb = $("#u-eye"); if (eb) eb.setAttribute("aria-pressed", String(!!UP.eye));
+    jpBoxes();
+  }
+  // Gleich hohe Spalten: eine Höhe für alle, unten an einer Spalte ziehen ändert alle
+  let JPH = 560; try { JPH = +localStorage.getItem("zeitplan-jph") || 560; } catch (e) {}
+  function jpBoxes() {
+    const grid = document.querySelector("#jp-main .jp-grid.eqh"); if (!grid) return;
+    const boxes = [...grid.querySelectorAll(".jp-box")]; let busy = false, t = 0;
+    try {
+      const ro = new ResizeObserver((ents) => {
+        if (busy) return;
+        for (const en of ents) { const hh = Math.round(en.target.getBoundingClientRect().height); if (hh > 80 && Math.abs(hh - JPH) > 2) { JPH = hh; busy = true; grid.style.setProperty("--jph", JPH + "px"); boxes.forEach((b) => { if (b !== en.target) b.style.height = ""; }); en.target.style.height = ""; busy = false; clearTimeout(t); t = setTimeout(() => { try { localStorage.setItem("zeitplan-jph", String(JPH)); } catch (err) {} }, 300); break; } }
+      });
+      boxes.forEach((b) => ro.observe(b));
+    } catch (e) {}
   }
   function renderRSide() {
     $("#r-years").innerHTML = YEARS.map((y) => '<button type="button" data-year="' + y + '" aria-pressed="' + (y === U.year) + '">' + YEAR_SHORT[y] + "</button>").join("");
@@ -4753,6 +4782,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.id === "u-bars") { UP.bars = UP.bars === false; saveUP(); renderU(); return; }
     if (b.id === "u-stmenu") { statusMenu(b); return; }
     if (b.id === "u-show") { showMenu(b); return; }
+    if (b.id === "u-eye") { UP.eye = !UP.eye; saveUP(); renderU(); return; }
     if (b.dataset.pfilter) { UP.hide = { ...(UP.hide || {}) }; UP.hide[b.dataset.pfilter] = !UP.hide[b.dataset.pfilter]; saveUP(); renderU(); return; }
     if (b.dataset.rprio && U.reihen[U.sel]) { U.reihen[U.sel].prio = b.dataset.rprio; saveReihe(U.sel, 0); b.parentNode.querySelectorAll("[data-rprio]").forEach((c) => c.setAttribute("aria-pressed", String(c === b))); return; }
     const r0 = U.reihen[U.sel];
