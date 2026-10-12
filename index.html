@@ -768,6 +768,15 @@ html.fit body { touch-action: pan-x pan-y; }
 .parts-h > .pw > .inp { min-height: 25px; padding-block: 4px; }
 .parts-h > .pw + .pw { border-top: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
 .pw.has-time > .inp { padding-bottom: 20px; }
+.pw .pexp { display: none; }
+.cell.is-split > .exp { display: none !important; }
+.cell.editing .pw:focus-within .pexp { display: grid; }
+.cell .tdo { position: absolute; left: 4px; top: 5px; z-index: 2; width: 17px; height: 17px; padding: 0; border: 1.5px solid color-mix(in srgb, var(--ink) 55%, transparent); border-radius: 4px; background: var(--surface); color: var(--surface); font-size: 12px; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.cell .tdo.done { background: var(--accent); border-color: var(--accent); }
+.cell.has-todo > .inp, .pw.has-todo > .inp { padding-left: 26px; }
+.cell.is-done > .inp, .pw.is-done > .inp { text-decoration: line-through; opacity: 0.6; }
+.cal-e.done { text-decoration: line-through; opacity: 0.6; }
+.d-todof { display: flex; gap: 16px; flex-wrap: wrap; }
 .parts-v > .inp + .inp { border-left: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
 .parts-h { flex-direction: column; }
 .parts-h > .inp { flex: 0 0 auto; min-height: 25px; padding-block: 4px; }
@@ -1654,6 +1663,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         d[s] = { text: x.text || "", color: x.color || "", details: x.details || "", files: Array.isArray(x.files) ? x.files : [] };
         if (typeof x.html === "string") d[s].html = x.html;
         if (x.from) d[s].from = String(x.from); if (x.to) d[s].to = String(x.to);
+        for (const k of Object.keys(x)) if (/^(details|notesHtml|files|todo|done)[2-4]$/.test(k) || k === "todo" || k === "done") d[s][k] = x[k];
         if (x.split === "v" || x.split === "h") {
           d[s].split = x.split; d[s].nparts = Math.max(2, Math.min(4, x.nparts | 0 || 2));
           for (let n = 2; n <= d[s].nparts; n++) { d[s]["text" + n] = x["text" + n] || ""; if (typeof x["html" + n] === "string") d[s]["html" + n] = x["html" + n]; if (x["from" + n]) d[s]["from" + n] = String(x["from" + n]); if (x["to" + n]) d[s]["to" + n] = String(x["to" + n]); }
@@ -1678,7 +1688,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const validWidths = (w) => w.every((n) => n >= 0) && Math.abs(w[0] + w[1] + w[2] - 3) < 0.01 && w[0] > 0;
   const isDefaultW = (w) => !w || w.every((n, i) => Math.abs(n - DEFAULT_W[i]) < 0.01);
   const widthsOf = (key) => (state.days[key] && state.days[key].widths) || DEFAULT_W;
-  const slotEmpty = (x) => !x || (!x.text && !x.color && !x.details && !(x.files && x.files.length) && !x.split && !x.from);
+  const slotEmpty = (x) => !x || (!x.text && !x.color && !x.details && !(x.files && x.files.length) && !x.split && !x.from && !x.todo);
   const dayEmpty = (d) => !d || (SLOTS.every(([s]) => slotEmpty(d[s])) && isDefaultW(d.widths));
   function slotOf(key, slot) {
     state.days[key] = state.days[key] || {};
@@ -1715,9 +1725,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       if (clean[s].html == null) delete clean[s].html;
       if (clean[s].split) {
         const np = clean[s].nparts || 2;
-        for (let n = 2; n <= 4; n++) { if (n > np) { delete clean[s]["text" + n]; delete clean[s]["html" + n]; delete clean[s]["from" + n]; delete clean[s]["to" + n]; continue; } clean[s]["text" + n] = (clean[s]["text" + n] || "").replace(/\s+$/, ""); if (clean[s]["html" + n] == null) delete clean[s]["html" + n]; }
+        for (let n = 2; n <= 4; n++) { if (n > np) { ["text", "html", "from", "to", "details", "notesHtml", "files", "todo", "done"].forEach((f) => delete clean[s][f + n]); continue; } clean[s]["text" + n] = (clean[s]["text" + n] || "").replace(/\s+$/, ""); if (clean[s]["html" + n] == null) delete clean[s]["html" + n]; }
         if (!clean[s].pcolors || !clean[s].pcolors.some(Boolean)) delete clean[s].pcolors;
-      } else { delete clean[s].split; delete clean[s].nparts; delete clean[s].pcolors; for (let n = 2; n <= 4; n++) { delete clean[s]["text" + n]; delete clean[s]["html" + n]; delete clean[s]["from" + n]; delete clean[s]["to" + n]; } }
+      } else { delete clean[s].split; delete clean[s].nparts; delete clean[s].pcolors; for (let n = 2; n <= 4; n++) ["text", "html", "from", "to", "details", "notesHtml", "files", "todo", "done"].forEach((f) => delete clean[s][f + n]); }
+      if (!clean[s].todo) { delete clean[s].todo; delete clean[s].done; } if (!clean[s].done) delete clean[s].done;
     }
     if (d && !isDefaultW(d.widths)) clean.widths = d.widths.slice();
     if (state.local) { lsSave(); dirty.delete(key); setStatus("Gespeichert (nur in diesem Browser)"); return; }
@@ -1830,6 +1841,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   const sfx = (part) => (part > 1 ? String(part) : "");
   const richOf = (x, part) => { const h = x["html" + sfx(part)], t = x["text" + sfx(part)]; return h != null ? sanitize(h) : plainToHtml(t); };
   const PART_NAMES = ["", "", " (zweiter Teil)", " (dritter Teil)", " (vierter Teil)"];
+  const todoBox = (x, part) => { const sf = sfx(part); if (!x || !x["todo" + sf]) return ""; const d = !!x["done" + sf]; return '<button type="button" class="tdo' + (d ? " done" : "") + '" data-tdo="' + part + '" title="' + (d ? "Erledigt – klicken, um es wieder zu öffnen" : "Als erledigt abhaken") + '" aria-pressed="' + d + '">' + (d ? "✓" : "") + "</button>"; };
   const ta = (key, slot, label, part, x) => {
     const pc = x && x.split && x.pcolors && x.pcolors[part - 1];
     return '<div class="inp rich' + (pc ? " f-" + pc : "") + '" data-part="' + part + '" tabindex="0" role="textbox" aria-multiline="true" id="t-' + key + '-' + slot + (part > 1 ? "-" + part : "") + '" aria-label="' + label + PART_NAMES[part] + '" title="Doppelklick zum Schreiben">' + (x ? richOf(x, part) : "") + "</div>";
@@ -1891,10 +1903,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const tip = more ? "Gross öffnen (enthält Details" + (x.files && x.files.length ? " und " + x.files.length + " Dokument" + (x.files.length > 1 ? "e" : "") : "") + ")" : "Gross öffnen";
     const band = slot === "morgen" || slot === "nachmittag" ? lessonBand(key, slot) : "";
     const sband = serBand(key, slot);
-    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
+    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + (x && !x.split && x.todo ? " has-todo" + (x.done ? " is-done" : "") : "") + (x && x.split ? " is-split" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
       (x && x.split
-        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + '">' + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + "</div>"; }).join("") + '</div>'
-        : ta(key, slot, label, 1, x)) +
+        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (x["todo" + sfx(n + 1)] ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button></div>'; }).join("") + '</div>'
+        : todoBox(x, 1) + ta(key, slot, label, 1, x)) +
       (x && x.from && !x.split ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
       (more ? '<span class="dot" aria-hidden="true"></span>' : "") +
       '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + rz + '</div>';
@@ -1993,9 +2005,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (ls.length) inner += '<div class="cal-ls">' + ls.map((x) => { const kk = K.klassen[x.kid]; return '<span class="cal-l f-' + kColor(x.kid) + (x.free ? " skip" : "") + '">' + esc(x.from + " " + ((kk && kk.name) || "Klasse")) + "</span>"; }).join("") + "</div>";
       }
       SLOTS.forEach(([s]) => {
-        const x = day[s], txt = slotText(x); if (!txt) return;
-        const col = (x && x.color) || (x && x.pcolors && x.pcolors[0]) || "";
-        inner += '<button type="button" class="cal-e' + (col ? " f-" + col : "") + '" data-copen="' + k + "|" + s + '" title="' + esc(SLOT_SHORT[s] + ": " + txt + (x.from ? " · " + timeTxt(x) : "")) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + (x.from ? " · " + esc(timeTxt(x)) : "") + "</span>" : "") + esc(txt) + "</button>";
+        const x = day[s]; if (!slotText(x)) return;
+        partsOf(x).forEach((pp, i) => {
+          const txt = htmlToPlain(pp.html || "").replace(/\s+/g, " ").trim(); if (!txt && !pp.todo) return;
+          const tt = timeTxt(pp), col = pp.color || "", ck = pp.todo ? (pp.done ? "☑ " : "☐ ") : "";
+          inner += '<button type="button" class="cal-e' + (col ? " f-" + col : "") + (pp.todo && pp.done ? " done" : "") + '" data-copen="' + k + "|" + s + "|" + (i + 1) + '" title="' + esc(SLOT_SHORT[s] + ": " + txt + (tt ? " · " + tt : "")) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + (tt ? " · " + esc(tt) : "") + "</span>" : "") + esc(ck + txt) + "</button>";
+        });
       });
       SLOTS.forEach(([s]) => seriesOn(k, s).forEach((sr) => { inner += '<button type="button" class="cal-e cal-ser' + (sr.color ? " f-" + sr.color : "") + '" data-ser="' + esc(sr.id) + "|" + k + '" title="Regelmässig: ' + esc((sr.text || "Termin") + (sr.from ? " · " + timeTxt(sr) : "")) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + (sr.from ? " · " + esc(timeTxt(sr)) : "") + "</span>" : "") + "↻ " + esc(sr.text || "Termin") + "</button>"; }));
       const empty = !SLOTS.some(([s]) => slotText(day[s]));
@@ -2026,7 +2041,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       renderCal(); return;
     }
     if (b.dataset.calm) { C.mode = b.dataset.calm; try { localStorage.setItem("zeitplan-calmode", C.mode); } catch (err) {} renderCal(); return; }
-    if (b.dataset.copen) { const [k, s] = b.dataset.copen.split("|"); openDetail(k, s); }
+    if (b.dataset.copen) { const [k, s, pn] = b.dataset.copen.split("|"); openDetail(k, s, +pn || 1); }
   });
 
   // Notizen erscheinen bei den Terminen und im Jahresplan (dieselben Notizen)
@@ -2240,10 +2255,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     scheduleSave(key, 300);
   }
   // Zelle teilen: die Grösse bleibt gleich, darin entstehen zwei bis vier Einträge mit Linien dazwischen
-  function partsOf(x) { const n = x.split ? x.nparts || 2 : 1, out = []; for (let i = 1; i <= n; i++) out.push({ html: richOf(x, i), color: (x.pcolors || [])[i - 1] || "", from: x["from" + sfx(i)] || "", to: x["to" + sfx(i)] || "" }); return out; }
+  const PF = ["details", "notesHtml", "files", "todo", "done"]; // weitere Angaben pro Eintrag
+  function partsOf(x) { const n = x.split ? x.nparts || 2 : 1, out = []; for (let i = 1; i <= n; i++) { const p = { html: richOf(x, i), color: (x.split ? (x.pcolors || [])[i - 1] : x.color) || "", from: x["from" + sfx(i)] || "", to: x["to" + sfx(i)] || "" }; PF.forEach((f) => { if (x[f + sfx(i)] != null) p[f] = x[f + sfx(i)]; }); out.push(p); } return out; }
+  const partFilled = (p) => !!(htmlToPlain(p.html || "").trim() || p.from || p.details || (p.files && p.files.length) || p.todo);
   function putParts(x, parts) {
-    for (let i = 1; i <= 4; i++) { delete x["html" + sfx(i)]; delete x["text" + sfx(i)]; delete x["from" + sfx(i)]; delete x["to" + sfx(i)]; }
-    parts.forEach((p, i) => { x["html" + sfx(i + 1)] = p.html; x["text" + sfx(i + 1)] = htmlToPlain(p.html); if (p.from) { x["from" + sfx(i + 1)] = p.from; if (p.to) x["to" + sfx(i + 1)] = p.to; } });
+    for (let i = 1; i <= 4; i++) { delete x["html" + sfx(i)]; delete x["text" + sfx(i)]; delete x["from" + sfx(i)]; delete x["to" + sfx(i)]; PF.forEach((f) => delete x[f + sfx(i)]); }
+    parts.forEach((p, i) => { x["html" + sfx(i + 1)] = p.html; x["text" + sfx(i + 1)] = htmlToPlain(p.html); if (p.from) { x["from" + sfx(i + 1)] = p.from; if (p.to) x["to" + sfx(i + 1)] = p.to; } PF.forEach((f) => { if (p[f] != null && p[f] !== false && !(Array.isArray(p[f]) && !p[f].length) && p[f] !== "") x[f + sfx(i + 1)] = p[f]; }); });
+    if (!x.files) x.files = [];
+    if (parts.length === 1) x.color = parts[0].color || x.color || "";
     if (parts.length > 1) { x.nparts = parts.length; x.pcolors = parts.map((p) => p.color || ""); } else { delete x.split; delete x.nparts; delete x.pcolors; }
   }
   function afterSplit(key, slot, focusPart) {
@@ -2253,13 +2272,22 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const target = document.getElementById("t-" + key + "-" + slot + (focusPart > 1 ? "-" + focusPart : ""));
     if (target) startEdit(target);
   }
+  // Rückfrage, bevor zwei Einträge mit Inhalt zusammengelegt werden – nichts geht verloren, aber man soll es wissen
+  function confirmJoin(n, go) {
+    if (n < 2) { go(); return; }
+    openModal('<h3>Einträge verbinden?</h3><p class="msg warn">Achtung: ' + (n > 2 ? n + " Einträge" : "Beide Einträge") + ' enthalten schon etwas. Beim Verbinden wird der Text untereinander zusammengefügt; Zeit, Farbe und To-do des ersten Eintrags bleiben, die der anderen fallen weg. Details und Dokumente werden zusammengelegt.</p>' +
+      '<div class="actions"><button type="button" class="btn" id="cj-no">Abbrechen</button><div class="right"><button type="button" class="btn primary" id="cj-yes">Trotzdem verbinden</button></div></div>', (root) => {
+      root.querySelector("#cj-no").onclick = closeModal; root.querySelector("#cj-yes").onclick = () => { closeModal(); go(); };
+    });
+  }
+  const mergeInto = (a, b) => { if (htmlToPlain(b.html || "").trim()) a.html = (htmlToPlain(a.html || "").trim() ? a.html + "<br>" : "") + b.html; if (!a.from && b.from) { a.from = b.from; a.to = b.to; }
+    if (b.details) a.details = (a.details ? a.details + "\n" : "") + b.details; if (b.files && b.files.length) a.files = [...(a.files || []), ...b.files]; if (!a.color && b.color) a.color = b.color; if (!a.todo && b.todo) { a.todo = true; a.done = b.done; } return a; };
   function setSplit(key, slot, mode) {
     const x = slotOf(key, slot);
-    if (mode) { const parts = partsOf(x); x.split = mode; if (parts.length < 2) parts.push({ html: "", color: "" }); putParts(x, parts); afterSplit(key, slot, 2); return; }
-    // Teilung aufheben: nichts verlieren, alle Teile untereinander in ein Feld (erste Zeit bleibt)
-    const ps = partsOf(x), html = ps.map((p) => p.html).filter((h) => htmlToPlain(h).trim()).join("<br>"), tp = ps.find((p) => p.from) || {};
-    putParts(x, [{ html, color: "", from: tp.from || "", to: tp.to || "" }]);
-    afterSplit(key, slot, 1);
+    if (mode) { const parts = partsOf(x); x.split = mode; if (parts.length < 2) parts.push({ html: "", color: "", from: "", to: "" }); putParts(x, parts); afterSplit(key, slot, 2); return; }
+    // Teilung aufheben: nichts verlieren, alles in einen Eintrag (vorher nachfragen, wenn mehrere etwas enthalten)
+    const ps = partsOf(x);
+    confirmJoin(ps.filter(partFilled).length, () => { const m = ps.slice(1).reduce((a, b) => mergeInto(a, b), { ...ps[0] }); delete x.split; putParts(x, [m]); afterSplit(key, slot, 1); });
   }
   function splitPart(key, slot, part) {
     const x = slotOf(key, slot), parts = partsOf(x); if (parts.length >= 4) return;
@@ -2268,10 +2296,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function removePart(key, slot, part) {
     const x = slotOf(key, slot), parts = partsOf(x); if (parts.length < 2) return;
-    const [gone] = parts.splice(part - 1, 1), keep = Math.max(0, part - 2);
-    if (htmlToPlain(gone.html).trim()) parts[keep].html = (htmlToPlain(parts[keep].html).trim() ? parts[keep].html + "<br>" : "") + gone.html;
-    if (!parts[keep].from && gone.from) { parts[keep].from = gone.from; parts[keep].to = gone.to; }
-    putParts(x, parts); afterSplit(key, slot, keep + 1);
+    const keep = Math.max(0, part - 2);
+    confirmJoin([parts[keep], parts[part - 1]].filter(partFilled).length, () => { const [gone] = parts.splice(part - 1, 1); mergeInto(parts[keep], gone); if (parts.length < 2) delete x.split; putParts(x, parts); afterSplit(key, slot, keep + 1); });
   }
   function setPartColor(key, slot, part, color) {
     const x = slotOf(key, slot), pc = (x.pcolors || []).slice(); while (pc.length < (x.nparts || 2)) pc.push("");
@@ -2289,15 +2315,17 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const xx = state.days[key] && state.days[key][slot], curSplit = (xx && xx.split) || "", part = +t.dataset.part || 1, np = curSplit ? xx.nparts || 2 : 1;
     const pcur = curSplit ? ((xx.pcolors || [])[part - 1] || "") : cur;
     const ico = (d) => '<svg class="sq" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2"/>' + d + "</svg>";
-    m.innerHTML = (curSplit ? '<div class="cm-title">Farbe dieses Teils</div>' : "") + FARBEN.map(([v, l], i) => (i === 4 ? "<hr>" : "") +
+    const xt = xx || {}, sfp = sfx(curSplit ? part : 1);
+    m.innerHTML = '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button><hr>" +
+      (curSplit ? '<div class="cm-title">Farbe dieses Eintrags</div>' : "") + FARBEN.map(([v, l], i) => (i === 4 ? "<hr>" : "") +
       '<button type="button" role="menuitemradio" aria-checked="' + (v === pcur) + '" data-color="' + v + '"><span class="sq' + (v ? " f-" + v : "") + '"></span>' + l + "</button>").join("") +
       "<hr>" +
       (!curSplit ? '<button type="button" role="menuitem" data-split="v">' + ico('<path d="M8 2v12"/>') + "Teilen: nebeneinander</button>" +
         '<button type="button" role="menuitem" data-split="h">' + ico('<path d="M2 8h12"/>') + "Teilen: untereinander</button>"
-        : (np < 4 ? '<button type="button" role="menuitem" data-psplit="1">' + ico(curSplit === "v" ? '<path d="M8 2v12"/>' : '<path d="M2 8h12"/>') + "Diesen Teil nochmals teilen</button>" : "") +
-          (part < np ? '<button type="button" role="menuitem" data-pjoin="1">' + ico(curSplit === "v" ? '<path d="M6 8h4"/>' : '<path d="M8 6v4"/>') + "Mit dem nächsten Teil verbinden</button>" : "") +
-          (part > 1 ? '<button type="button" role="menuitem" data-pdel="1">' + ico('<path d="M6 8h4"/>') + "Mit dem vorherigen Teil verbinden</button>" : "") +
-          '<button type="button" role="menuitem" data-split="">' + ico("") + "Alle Teile verbinden</button>") +
+        : (np < 4 ? '<button type="button" role="menuitem" data-psplit="1">' + ico(curSplit === "v" ? '<path d="M8 2v12"/>' : '<path d="M2 8h12"/>') + "Diesen Eintrag nochmals teilen</button>" : "") +
+          (part < np ? '<button type="button" role="menuitem" data-pjoin="1">' + ico(curSplit === "v" ? '<path d="M6 8h4"/>' : '<path d="M8 6v4"/>') + (curSplit === "v" ? "Mit dem Eintrag rechts verbinden" : "Mit dem Eintrag darunter verbinden") + "</button>" : "") +
+          (part > 1 ? '<button type="button" role="menuitem" data-pdel="1">' + ico('<path d="M6 8h4"/>') + (curSplit === "v" ? "Mit dem Eintrag links verbinden" : "Mit dem Eintrag darüber verbinden") + "</button>" : "") +
+          '<button type="button" role="menuitem" data-split="">' + ico("") + "Alle Einträge verbinden</button>") +
       (() => { const i = SPAN_SLOTS.indexOf(slot); if (i < 0) return ""; const w = effW(key), dw = (state.days[key] || {}).widths;
         return (i < 2 && w[i] > 0 && w[i + 1] > 0 && slotEmpty((state.days[key] || {})[SPAN_SLOTS[i + 1]]) ? '<hr><button type="button" role="menuitem" data-wjoin="1">' + ico('<path d="M10 5l3 3-3 3M3 8h10"/>') + "Mit dem Feld rechts verbinden</button>" : "") +
           (dw && !isDefaultW(dw) ? '<button type="button" role="menuitem" data-wreset="1">' + ico('<path d="M8 2v12"/>') + "Felder wieder trennen</button>" : ""); })();
@@ -2305,6 +2333,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("button"); if (!b) return;
       closeMenu();
+      if (b.dataset.todo) { const xx2 = slotOf(key, slot), f = "todo" + sfp; if (xx2[f]) { delete xx2[f]; delete xx2["done" + sfp]; } else xx2[f] = true; scheduleSave(key, 0); const ae = document.activeElement; if (ae && ae.blur) ae.blur(); render(); return; }
       if (b.dataset.split !== undefined) setSplit(key, slot, b.dataset.split);
       else if (b.dataset.psplit) splitPart(key, slot, part);
       else if (b.dataset.pdel) removePart(key, slot, part);
@@ -2334,8 +2363,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   list.addEventListener("click", (e) => {
     const tl = e.target.closest(".tl");
     if (tl) { const g = tl.dataset.tgo, c = g.indexOf("|"); setTab("klassen"); goToSlot(g.slice(0, c), g.slice(c + 1)); return; }
+    const td = e.target.closest(".tdo");
+    if (td) { const key = td.closest(".day").dataset.key, slot = td.closest(".cell").dataset.slot, sf = sfx(+td.dataset.tdo), x = slotOf(key, slot); x["done" + sf] = !x["done" + sf]; if (!x["done" + sf]) delete x["done" + sf]; scheduleSave(key, 300); const a = document.activeElement; if (a && a.blur) a.blur(); render(); return; }
     const b = e.target.closest(".exp"); if (!b) return;
-    openDetail(b.closest(".day").dataset.key, b.closest(".cell").dataset.slot);
+    const cell = b.closest(".cell"), pw = b.closest(".pw"), ae = document.activeElement;
+    const part = pw ? +pw.dataset.pw : ae && cell.contains(ae) && ae.dataset.part ? +ae.dataset.part : 1;
+    openDetail(b.closest(".day").dataset.key, cell.dataset.slot, part);
   });
 
   // ---------- Fenster ----------
@@ -2819,13 +2852,16 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         '<div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
         '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div>' +
         notesF + actionsF;
-    } else body = textF + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
+    } else body = textF + (opt.todo ? '<div class="field d-todof"><label class="dp-chk"><input type="checkbox" id="d-todo"' + (x.todo ? " checked" : "") + '> Als To-do (zum Abhaken)</label><label class="dp-chk"><input type="checkbox" id="d-done"' + (x.done ? " checked" : "") + (x.todo ? "" : " disabled") + "> erledigt</label></div>" : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
       (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, k) => { const n = k + 2; return '<div class="d-time" data-ptime="' + n + '"><input type="time" class="pf" value="' + esc(x["from" + n] || "") + '" aria-label="Teil ' + n + ' von"><span>bis</span><input type="time" class="pt" value="' + esc(x["to" + n] || "") + '" aria-label="Teil ' + n + ' bis"><button type="button" class="btn ghost pc" title="Zeit entfernen">×</button><span class="msg">(Teil ' + n + ")</span></div>"; }).join("") : "") + '</div>' : "") + colorF + notesF + docsF + actionsF;
     openModal(
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
       (root) => {
         const tText = $("#d-text"), tDet = $("#d-details");
         if (opt.plan) { root.querySelector(".panel").classList.add("wide"); bindPlan(root, opt.plan, () => opt.changed()); }
+        const tdc = root.querySelector("#d-todo");
+        if (tdc) tdc.addEventListener("change", () => { x.todo = tdc.checked; if (!tdc.checked) { delete x.todo; delete x.done; } const dd = root.querySelector("#d-done"); if (dd) { dd.disabled = !tdc.checked; if (!tdc.checked) dd.checked = false; } opt.changed(); });
+        const tdd = root.querySelector("#d-done"); if (tdd) tdd.addEventListener("change", () => { if (tdd.checked) x.done = true; else delete x.done; opt.changed(); });
         if (opt.time) {
           const tf = () => { const a = $("#d-from").value, b2 = $("#d-to").value; if (a) x.from = a; else delete x.from; if (a && b2) x.to = b2; else delete x.to; opt.changed(); };
           $("#d-from").addEventListener("change", tf); $("#d-to").addEventListener("change", tf);
@@ -2997,14 +3033,19 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       save();
     });
   }
-  function openDetail(key, slot) {
+  function openDetail(key, slot, part) {
     const label = SLOTS.find(([s]) => s === slot)[1];
     const date = fromKey(key);
     const x = slotOf(key, slot);
     dirty.add(key); // Eintrag während des Bearbeitens nicht durch Serverstand ersetzen
+    // Geteiltes Feld: jeder Eintrag öffnet sich wie ein eigenes Feld (eigener Text, eigene Zeit, Farbe, To-do, Details, Dokumente)
+    const pn = x.split ? Math.min(Math.max(1, part || 1), x.nparts || 2) : 1;
+    const v = x.split ? partsOf(x)[pn - 1] : null;
+    const px = v ? { html: v.html, text: htmlToPlain(v.html), color: v.color, from: v.from, to: v.to, details: v.details || "", notesHtml: v.notesHtml, files: (v.files || []).slice(), todo: !!v.todo, done: !!v.done } : x;
+    const back = () => { if (!v) return; const ps = partsOf(x); ps[pn - 1] = { html: px.html != null ? px.html : plainToHtml(px.text || ""), color: px.color || "", from: px.from || "", to: px.to || "", details: px.details || "", notesHtml: px.notesHtml, files: px.files || [], todo: !!px.todo, done: !!px.done }; putParts(x, ps); x.pcolors = ps.map((q) => q.color || ""); };
     openDetailBox({
-      title: TAGE[date.getDay()] + ", " + fmt(date), sub: label, x, time: slot !== "notiz",
-      changed: () => { state.days[key] = state.days[key] || {}; state.days[key][slot] = x; scheduleSave(key, 900); },
+      title: TAGE[date.getDay()] + ", " + fmt(date), sub: label, x: px, time: slot !== "notiz", todo: true,
+      changed: () => { back(); state.days[key] = state.days[key] || {}; state.days[key][slot] = x; scheduleSave(key, 900); },
       onClose: () => { if (timers[key]) flush(key); else dirty.delete(key); render(); },
     });
   }
