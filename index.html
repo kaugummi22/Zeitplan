@@ -648,8 +648,7 @@ html.phone .k-vbar { flex-wrap: wrap; gap: 8px; }
 :is(.lk-page, .lk-slide, #lk-printbox) :is(p, div, li, blockquote) { font-size: calc(1em * var(--fs)); }
 :is(.lk-page, .lk-slide, #lk-printbox) p { margin: 0.35em 0; }
 :is(.lk-page, .lk-slide, #lk-printbox) img { max-width: 100%; border-radius: 6px; }
-:is(.lk-page, .lk-slide, #lk-printbox) hr { border: 0; border-top: 2px solid var(--line); margin: 1.1em 0; }
-.lk-slide hr, #lk-printbox hr { border-top-color: #bbb; }
+:where(.lk-page, .lk-slide, #lk-printbox) hr { border: 0; border-top: 2px solid var(--line); margin: 1.1em 0; }
 :is(.lk-page, .lk-slide, #lk-printbox) .fs-1 { --fs: 0.75; } :is(.lk-page, .lk-slide, #lk-printbox) .fs-2 { --fs: 0.88; } :is(.lk-page, .lk-slide, #lk-printbox) .fs-4 { --fs: 1.2; } :is(.lk-page, .lk-slide, #lk-printbox) .fs-5 { --fs: 1.45; } :is(.lk-page, .lk-slide, #lk-printbox) .fs-6 { --fs: 1.8; } :is(.lk-page, .lk-slide, #lk-printbox) .fs-7 { --fs: 2.3; }
 :is(.lk-page, .lk-slide, #lk-printbox) .lh-1 { line-height: 1.15; } :is(.lk-page, .lk-slide, #lk-printbox) .lh-3 { line-height: 1.9; } :is(.lk-page, .lk-slide, #lk-printbox) .lh-4 { line-height: 2.4; }
 :is(.lk-page, .lk-slide, #lk-printbox) .al-c { text-align: center; } :is(.lk-page, .lk-slide, #lk-printbox) .al-r { text-align: right; } :is(.lk-page, .lk-slide, #lk-printbox) .al-j { text-align: justify; }
@@ -767,6 +766,21 @@ html.lk-proj .lk-page .lk-fig::after { opacity: 0.35; }
 .lk-csel i[data-h="nw"] { left: -10px; top: -10px; cursor: nwse-resize; } .lk-csel i[data-h="ne"] { right: -10px; top: -10px; cursor: nesw-resize; }
 .lk-csel i[data-h="sw"] { left: -10px; bottom: -10px; cursor: nesw-resize; } .lk-csel i[data-h="se"] { right: -10px; bottom: -10px; cursor: nwse-resize; }
 .lk-tb[disabled] { opacity: 0.4; cursor: default; }
+.lk-page hr:not(.lk-step):not(.lk-vis) { border: 0; border-top: 3px solid var(--accent); margin: 1.4em 0; position: relative; overflow: visible; }
+.lk-page hr:not(.lk-step):not(.lk-vis)::after { content: "Abschnitt"; position: absolute; right: 0; top: -0.8em; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); background: var(--surface); padding: 0 6px; }
+.lk-page hr.lk-step { border: 0; border-top: 2px dashed color-mix(in srgb, var(--line) 70%, var(--surface)); margin: 1em 0; position: relative; overflow: visible; }
+.lk-page hr.lk-step::after { content: "Schritt"; position: absolute; right: 0; top: -0.75em; font-size: 0.62rem; color: var(--muted); background: var(--surface); padding: 0 6px; }
+:is(.lk-page, .lk-slide, #lk-printbox) hr.lk-vis { border: 0; border-top: 2px solid color-mix(in srgb, var(--ink) 35%, transparent); width: 30%; margin: 1.2em auto; clear: none; }
+.lk-slide hr.lk-vis, #lk-printbox hr.lk-vis { border-top-color: #9aa3ad; }
+#lk-printbox hr:not(.lk-vis), .lk-slide hr:not(.lk-vis) { display: none; }
+html.lk-presenting .lk-page hr:not(.lk-vis) { cursor: pointer; }
+html.lk-presenting .lk-page > .pr-off { opacity: 0.45; }
+html.lk-presenting .lk-page > .pr-next { opacity: 0.7; }
+html.lk-presenting .lk-page > .pr-on:not(hr) { box-shadow: -14px 0 0 -10px var(--accent); }
+#lk-prbar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 960; display: flex; gap: 6px; align-items: center; background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; box-shadow: 0 8px 26px rgba(0,0,0,0.25); padding: 6px 8px; max-width: calc(100vw - 16px); flex-wrap: wrap; justify-content: center; }
+#lk-prbar .lk-tb { padding: 7px 14px; font-size: 1rem; }
+#lk-prbar .pr-next-btn { background: var(--accent); color: #fff; border-color: var(--accent); }
+.lk-prpos { padding: 0 8px; font-size: 0.9rem; white-space: nowrap; }
 .lk-tb.danger { color: var(--danger, #b3261e); }
 .lk-pick { width: min(1100px, 100%); height: 88vh; grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .lk-pick-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .lk-pick-h h3 { margin: 0; }
@@ -6546,7 +6560,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (n.nodeType !== 1) continue;
         const tag = n.tagName;
         if (tag === "BR") { out += "<br>"; continue; }
-        if (tag === "HR") { out += "<hr>"; continue; }
+        if (tag === "HR") { const hc = n.classList.contains("lk-step") ? "lk-step" : n.classList.contains("lk-vis") ? "lk-vis" : ""; out += hc ? '<hr class="' + hc + '">' : "<hr>"; continue; }
         if (tag === "FIGURE") {
           const okSrc = (i) => i && /^\/_blob\/[0-9a-f]{8,64}$/.test(i.getAttribute("src") || "");
           const imgs = [...n.querySelectorAll("img")], bi = imgs.find((i) => !i.classList.contains("lk-ink")), ii = imgs.find((i) => i.classList.contains("lk-ink"));
@@ -6665,11 +6679,11 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       TB("al", "", "⯇≡", "Linksbündig") + TB("al", "al-c", "≡", "Zentriert") + TB("al", "al-r", "≡⯈", "Rechtsbündig") + SEP +
       TB("bold", "", "<b>F</b>", "Fett") + TB("italic", "", "<i>K</i>", "Kursiv") + TB("underline", "", "<u>U</u>", "Unterstrichen") + POP("col", '<span class="tc-rot">A</span>', "Schriftfarbe und Marker", colPop) + SEP +
       TB("insertUnorderedList", "", "• Liste", "Aufzählung") + TB("insertOrderedList", "", "1. Liste", "Nummerierte Liste") + POP("box", "▭ Kasten", "Farbiger Kasten, z. B. für einen Auftrag", boxPop) +
-      TB("dot", "", "·", "Mittelpunkt einfügen, z. B. «L6 · Die Prozesse»") + TB("hr", "", "― Linie", "Trennlinie: neuer Abschnitt – beim Projizieren beginnt hier eine neue Folie") +
+      TB("dot", "", "·", "Mittelpunkt einfügen, z. B. «L6 · Die Prozesse»") + POP("lines", "― Linien", "Abschnitte, Schritte und Visual Line", TB("hr", "", "<b style=\"color:var(--accent)\">━</b> Abschnitt", "Abschnittslinie: beim Projizieren beginnt hier eine neue Folie (wird nicht gedruckt)") + TB("hr", "lk-step", "<span style=\"color:var(--muted)\">┅</span> Schritt", "Schrittlinie: beim Projizieren erscheint der Teil darunter erst beim Weiterschalten (wird nicht gedruckt)") + TB("hr", "lk-vis", "— Visual Line", "Kurze Linie in der Mitte, um die Seite zu gliedern (wird gedruckt)")) +
       '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
       '<div class="lk-page" id="lk-page" contenteditable="true" data-ph="Schreiben Sie hier die Seite für diese Lektion: Ablauf für die Klasse, Aufträge, Bilder, Links zu Dokumenten …"></div>';
     const pg = $("#lk-page"); pg.innerHTML = lkSanitize((LK.page || {}).html || ""); lkWrapStray(pg); lkBlank();
-    if (LK.histPid !== pid) { LK.histPid = pid; LK.undo = []; LK.redo = []; } LK.cur = lkSanitize(pg.innerHTML); LK.lastType = 0;
+    if (LK.histPid !== pid) { LK.histPid = pid; LK.undo = []; LK.redo = []; if (lkPresenting()) { PR.s = 0; PR.k = 0; setTimeout(() => lkPrRender(true), 50); } } LK.cur = lkSanitize(pg.innerHTML); LK.lastType = 0;
     if (lkPen) { lkPen.bar.remove(); lkPen = null; document.documentElement.classList.remove("lk-pen"); }
     lkOpenHead(); lkUndoBtns();
     try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
@@ -6685,6 +6699,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     }
     if (html === LK.cur && LK.page && LK.page.html === html) { lkUndoBtns(); return; }
     LK.cur = html; lkUndoBtns(); lkPersist(html);
+    if (lkPresenting()) { clearTimeout(PR.timer); PR.timer = setTimeout(() => lkPrRender(false), 400); }
   }
   function lkPersist(html) {
     const pid = LK.pid; LK.page = { ...(LK.page || {}), html, at: new Date().toISOString() };
@@ -6693,26 +6708,120 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function lkAllDocs() { const out = {}; for (const r of Object.values(U.reihen)) { const add = (a) => (a || []).forEach((f) => { if (f && f.id) out[f.id] = f; }); add(r.files); add(r.mainFiles); Object.values(r.meta || {}).forEach((m) => m && add(m.files)); } return out; }
   // Projizieren: «Titel» und Trennlinie beginnen eine neue Folie; Pfeiltasten blättern
+  // ---------- Abschnitte und Schritte: Abschnittslinie = neue Folie, Schrittlinie = nächster Teil erscheint ----------
+  // Rückgabe: secs[s][k] = HTML des k-ten Schritts im Abschnitt s; map: welches Seitenelement zu welchem Abschnitt/Schritt gehört
+  function lkDeck(root, live) {
+    const nodes = [...root.childNodes].filter((n) => n.nodeType === 1 || (n.nodeType === 3 && n.nodeValue.trim()));
+    const isSec = (n) => n.nodeType === 1 && n.tagName === "HR" && !n.classList.contains("lk-step") && !n.classList.contains("lk-vis");
+    const hasSec = nodes.some(isSec);
+    const secs = [], map = []; let cur = [[]], curFig = false;
+    const push = () => { const parts = cur.filter((p, i) => i === 0 || p.length); if (parts.some((p) => p.length)) secs.push(parts); cur = [[]]; curFig = false; };
+    const hasAny = () => cur.some((p) => p.length);
+    for (const n of nodes) {
+      const tag = n.nodeType === 1 ? n.tagName : "#t";
+      if (isSec(n)) { push(); map.push({ el: n, s: secs.length, k: 0, line: true }); continue; }
+      if (tag === "HR" && n.classList.contains("lk-step")) { if (hasAny()) cur.push([]); map.push({ el: n, s: secs.length, k: cur.length - 1, line: true }); continue; }
+      if (!hasSec && ((/^H[12]$/.test(tag) && hasAny()) || (tag === "FIGURE" && curFig))) push();
+      if (tag === "P" && !n.textContent.trim() && !n.querySelector("img") && !hasAny()) { map.push({ el: n, s: secs.length, k: 0 }); continue; }
+      if (tag === "FIGURE") curFig = true;
+      const html = n.nodeType === 1 ? (live ? lkSanitize(n.outerHTML) : n.outerHTML) : esc(n.nodeValue);
+      cur[cur.length - 1].push(html); map.push({ el: n, s: secs.length, k: cur.length - 1 });
+    }
+    push();
+    map.forEach((m) => { if (m.s >= secs.length) m.s = Math.max(0, secs.length - 1); });
+    return { secs: secs.length ? secs : [[['<p class="help">Noch leer.</p>']]], map };
+  }
+  const lkStepHtml = (secs, s, k) => (secs[s] || []).slice(0, k + 1).map((p) => p.join("")).join("");
+  // Folienansicht im selben Fenster (Pfeiltasten: zuerst Schritte, dann Abschnitte)
   function lkPresent() {
-    const html = lkSanitize(($("#lk-page") || {}).innerHTML || ""), tmp = document.createElement("div"); tmp.innerHTML = html;
-    const slides = []; let cur = [];
-    [...tmp.childNodes].forEach((n) => {
-      if (n.nodeType === 1 && n.tagName === "HR") { if (cur.length) { slides.push(cur); cur = []; } return; }
-      if (n.nodeType === 1 && /^H[12]$/.test(n.tagName) && cur.length) { slides.push(cur); cur = []; }
-      if (n.nodeType === 1 && n.tagName === "FIGURE" && cur.some((h) => /^<figure/.test(h))) { slides.push(cur); cur = []; }
-      if (n.nodeType === 1 && n.tagName === "P" && !n.textContent.trim() && !n.querySelector("img") && !cur.length) return;
-      cur.push(n.nodeType === 1 ? n.outerHTML : esc(n.textContent));
-    });
-    if (cur.length) slides.push(cur); if (!slides.length) slides.push(['<p class="help">Noch leer.</p>']);
-    let i = 0;
+    const tmp = document.createElement("div"); tmp.innerHTML = lkSanitize(($("#lk-page") || {}).innerHTML || ""); lkWrapStray(tmp);
+    const { secs } = lkDeck(tmp); let s = 0, k = 0;
     const ov = document.createElement("div"); ov.className = "lk-show"; ov.tabIndex = 0;
-    const draw = () => { ov.innerHTML = '<div class="lk-slide">' + slides[i].join("") + '</div><div class="lk-nav"><button type="button" data-lkn="-1"' + (i ? "" : " disabled") + '>‹</button><span>' + (i + 1) + " / " + slides.length + '</span><button type="button" data-lkn="1"' + (i < slides.length - 1 ? "" : " disabled") + '>›</button><button type="button" data-lkn="x" title="Beenden (Esc)">✕</button></div>'; };
+    const draw = () => { const nk = secs[s].length; ov.innerHTML = '<div class="lk-slide">' + lkStepHtml(secs, s, k) + '</div><div class="lk-nav"><button type="button" data-lkn="-1"' + (s || k ? "" : " disabled") + '>‹</button><span>' + (s + 1) + " / " + secs.length + (nk > 1 ? " · Schritt " + (k + 1) + "/" + nk : "") + '</span><button type="button" data-lkn="1"' + (s < secs.length - 1 || k < nk - 1 ? "" : " disabled") + '>›</button><button type="button" data-lkn="x" title="Beenden (Esc)">✕</button></div>'; };
+    const go = (d) => { if (d > 0) { if (k < secs[s].length - 1) k++; else if (s < secs.length - 1) { s++; k = 0; } } else { if (k > 0) k--; else if (s > 0) { s--; k = secs[s].length - 1; } } draw(); };
     const close = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} ov.remove(); };
-    ov.addEventListener("click", (e) => { const b = e.target.closest("[data-lkn]"); if (b) { if (b.dataset.lkn === "x") close(); else { i = Math.max(0, Math.min(slides.length - 1, i + +b.dataset.lkn)); draw(); } return; } const a = e.target.closest("[data-doc]"); if (a) { const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); } });
-    ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); else if (/Right|Down|PageDown| /.test(e.key)) { if (i < slides.length - 1) { i++; draw(); } e.preventDefault(); } else if (/Left|Up|PageUp/.test(e.key)) { if (i) { i--; draw(); } e.preventDefault(); } });
+    ov.addEventListener("click", (e) => { const b = e.target.closest("[data-lkn]"); if (b) { if (b.dataset.lkn === "x") close(); else go(+b.dataset.lkn); return; } const a = e.target.closest("[data-doc]"); if (a) { const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); } });
+    ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); else if (/Right|Down|PageDown| /.test(e.key)) { go(1); e.preventDefault(); } else if (/Left|Up|PageUp/.test(e.key)) { go(-1); e.preventDefault(); } });
     document.addEventListener("fullscreenchange", function fc() { if (!document.fullscreenElement && document.body.contains(ov)) { ov.remove(); document.removeEventListener("fullscreenchange", fc); } });
     draw(); document.body.appendChild(ov); ov.focus();
     try { ov.requestFullscreen && ov.requestFullscreen().catch(() => {}); } catch (e) {}
+  }
+  // ---------- Beamer-Fenster: Sie sehen die ganze Seite, der Beamer zeigt Abschnitt für Abschnitt ----------
+  const PR = { win: null, s: 0, k: 0, black: false, deck: null, timer: 0, poll: 0 };
+  const lkPresenting = () => !!(PR.win && !PR.win.closed);
+  function lkPrDeck() { const pg = $("#lk-page"); if (!pg) return null; PR.deck = lkDeck(pg, true); const n = PR.deck.secs.length; if (PR.s >= n) { PR.s = n - 1; PR.k = 0; } if (PR.k >= PR.deck.secs[PR.s].length) PR.k = PR.deck.secs[PR.s].length - 1; return PR.deck; }
+  async function lkPrRender(scroll) {
+    if (!lkPresenting()) { lkPrStop(); return; }
+    const d = lkPrDeck(); if (!d) return;
+    // Seite (Ihre Ansicht): aktuellen Abschnitt markieren
+    d.map.forEach((m) => { if (m.el.nodeType !== 1 || m.line) return; m.el.classList.remove("pr-on", "pr-next", "pr-off"); m.el.classList.add(m.s !== PR.s ? "pr-off" : m.k <= PR.k ? "pr-on" : "pr-next"); });
+    if (scroll) { const first = d.map.find((m) => m.s === PR.s && m.k === PR.k && m.el.nodeType === 1 && !m.line) || d.map.find((m) => m.s === PR.s && m.el.nodeType === 1); if (first) first.el.scrollIntoView({ block: "center", behavior: "smooth" }); }
+    lkPrBar();
+    // Beamer
+    const w = PR.win, st = w.document.getElementById("st"); if (!st) return;
+    let html = PR.black ? "" : lkStepHtml(d.secs, PR.s, PR.k);
+    const srcs = [...new Set((html.match(/\/_blob\/[0-9a-f]{8,64}/g) || []))];
+    for (const src of srcs) { const im = await lkLoadImg(src); if (im) html = html.split('src="' + src + '"').join('src="' + im.src + '"'); }
+    st.innerHTML = html; w.document.body.classList.toggle("black", PR.black);
+    // passend machen: Schrift verkleinern, bis alles Platz hat
+    let fs = 1; st.style.fontSize = ""; await new Promise((r) => w.requestAnimationFrame(() => r()));
+    const imgs = [...st.querySelectorAll("img")]; await Promise.all(imgs.map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; }))));
+    while (st.scrollHeight > st.clientHeight + 2 && fs > 0.45) { fs -= 0.06; st.style.fontSize = "calc(clamp(20px, 2.6vw, 40px) * " + fs + ")"; }
+  }
+  function lkPrBar() {
+    let bar = $("#lk-prbar");
+    if (!lkPresenting()) { if (bar) bar.remove(); document.documentElement.classList.remove("lk-presenting"); return; }
+    document.documentElement.classList.add("lk-presenting");
+    if (!bar) { bar = document.createElement("div"); bar.id = "lk-prbar"; document.getElementById("view-lektion").appendChild(bar); }
+    const d = PR.deck, n = d.secs.length, nk = d.secs[PR.s].length;
+    bar.innerHTML = '<button type="button" class="lk-tb" data-pr="-1" title="Zurück (Bild↑ / ←)">◀</button><span class="lk-prpos"><b>Abschnitt ' + (PR.s + 1) + " / " + n + "</b>" + (nk > 1 ? " · Schritt " + (PR.k + 1) + " / " + nk : "") + '</span><button type="button" class="lk-tb pr-next-btn" data-pr="1" title="Weiter (Bild↓ / → / Leertaste)">▶</button>' +
+      '<button type="button" class="lk-tb' + (PR.black ? " on" : "") + '" data-pr="black" title="Beamer kurz leer (Taste B)">⬛ Leer</button><button type="button" class="lk-tb" data-pr="stop" title="Beamer-Fenster schliessen">✕ Beamer</button>';
+  }
+  function lkPrGo(d) {
+    if (!PR.deck) lkPrDeck(); const secs = PR.deck.secs; const s0 = PR.s;
+    if (d > 0) { if (PR.k < secs[PR.s].length - 1) PR.k++; else if (PR.s < secs.length - 1) { PR.s++; PR.k = 0; } }
+    else { if (PR.k > 0) PR.k--; else if (PR.s > 0) { PR.s--; PR.k = secs[PR.s].length - 1; } }
+    lkPrRender(PR.s !== s0 || d > 0);
+  }
+  function lkPrKey(e) {
+    if (!lkPresenting()) return false;
+    const editing = document.activeElement && document.activeElement.id === "lk-page" && e.view === window;
+    if (/^(PageDown|PageUp)$/.test(e.key) || (!editing && /^(ArrowRight|ArrowDown|ArrowLeft|ArrowUp| )$/.test(e.key))) { e.preventDefault(); lkPrGo(/PageDown|Right|Down| /.test(e.key) ? 1 : -1); return true; }
+    if (!editing && /^[bB.]$/.test(e.key)) { e.preventDefault(); PR.black = !PR.black; lkPrRender(false); return true; }
+    return false;
+  }
+  document.addEventListener("keydown", (e) => { if (lkPrKey(e)) e.stopPropagation(); }, true);
+  async function lkPrStart() {
+    if (lkPresenting()) { PR.win.focus(); return; }
+    lkSave();
+    const w = window.open("", "semper-beamer", "popup=yes,width=1280,height=720");
+    if (!w) { lkStat("Das Beamer-Fenster wurde blockiert – bitte Pop-ups für diese Seite erlauben."); return; }
+    const css = [...document.querySelectorAll("style")].map((x) => x.textContent).join("\n");
+    w.document.open();
+    w.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Semper – Beamer</title><style>' + css.replace(/<\/style/gi, "<\\/style") +
+      '\nhtml,body{margin:0;height:100%;background:#fff;color:#111;overflow:hidden} .lk-show.aud{grid-template-rows:1fr} .lk-show.aud .lk-slide{height:100vh;box-sizing:border-box;overflow:hidden} body.black .lk-show{background:#000} body.black #st{visibility:hidden} #fs{position:fixed;right:14px;bottom:14px;z-index:100001;font:600 15px system-ui,sans-serif;padding:10px 16px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;opacity:.9} :fullscreen #fs{display:none} #hint{position:fixed;left:14px;bottom:14px;z-index:100001;font:13px system-ui,sans-serif;color:#666} :fullscreen #hint{display:none}</style></head>' +
+      '<body><div class="lk-show aud"><div class="lk-slide" id="st"></div></div><span id="hint">Dieses Fenster auf den Beamer ziehen und «Vollbild» wählen. Weiterschalten im Hauptfenster.</span><button id="fs" type="button">⛶ Vollbild</button></body></html>');
+    w.document.close();
+    PR.win = w; PR.s = 0; PR.k = 0; PR.black = false;
+    w.document.getElementById("fs").addEventListener("click", () => { try { w.document.documentElement.requestFullscreen(); } catch (e) {} });
+    w.addEventListener("keydown", (e) => { if (lkPrKey(e)) return; if (e.key === "Escape" && w.document.fullscreenElement) return; });
+    // auf den zweiten Bildschirm schieben, wenn der Browser das erlaubt (Chrome/Edge fragen einmal nach)
+    try {
+      if (window.getScreenDetails) {
+        const sd = await window.getScreenDetails(), other = sd.screens.find((x) => x !== sd.currentScreen);
+        if (other) { w.moveTo(other.availLeft, other.availTop); w.resizeTo(other.availWidth, other.availHeight); }
+      }
+    } catch (e) {}
+    clearInterval(PR.poll); PR.poll = setInterval(() => { if (!lkPresenting()) lkPrStop(); }, 1000);
+    if (!document.documentElement.classList.contains("lk-proj")) lkProj(true);
+    lkPrRender(true); lkOpenHead(); window.focus();
+  }
+  function lkPrStop() {
+    clearInterval(PR.poll);
+    if (PR.win && !PR.win.closed) { try { PR.win.close(); } catch (e) {} }
+    PR.win = null; PR.deck = null;
+    document.querySelectorAll("#lk-page .pr-on, #lk-page .pr-next, #lk-page .pr-off").forEach((el) => el.classList.remove("pr-on", "pr-next", "pr-off"));
+    lkPrBar(); lkOpenHead();
   }
   function lkPrint() {
     const pg = $("#lk-page"); if (!pg) return; lkSave();
@@ -6934,7 +7043,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (on === H.classList.contains("lk-proj")) return;
     H.classList.toggle("lk-proj", on); H.classList.remove("lk-tools");
     if (on) { LK.pside = false; LK.pdocs = false; try { H.requestFullscreen && H.requestFullscreen().catch(() => {}); } catch (e) {} }
-    else { lkPenOff(true); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
+    else { lkPenOff(true); lkPrStop(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
     lkLayout(); lkOpenHead();
   }
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.documentElement.classList.contains("lk-proj") && !document.querySelector(".lk-show")) lkProj(false); });
@@ -6962,8 +7071,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const acts = $("#lk-acts"); if (!acts) return;
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
     acts.innerHTML = '<span class="status" id="lk-status"></span>' + (P
-      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
-      : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Titel und Trennlinien beginnen neue Folien)">Folien</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
+      : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
   }
   // ---------- Ausgeben: Word, PDF, Drucken; speichern auf dem Gerät oder in einem OneDrive-Ordner ----------
   const LK_BOXFILL = { gelb: ["FBF0A8", "B89A00"], apricot: ["FBD3B4", "C47A3C"], rost: ["EEBCAB", "B45A40"], rosa: ["F5D0DC", "B0607C"], lila: ["DDD6F0", "7A68B0"], blau: ["C9E3EF", "3F7F9C"], gruen: ["D4E8C4", "5F8A4A"], grau: ["DFE3E8", "7A8594"], weiss: ["FFFFFF", "888888"] };
@@ -7030,7 +7139,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const P = (ppr, inner) => "<w:p>" + (ppr ? "<w:pPr>" + ppr + "</w:pPr>" : "") + inner + "</w:p>";
     async function block(el, boxPr) {
       const tg = el.tagName, bp = boxPr || "";
-      if (tg === "HR") return P('<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="BBBBBB"/></w:pBdr><w:spacing w:before="120" w:after="240"/>', "");
+      if (tg === "HR") return el.classList.contains("lk-vis") ? P('<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="8A949E"/></w:pBdr><w:spacing w:before="160" w:after="280"/><w:ind w:left="3400" w:right="3400"/>', "") : "";
       if (tg === "FIGURE") { const img = el.querySelector("img:not(.lk-ink)"); const m = img && (await lkImgData(el, img)); if (!m) return ""; const fv = lkFigGet(el); m.frac = fv.w / 100; return P('<w:jc w:val="' + (/-l$/.test(fv.pos) ? "left" : /-r$/.test(fv.pos) ? "right" : "center") + '"/><w:spacing w:before="120" w:after="120"/>', drawing(m)); }
       if (/^H[123]$/.test(tg)) { const lv = tg.slice(1); return P('<w:pStyle w:val="Heading' + lv + '"/>' + pPr(el), await runs(el, { b: true, sz: szOf(el, { 1: 36, 2: 30, 3: 25 }[lv]) })); }
       if (tg === "UL" || tg === "OL") {
@@ -7289,7 +7398,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     else if (cmd === "lh") lkSetCls(lkBlocks(), /^lh-\d$/, arg ? "lh-" + arg : "");
     else if (cmd === "al") lkSetCls(lkBlocks(), /^al-[crj]$/, arg);
     else if (cmd === "dot") { const sel = getSelection(), n = sel.anchorNode, o = sel.anchorOffset; const before = n && n.nodeType === 3 ? n.nodeValue.slice(0, o) : ""; document.execCommand("insertText", false, (/\s$/.test(before) || !before ? "" : " ") + "· "); }
-    else if (cmd === "hr") document.execCommand("insertHTML", false, "<hr><p><br></p>");
+    else if (cmd === "hr") { document.execCommand("insertHTML", false, (arg ? '<hr class="' + arg + '">' : "<hr>") + "<p><br></p>"); lkPopsClose(); }
     else if (cmd === "tc") document.execCommand("foreColor", false, LK_TC[arg]);
     else if (cmd === "hl") { if (getSelection().isCollapsed) return; document.execCommand("hiliteColor", false, LK_HL[arg]) || document.execCommand("backColor", false, LK_HL[arg]); }
     else if (cmd === "box" || cmd === "unbox") {
@@ -7309,6 +7418,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   document.getElementById("view-lektion").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); const a = e.target.closest("a[data-doc]");
     if (a) { e.preventDefault(); const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); return; }
+    if (lkPresenting() && e.target.tagName === "HR" && $("#lk-page").contains(e.target) && PR.deck) { const m = PR.deck.map.find((x) => x.el === e.target); if (m) { PR.s = m.s; PR.k = m.k; lkPrRender(true); } return; }
     const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { if (lkFigNoClick) { lkFigNoClick = 0; return; } if (lkFP && lkFP.fig === fg) return; lkInk(fg); return; }
     if (!b) return;
     if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
@@ -7320,6 +7430,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.id === "lk-penclr") { if (lkPen) { lkPen.cv.remove(); lkPen.bar.remove(); lkPen = null; } lkOpenHead(); return; }
     if (b.dataset.z) { LK.pz = Math.max(0.8, Math.min(3, Math.round(((LK.pz || 1.35) + 0.15 * +b.dataset.z) * 100) / 100)); try { localStorage.setItem("zeitplan-lkpz", LK.pz); } catch (e2) {} lkLayout(); return; }
     if (b.id === "lk-slides") { lkSave(); lkPresent(); return; }
+    if (b.id === "lk-beamer") { if (lkPresenting()) lkPrStop(); else lkPrStart(); return; }
+    if (b.dataset.pr) { const v = b.dataset.pr; if (v === "stop") lkPrStop(); else if (v === "black") { PR.black = !PR.black; lkPrRender(false); } else lkPrGo(+v); return; }
     if (b.dataset.lkundo) { lkUndo(+b.dataset.lkundo); return; }
     if (b.dataset.lkpick) { const f = lkAllDocs()[b.dataset.lkpick]; if (f) lkPick(f); return; }
     if (b.dataset.lkk) { LK.kid = b.dataset.lkk; LK.sel = null; lkSaveSel(); renderLK(); return; }
