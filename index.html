@@ -7,6 +7,8 @@
 <link rel="icon" href="favicon.ico">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1f5f8b">
+<meta name="apple-mobile-web-app-title" content="Semper">
+<meta name="application-name" content="Semper">
 <script src="config.js"></script>
 <script>
 /* Zeitplan – Cloud-Version: Anmeldung mit Microsoft, Daten direkt in Ihrem OneDrive (0_Planung › Zeitplan-App).
@@ -120,7 +122,7 @@
       document.head.appendChild(css);
       el = document.createElement("div"); el.id = "zl-gate"; (document.body || document.documentElement).appendChild(el);
     }
-    el.innerHTML = '<div class="b"><h2>Zeitplan</h2><p>' + html + "</p>" + (btn ? '<button type="button">' + btn + "</button>" : "") + "<small>Ihre Daten liegen in Ihrem OneDrive und gehen nur zwischen diesem Gerät und Microsoft hin und her.</small></div>";
+    el.innerHTML = '<div class="b"><h2>Semper</h2><p>' + html + "</p>" + (btn ? '<button type="button">' + btn + "</button>" : "") + "<small>Ihre Daten liegen in Ihrem OneDrive und gehen nur zwischen diesem Gerät und Microsoft hin und her.</small></div>";
     if (btn) el.querySelector("button").onclick = onBtn;
     return el;
   }
@@ -436,6 +438,19 @@
       async exists(path) { return !!(await getMeta(toDrive(path))); },
       // Datei überschreiben (für «Als Original übernehmen»; die alte Fassung wird vorher von der App gesichert)
       async write(path, blob) { const r = await putFile(toDrive(path), blob); if (!r.ok) throw new Error("Speichern in OneDrive: " + r.status); return path; },
+      // PowerPoint/Word von Microsoft in ein PDF umwandeln lassen (für einzelne Folien/Seiten in der Lektionsseite).
+      // src: { path } (Datei im Reihen-Ordner) oder { bytes, name } (Kopie der App, wird kurz in «temp» abgelegt und wieder gelöscht)
+      async toPdf(src) {
+        let id = null, tmp = false;
+        if (src.path) { const m = await getMeta(toDrive(src.path)); if (m) id = m.id; }
+        if (!id) {
+          if (!src.bytes) throw new Error("Datei nicht gefunden");
+          const r = await putFile(BASE + "/temp/" + Date.now().toString(36) + "-" + String(src.name || "datei").replace(/[^\w.\-]+/g, "_"), new Blob([src.bytes]));
+          if (!r.ok) throw new Error("Hochladen: " + r.status); id = (await r.json()).id; tmp = true;
+        }
+        try { const r = await g("/me/drive/items/" + id + "/content?format=pdf"); if (!r.ok) throw new Error("Umwandeln: " + r.status); return await r.blob(); }
+        finally { if (tmp) g("/me/drive/items/" + id, { method: "DELETE" }).catch(() => {}); }
+      },
       // Ordner anlegen (auch mehrere Ebenen); vorhandene bleiben unverändert
       async mkdir(path) { return mkdirDrive(toDrive(path)); },
       // Datei oder ganzen Ordner in OneDrive kopieren (läuft bei Microsoft, nichts wird heruntergeladen).
@@ -454,7 +469,7 @@
 
 try { if (navigator.serviceWorker) navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {}
 </script>
-<title>Zeitplan Katharina</title>
+<title>Semper</title>
 <script>try { document.documentElement.spellcheck = false; document.documentElement.setAttribute("writingsuggestions", "false"); document.documentElement.setAttribute("autocorrect", "off"); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -695,6 +710,55 @@ html.mob .lk-side, html.mob .lk-docs { position: static; max-height: none; }
 html.mob .lk-side .lk-list { max-height: 34vh; overflow: auto; }
 html.mob .lk-rail { writing-mode: horizontal-tb; min-height: 0; padding: 8px 12px; position: static; text-align: left; }
 html.mob .lk-tbar { position: static; }
+.lk-main { position: relative; }
+.lk-fig { position: relative; display: block; width: fit-content; max-width: 100%; margin: 10px auto; }
+.lk-fig img { display: block; max-width: 100%; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); }
+.lk-fig img.lk-ink { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; box-shadow: none; pointer-events: none; border-radius: 0; }
+:is(.lk-page, #lk-printbox) .lk-fig { width: 100%; } :is(.lk-page, #lk-printbox) .lk-fig > img:first-child { width: 100%; }
+:is(.lk-page, #lk-printbox) .lk-fig.sz-3 { width: 75%; } :is(.lk-page, #lk-printbox) .lk-fig.sz-2 { width: 50%; } :is(.lk-page, #lk-printbox) .lk-fig.sz-1 { width: 33%; }
+.lk-page .lk-fig { cursor: pointer; }
+.lk-page .lk-fig::after { content: "✎ Reinschreiben"; position: absolute; right: 8px; top: 8px; background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; opacity: 0.85; }
+html.lk-proj .lk-page .lk-fig::after { content: "✎"; opacity: 0.5; }
+.lk-slide .lk-fig > img:first-child { max-height: 80vh; width: auto; }
+#lk-printbox .lk-fig { break-inside: avoid; }
+.lk-tb.on, .lk-sw.on { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lk-tb.danger { color: var(--danger, #b3261e); }
+.lk-pick { width: min(1100px, 100%); height: 88vh; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.lk-pick-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .lk-pick-h h3 { margin: 0; }
+.lk-pgrid { overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; padding: 4px; align-content: start; }
+.lk-pth { position: relative; border: 2px solid var(--line); border-radius: 8px; padding: 0; background: #fff; cursor: pointer; overflow: hidden; }
+.lk-pth canvas { display: block; width: 100%; height: auto; }
+.lk-pth span { position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 999px; padding: 0 8px; font-size: 0.8rem; }
+.lk-pth.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.lk-pth.on::after { content: "✓"; position: absolute; right: 6px; top: 6px; background: var(--accent); color: #fff; border-radius: 999px; width: 24px; height: 24px; display: grid; place-items: center; font-weight: 700; }
+.lk-pick-f { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lk-inkbar { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.lk-inkbar .lk-sw.ink { border-radius: 999px; }
+.lk-isz { display: inline-flex; gap: 4px; align-items: center; font-size: 0.85rem; color: var(--muted); }
+.lk-inkov { position: fixed; inset: 0; z-index: 2000; background: #2b2f36; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.lk-inkov .lk-inkbar { background: var(--surface); padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.lk-stage { display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; }
+.lk-sbox { position: relative; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+.lk-sbox > img, .lk-sbox > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lk-sbox > canvas { touch-action: none; cursor: crosshair; }
+.lk-itxt { position: absolute; z-index: 3; background: rgba(255,255,255,0.9); border: 1px dashed #888; font-family: system-ui, sans-serif; font-weight: 600; min-width: 140px; padding: 0 3px; line-height: 1.25; resize: both; outline: none; }
+.lk-ihint { color: #c9ced6; text-align: center; font-size: 0.8rem; margin: 4px; }
+.lk-draw { position: absolute; left: 0; top: 0; z-index: 20; touch-action: none; cursor: crosshair; }
+.lk-draw.idle { pointer-events: none; }
+.lk-penbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 950; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); padding: 6px 8px; max-width: calc(100vw - 16px); }
+html.lk-proj #view-lektion { position: fixed; inset: 0; z-index: 900; overflow: auto; background: var(--bg); padding: 8px; --hdr: 0px; }
+html.lk-proj .overlay { z-index: 1000; }
+html.lk-proj #zl-badge { display: none !important; }
+html.lk-proj .lk-head { align-items: center; }
+html.lk-proj .lk-head .lk-meta { display: none; }
+html.lk-proj .lk-head h2 { font-size: 1.05rem; }
+html.lk-proj .lk-acts .btn { padding: 4px 10px; font-size: 0.85rem; }
+html.lk-proj .lk-main { padding: 10px 18px; min-height: calc(100vh - 16px); align-content: start; }
+html.lk-proj:not(.lk-tools) .lk-tbar { display: none; }
+html.lk-proj .lk-page { font-size: calc(1.05rem * var(--pz, 1.35)); }
+html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; max-height: calc(100vh - 16px); }
+.lk-acts .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+
 .dpm-nav { display: flex; align-items: center; gap: 6px; } .dpm-nav span { font-weight: 600; }
 .dpm { display: grid; gap: 10px; margin: 8px 0 14px; }
 .dpm-day { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; display: grid; gap: 6px; }
@@ -1650,7 +1714,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 
 <header class="top" id="hdr">
   <div class="top-inner">
-    <div class="brand"><h1>Zeitplan</h1><span class="today" id="todayLabel"></span></div>
+    <div class="brand"><h1>Semper</h1><span class="today" id="todayLabel"></span></div>
     <div class="top-right">
       <nav class="tabs" role="tablist">
         <button role="tab" aria-selected="true" data-tab="termine">Termine</button>
@@ -6385,6 +6449,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   // Gespeichert in «seiten», Schlüssel: Klasse ~ Reihen-Kopie ~ Lektion. Die Unterrichtsplanung selbst kommt hier nicht hinein.
   const LK = { kid: null, sel: null, page: null, pid: null, t: 0, showPast: false, side: true, docs: true };
   try { const o = JSON.parse(localStorage.getItem("zeitplan-lk") || "null"); if (o) { LK.kid = o.kid; LK.sel = o.sel; if (o.side === false) LK.side = false; if (o.docs === false) LK.docs = false; } } catch (e) {}
+  try { LK.pz = +localStorage.getItem("zeitplan-lkpz") || 1.35; } catch (e) { LK.pz = 1.35; }
   const lkSaveSel = () => { try { localStorage.setItem("zeitplan-lk", JSON.stringify({ kid: LK.kid, sel: LK.sel, side: LK.side, docs: LK.docs })); } catch (e) {} };
   const lkStat = (t) => { const el = $("#lk-status"); if (el) el.textContent = t; };
   const LK_BOX = ["gelb", "apricot", "rost", "rosa", "lila", "blau", "gruen", "grau", "weiss"];
@@ -6400,7 +6465,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     return out;
   }
   // Nur erlaubte Formatierungen bleiben erhalten (Klassen statt freier Stile)
-  const LK_BLK = /^(H1|H2|H3|P|DIV|UL|OL|BLOCKQUOTE|HR)$/;
+  const LK_BLK = /^(H1|H2|H3|P|DIV|UL|OL|BLOCKQUOTE|HR|FIGURE)$/;
   function lkSanitize(html) {
     const tpl = document.createElement("template"); tpl.innerHTML = html || ""; let out = "";
     const ok = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "div", UL: "ul", OL: "ol", LI: "li", B: "b", STRONG: "b", I: "i", EM: "i", U: "u", BLOCKQUOTE: "blockquote" };
@@ -6419,6 +6484,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         const tag = n.tagName;
         if (tag === "BR") { out += "<br>"; continue; }
         if (tag === "HR") { out += "<hr>"; continue; }
+        if (tag === "FIGURE") {
+          const okSrc = (i) => i && /^\/_blob\/[0-9a-f]{8,64}$/.test(i.getAttribute("src") || "");
+          const imgs = [...n.querySelectorAll("img")], bi = imgs.find((i) => !i.classList.contains("lk-ink")), ii = imgs.find((i) => i.classList.contains("lk-ink"));
+          const sz = [...n.classList].find((c) => /^sz-[123]$/.test(c));
+          if (okSrc(bi)) out += '<figure class="lk-fig' + (sz ? " " + sz : "") + '" contenteditable="false"><img src="' + bi.getAttribute("src") + '" alt="">' + (okSrc(ii) ? '<img class="lk-ink" src="' + ii.getAttribute("src") + '" alt="">' : "") + "</figure>";
+          continue;
+        }
         if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) out += '<img src="' + src + '" alt="">'; continue; }
         if (tag === "A" && n.dataset.doc) { out += '<a class="lk-doc" data-doc="' + esc(n.dataset.doc) + '" contenteditable="false">📄 ' + esc(n.textContent.replace(/^📄\s*/, "")) + "</a>"; continue; }
         if (/^(STYLE|SCRIPT|META|TITLE)$/.test(tag)) continue;
@@ -6462,7 +6534,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const out = [];
     const add = (el) => {
       if (el.tagName === "UL" || el.tagName === "OL") { [...el.children].forEach((li) => { if (rg.intersectsNode(li)) out.push(li); }); return; }
-      if (el.tagName === "HR") return;
+      if (el.tagName === "HR" || el.tagName === "FIGURE") return;
       if (el.classList.contains("lk-box")) { const inner = [...el.children].filter((c) => /^(P|DIV|H1|H2|H3)$/.test(c.tagName) && rg.intersectsNode(c)); if (inner.length && rg.collapsed) { out.push(...inner); return; } }
       out.push(el);
     };
@@ -6476,7 +6548,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const m = (r.meta || {})[i] || {};
     return [...(m.files || []), ...(r.mainFiles || [])].filter((f) => f && !f.folder);
   }
-  function lkLayout() { const L = $("#lk-layout"); if (!L) return; L.classList.toggle("side-off", !LK.side); L.classList.toggle("docs-off", !LK.docs); }
+  const lkIsProj = () => document.documentElement.classList.contains("lk-proj");
+  function lkLayout() { const L = $("#lk-layout"), P = lkIsProj(); if (!L) return; L.classList.toggle("side-off", !(P ? LK.pside : LK.side)); L.classList.toggle("docs-off", !(P ? LK.pdocs : LK.docs)); const v = $("#view-lektion"); if (v) v.style.setProperty("--pz", LK.pz || 1.35); }
   function renderLK() {
     if ($("#view-lektion").hidden) return;
     lkLayout();
@@ -6494,12 +6567,12 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   }
   function lkDocsHtml(x) {
     const r = U.reihen[x.u.rid] || {}, docs = lkDocs(x.u.rid, x.u.i), ids = new Set(docs.map((f) => f.id));
-    const row = (f) => '<div class="lk-drow"><button type="button" class="doc" data-lkopen="' + esc(f.id) + '" title="Öffnen – dort können Sie es auch bearbeiten"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + '</span></button><button type="button" class="btn ghost lk-ins" data-lkins="' + esc(f.id) + '" title="Als Verweis in die Seite einfügen">＋</button></div>';
+    const row = (f) => '<div class="lk-drow"><button type="button" class="doc" data-lkopen="' + esc(f.id) + '" title="Öffnen – dort können Sie es auch bearbeiten"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + '</span></button>' + (lkCanPick(f) ? '<button type="button" class="btn ghost lk-ins" data-lkpick="' + esc(f.id) + '" title="' + (LK_IMG.test(extOf(f)) ? "Bild in die Seite einfügen (danach können Sie hineinschreiben)" : "Einzelne Folien bzw. Seiten als Bild in die Seite holen (danach können Sie hineinschreiben)") + '">🖼</button>' : "") + '<button type="button" class="btn ghost lk-ins" data-lkins="' + esc(f.id) + '" title="Als Verweis in die Seite einfügen">＋</button></div>';
     const more = (r.files || []).filter((f) => f && !f.folder && !ids.has(f.id));
     return '<div class="lk-shead"><span class="lbl">Dokumente</span><button type="button" class="lk-fold" id="lk-docsfold" title="Dokumente einklappen">▸</button></div>' +
       (docs.length ? docs.map(row).join("") : '<p class="help">Diese Lektion hat keine eigenen Dokumente.</p>') +
       (more.length ? "<details><summary>Materialsammlung der Reihe (" + more.length + ")</summary><div>" + more.map(row).join("") + "</div></details>" : "") +
-      '<p class="help">Klick öffnet das Dokument; dort «Bearbeiten» oder «In Word bearbeiten». ＋ setzt einen Verweis in die Seite.</p>';
+      '<p class="help">Klick öffnet das Dokument; dort «Bearbeiten» oder «In Word bearbeiten». 🖼 holt einzelne Folien oder Seiten als Bild in die Seite – ein Klick auf das Bild, und Sie können hineinschreiben. ＋ setzt einen Verweis.</p>';
   }
   async function lkOpen() {
     const main = $("#lk-main"), L = $("#lk-layout"), x = lkLessons(LK.kid).find((y) => y.key === LK.sel);
@@ -6516,7 +6589,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const colPop = '<span class="lbl">Schriftfarbe</span><div class="lk-sws">' + Object.keys(LK_TC).map((c) => SW("tc", "t-", c)).join("") + '</div><span class="lbl">Marker</span><div class="lk-sws">' + Object.keys(LK_HL).map((c) => SW("hl", "h-", c)).join("") + "</div>";
     const lhPop = TB("lh", "1", "Eng", "Zeilenabstand eng") + TB("lh", "", "Normal", "Zeilenabstand normal") + TB("lh", "3", "Weit", "Zeilenabstand weit") + TB("lh", "4", "Sehr weit", "Zeilenabstand sehr weit");
     main.innerHTML = '<div class="lk-head"><div><div class="lk-meta"><i class="kdot f-' + kColor(LK.kid) + '"></i> ' + esc(k.name || "Klasse") + (d ? " · " + TAGE[d.getDay()] + ", " + fmt(d) + " · " + esc(x.slot.from) : "") + "</div><h2>" + esc(x.u.label) + (x.u.phase ? " · " + esc(x.u.phase) : "") + "</h2><div class=\"lk-meta\">" + esc(r.title || "") + "</div></div>" +
-      '<div class="lk-acts"><span class="status" id="lk-status"></span><button type="button" class="btn primary" id="lk-show">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-print" title="Als PDF speichern oder drucken – zum Weitergeben an die Klasse">PDF / Drucken</button></div></div>' +
+      '<div class="lk-acts" id="lk-acts"></div></div>' +
       '<div class="lk-tbar">' + TB("formatBlock", "h2", "Titel", "Grosser Titel – beim Projizieren beginnt hier eine neue Folie") + TB("formatBlock", "h3", "Untertitel", "Untertitel") + TB("formatBlock", "p", "Text", "Normaler Text") + SEP +
       TB("fs", "-1", "A−", "Schrift kleiner (markierte Zeilen, auch Titel)") + TB("fs", "1", "A+", "Schrift grösser (markierte Zeilen, auch Titel)") + POP("lh", "↕", "Zeilenabstand", lhPop) + SEP +
       TB("al", "", "⯇≡", "Linksbündig") + TB("al", "al-c", "≡", "Zentriert") + TB("al", "al-r", "≡⯈", "Rechtsbündig") + SEP +
@@ -6526,6 +6599,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
       '<div class="lk-page" id="lk-page" contenteditable="true" data-ph="Schreiben Sie hier die Seite für diese Lektion: Ablauf für die Klasse, Aufträge, Bilder, Links zu Dokumenten …"></div>';
     const pg = $("#lk-page"); pg.innerHTML = lkSanitize((LK.page || {}).html || ""); lkWrapStray(pg); lkBlank();
+    if (lkPen) { lkPen.bar.remove(); lkPen = null; document.documentElement.classList.remove("lk-pen"); }
+    lkOpenHead();
     try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
   }
   function lkSave() {
@@ -6543,6 +6618,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     [...tmp.childNodes].forEach((n) => {
       if (n.nodeType === 1 && n.tagName === "HR") { if (cur.length) { slides.push(cur); cur = []; } return; }
       if (n.nodeType === 1 && /^H[12]$/.test(n.tagName) && cur.length) { slides.push(cur); cur = []; }
+      if (n.nodeType === 1 && n.tagName === "FIGURE" && cur.some((h) => /^<figure/.test(h))) { slides.push(cur); cur = []; }
       if (n.nodeType === 1 && n.tagName === "P" && !n.textContent.trim() && !n.querySelector("img") && !cur.length) return;
       cur.push(n.nodeType === 1 ? n.outerHTML : esc(n.textContent));
     });
@@ -6564,6 +6640,228 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     document.body.appendChild(box); document.documentElement.classList.add("lk-printing");
     const done = () => { box.remove(); document.documentElement.classList.remove("lk-printing"); removeEventListener("afterprint", done); };
     addEventListener("afterprint", done); setTimeout(() => window.print(), 300);
+  }
+  // ---------- Folien / Seiten aus PowerPoint, Word oder PDF als Bilder in die Seite holen ----------
+  const LK_PAGEABLE = /^(pdf|pptx?|pptm|docx?|odt|odp)$/i, LK_IMG = /^(png|jpe?g|gif|webp|bmp)$/i;
+  const lkCanPick = (f) => LK_IMG.test(extOf(f)) || /^pdf$/i.test(extOf(f)) || (LK_PAGEABLE.test(extOf(f)) && window.ZLOCAL && window.ZLOCAL.toPdf);
+  const lkPdfCache = {};
+  async function lkPdfOf(f, say) {
+    if (lkPdfCache[f.id]) return lkPdfCache[f.id];
+    let bytes;
+    if (/^pdf$/i.test(extOf(f))) bytes = await fileBytes(f);
+    else {
+      say("Microsoft wandelt «" + f.name + "» in Folien um … (kann etwas dauern)");
+      let blob = null, err = null;
+      if (f.path) { try { blob = await window.ZLOCAL.toPdf({ path: f.path }); } catch (e) { err = e; } }
+      if (!blob) { try { blob = await window.ZLOCAL.toPdf({ bytes: await fileBytes(f), name: f.name }); } catch (e) { err = e; } }
+      if (!blob) throw err || new Error("Umwandeln");
+      bytes = new Uint8Array(await blob.arrayBuffer());
+    }
+    await loadScript(LIBS.pdf); await loadScript(LIBS.pdfWorker);
+    const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = LIBS.pdfWorker;
+    return (lkPdfCache[f.id] = await lib.getDocument({ data: bytes.slice(0) }).promise);
+  }
+  const lkToBlob = (c, type, q) => new Promise((res) => c.toBlob(res, type, q));
+  async function lkRenderPage(pdf, i, width) {
+    const page = await pdf.getPage(i), v1 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: width / v1.width });
+    const c = document.createElement("canvas"); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise; return c;
+  }
+  function lkKeepRange() { const pg = $("#lk-page"), s = getSelection(); LK.range = pg && s.rangeCount && pg.contains(s.getRangeAt(0).commonAncestorContainer) ? s.getRangeAt(0).cloneRange() : null; }
+  function lkInsertAtRange(html) {
+    const pg = $("#lk-page"); if (!pg) return; pg.focus();
+    const s = getSelection(); s.removeAllRanges();
+    if (LK.range && pg.contains(LK.range.commonAncestorContainer)) s.addRange(LK.range); else { const r = document.createRange(); r.selectNodeContents(pg); r.collapse(false); s.addRange(r); }
+    document.execCommand("insertHTML", false, html); lkWrapStray(pg); lkSave();
+  }
+  const lkFigHtml = (id) => '<figure class="lk-fig" contenteditable="false"><img src="/_blob/' + id + '" alt=""></figure>';
+  async function lkPick(f) {
+    lkKeepRange();
+    let root = document.getElementById("lkPickRoot"); if (!root) { root = document.createElement("div"); root.id = "lkPickRoot"; document.body.appendChild(root); }
+    const slides = /^(pptx?|pptm|odp|pdf)$/i.test(extOf(f));
+    root.innerHTML = '<div class="overlay lk-pickov"><div class="panel lk-pick" role="dialog" aria-modal="true"><div class="lk-pick-h"><h3>' + (slides ? "Folien" : "Seiten") + " aus «" + esc(f.name) + '» einfügen</h3><button type="button" class="btn ghost" data-pk="x">Schliessen</button></div>' +
+      '<p class="msg" id="lk-pmsg">Lädt …</p><div class="lk-pgrid" id="lk-pgrid"></div>' +
+      '<div class="lk-pick-f"><button type="button" class="btn ghost" data-pk="all">Alle</button><button type="button" class="btn ghost" data-pk="none">Keine</button><label class="chk"><input type="checkbox" id="lk-psep"' + (slides ? " checked" : "") + '> Jede ' + (slides ? "Folie" : "Seite") + " als eigener Abschnitt (Trennlinie, beim Projizieren eigene Folie)</label><span style=\"flex:1\"></span><button type=\"button\" class=\"btn primary\" data-pk=\"ok\" disabled>Einfügen</button></div></div></div>";
+    const ov = root.firstChild, grid = $("#lk-pgrid"), msg = $("#lk-pmsg"), ok = ov.querySelector('[data-pk="ok"]'), say = (t, w) => { msg.className = "msg" + (w ? " warn" : ""); msg.textContent = t; };
+    const upd = () => { const n = grid.querySelectorAll(".lk-pth.on").length; ok.disabled = !n; ok.textContent = n ? "Einfügen (" + n + ")" : "Einfügen"; };
+    let pdf = null, busy = false;
+    ov.addEventListener("click", async (e) => {
+      const th = e.target.closest(".lk-pth"); if (th && !busy) { th.classList.toggle("on"); upd(); return; }
+      const b = e.target.closest("[data-pk]"); if (!b || busy) return;
+      if (b.dataset.pk === "x") { root.innerHTML = ""; return; }
+      if (b.dataset.pk === "all" || b.dataset.pk === "none") { grid.querySelectorAll(".lk-pth").forEach((t) => t.classList.toggle("on", b.dataset.pk === "all")); upd(); return; }
+      if (b.dataset.pk === "ok") {
+        const nums = [...grid.querySelectorAll(".lk-pth.on")].map((t) => +t.dataset.n), sep = $("#lk-psep").checked; busy = true; ok.disabled = true;
+        try {
+          const ids = [];
+          for (const [k, n] of nums.entries()) {
+            say("Speichert " + (k + 1) + " von " + nums.length + " …");
+            const c = await lkRenderPage(pdf, n, 1600), blob = await lkToBlob(c, "image/jpeg", 0.9);
+            ids.push((await state.assets.upload(blob, { type: "image/jpeg" })).id);
+          }
+          lkInsertAtRange(ids.map(lkFigHtml).join(sep ? "<hr>" : "") + "<p><br></p>");
+          root.innerHTML = "";
+        } catch (err) { console.error(err); busy = false; ok.disabled = false; say("Das hat nicht geklappt: " + (err.message || err), true); }
+      }
+    });
+    if (LK_IMG.test(extOf(f))) {
+      try { say("Speichert das Bild …"); const bytes = await fileBytes(f), r2 = await state.assets.upload(new Blob([bytes], { type: f.type || "image/" + extOf(f).toLowerCase().replace("jpg", "jpeg") }), { type: f.type || "image/jpeg" }); root.innerHTML = ""; lkInsertAtRange(lkFigHtml(r2.id) + "<p><br></p>"); }
+      catch (err) { say("Das hat nicht geklappt: " + (err.message || err), true); }
+      return;
+    }
+    try { pdf = await lkPdfOf(f, say); }
+    catch (err) {
+      console.error(err);
+      say("Microsoft konnte «" + f.name + "» nicht umwandeln (" + (err.message || err) + "). Notweg: Die Datei in PowerPoint bzw. Word öffnen, «Datei › Exportieren › PDF» wählen und das PDF der Lektion hinzufügen – aus dem PDF lassen sich die Folien dann einfügen.", true);
+      return;
+    }
+    const n = Math.min(pdf.numPages, 150); say("Tippen Sie die " + (slides ? "Folien" : "Seiten") + " an, die Sie einfügen möchten." + (pdf.numPages > n ? " (Die ersten 150 werden gezeigt.)" : ""));
+    for (let i = 1; i <= n; i++) {
+      if (!document.body.contains(grid)) return;
+      const c = await lkRenderPage(pdf, i, 260); c.className = "lk-pcv";
+      const t = document.createElement("button"); t.type = "button"; t.className = "lk-pth"; t.dataset.n = i; t.appendChild(c); t.insertAdjacentHTML("beforeend", "<span>" + i + "</span>"); grid.appendChild(t);
+    }
+  }
+  // ---------- Reinschreiben: Stift, Marker, Text auf einer Folie / einem Arbeitsblatt ----------
+  function lkDrawItem(ctx, it) {
+    ctx.save();
+    if (it.type === "text") { ctx.fillStyle = it.color; ctx.font = "600 " + it.size + "px system-ui, sans-serif"; ctx.textBaseline = "top"; String(it.text).split("\n").forEach((ln, i) => ctx.fillText(ln, it.x, it.y + i * it.size * 1.25)); ctx.restore(); return; }
+    ctx.globalCompositeOperation = it.tool === "erase" ? "destination-out" : it.tool === "mark" ? "multiply" : "source-over";
+    ctx.globalAlpha = it.tool === "mark" ? 0.4 : 1;
+    ctx.strokeStyle = it.tool === "erase" ? "#000" : it.color; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = it.w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    const p = it.pts;
+    if (p.length === 1) { ctx.beginPath(); ctx.arc(p[0][0], p[0][1], it.w / 2, 0, Math.PI * 2); ctx.fill(); }
+    else { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length - 1; i++) { const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2; ctx.quadraticCurveTo(p[i][0], p[i][1], mx, my); } const l = p[p.length - 1]; ctx.lineTo(l[0], l[1]); ctx.stroke(); }
+    ctx.restore();
+  }
+  const LK_PENS = [["#111111", "Schwarz"], ["#1f6fa8", "Blau"], ["#c0392b", "Rot"], ["#2e7d32", "Grün"]], LK_MARKS = [["#ffe14d", "Gelb"], ["#9be07a", "Grün"], ["#ff9ec4", "Rosa"]];
+  // Zeichenfläche an ein <canvas> hängen; Rückgabe: Steuerung (Werkzeug, Rückgängig, Löschen)
+  function lkInkSurface(cv, base, opt) {
+    opt = opt || {};
+    const ctx = cv.getContext("2d"), items = [], T = { tool: "pen", color: "#111111", size: 2, dirty: false, cleared: false };
+    let cur = null, penSeen = false;
+    const unit = () => (opt.unit ? opt.unit() : cv.width / 500);
+    const redraw = () => { ctx.clearRect(0, 0, cv.width, cv.height); if (base && !T.cleared) ctx.drawImage(base, 0, 0, cv.width, cv.height); items.forEach((it) => lkDrawItem(ctx, it)); if (cur) lkDrawItem(ctx, cur); };
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (cv.width / r.width), (e.clientY - r.top) * (cv.height / r.height)]; };
+    cv.addEventListener("pointerdown", (e) => {
+      if (opt.off && opt.off()) return;
+      if (e.pointerType === "pen") penSeen = true; else if (e.pointerType === "touch" && penSeen) return; // Hand auf dem Bildschirm nicht als Strich zählen
+      if (T.tool === "text") { e.preventDefault(); opt.onText && opt.onText(pos(e), e); return; }
+      e.preventDefault(); cv.setPointerCapture(e.pointerId);
+      const w = unit() * (T.tool === "mark" ? 7 : T.tool === "erase" ? 6 : 1) * T.size;
+      cur = { tool: T.tool, color: T.color, w, pts: [pos(e)] }; redraw();
+    });
+    cv.addEventListener("pointermove", (e) => { if (!cur) return; if (e.pointerType === "touch" && penSeen) return; const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; (ev.length ? ev : [e]).forEach((x) => cur.pts.push(pos(x))); redraw(); });
+    const end = () => { if (!cur) return; items.push(cur); cur = null; T.dirty = true; redraw(); };
+    cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end); cv.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") end(); });
+    T.undo = () => { if (items.length) { items.pop(); T.dirty = true; redraw(); } };
+    T.clear = () => { items.length = 0; T.cleared = true; T.dirty = true; redraw(); };
+    T.addText = (it) => { items.push(it); T.dirty = true; redraw(); };
+    T.empty = () => !items.length && (T.cleared || !base);
+    T.redraw = redraw; T.unit = unit;
+    redraw(); return T;
+  }
+  function lkInkBar(T, extra) {
+    const sw = (k, c, n) => '<button type="button" class="lk-sw ink" data-ink="' + k + '" data-c="' + c + '" title="' + n + '" style="background:' + c + '"></button>';
+    return '<div class="lk-inkbar">' + LK_PENS.map(([c, n]) => sw("pen", c, "Stift " + n)).join("") + '<span class="lk-sep"></span>' + LK_MARKS.map(([c, n]) => sw("mark", c, "Marker " + n)).join("") + '<span class="lk-sep"></span>' +
+      '<button type="button" class="lk-tb" data-ink="erase" title="Radierer">⌫ Radierer</button>' + (extra && extra.text ? '<button type="button" class="lk-tb" data-ink="text" title="Text tippen: auf die Stelle tippen, schreiben, Enter">T Text</button>' : "") +
+      '<span class="lk-sep"></span><button type="button" class="lk-tb" data-isz="1" title="Dünn">●</button><button type="button" class="lk-tb on" data-isz="2" title="Mittel">⬤</button><button type="button" class="lk-tb" data-isz="4" title="Dick"><b>⬤</b></button>' +
+      '<span class="lk-sep"></span><button type="button" class="lk-tb" data-ink="undo" title="Rückgängig">↶</button><button type="button" class="lk-tb" data-ink="clear" title="Alles Geschriebene löschen">Alles löschen</button>' + (extra && extra.tail ? extra.tail : "") + "</div>";
+  }
+  function lkInkBarWire(bar, T, onOther) {
+    const mark = () => { bar.querySelectorAll("[data-ink]").forEach((b) => b.classList.toggle("on", (b.dataset.c ? b.dataset.c === T.color && b.dataset.ink === T.tool : b.dataset.ink === T.tool))); bar.querySelectorAll("[data-isz]").forEach((b) => b.classList.toggle("on", +b.dataset.isz === T.size)); };
+    bar.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.isz) { T.size = +b.dataset.isz; mark(); return; }
+      const k = b.dataset.ink;
+      if (k === "undo") T.undo(); else if (k === "clear") T.clear();
+      else if (k) { T.tool = k; if (b.dataset.c) T.color = b.dataset.c; mark(); }
+      else if (onOther) onOther(b);
+    });
+    mark();
+  }
+  async function lkInk(fig) {
+    const baseImg = fig.querySelector("img:not(.lk-ink)"), inkImg = fig.querySelector("img.lk-ink"); if (!baseImg) return;
+    const ov = document.createElement("div"); ov.className = "lk-inkov";
+    const szBtn = (v, l) => '<button type="button" class="lk-tb' + ((fig.classList.contains("sz-" + v) || (!v && !/sz-/.test(fig.className))) ? " on" : "") + '" data-fsz="' + v + '">' + l + "</button>";
+    ov.innerHTML = lkInkBar(null, { text: true, tail: '<span class="lk-sep"></span><span class="lk-isz">Grösse ' + szBtn("", "ganz") + szBtn("3", "¾") + szBtn("2", "½") + szBtn("1", "⅓") + '</span><span style="flex:1"></span><button type="button" class="lk-tb danger" data-fdel title="Dieses Bild aus der Seite entfernen">🗑 Entfernen</button><button type="button" class="lk-tb" data-fx>Abbrechen</button><button type="button" class="btn primary" data-fok>Fertig</button>' }) +
+      '<div class="lk-stage"><div class="lk-sbox"><img alt="" src="' + baseImg.getAttribute("src") + '"><canvas></canvas></div></div><p class="lk-ihint">Mit Stift oder Finger schreiben. Mit dem Apple Pencil bzw. Stift wird die aufliegende Hand ignoriert.</p>';
+    document.body.appendChild(ov);
+    const img = ov.querySelector(".lk-sbox img"), cv = ov.querySelector("canvas"), box = ov.querySelector(".lk-sbox");
+    await new Promise((res) => { if (img.complete && img.naturalWidth) res(); else { img.onload = res; img.onerror = res; } });
+    const nw = img.naturalWidth || 1600, nh = img.naturalHeight || 1200, k = Math.min(1, 2400 / Math.max(nw, nh));
+    cv.width = Math.round(nw * k); cv.height = Math.round(nh * k);
+    const fit = () => { const st = ov.querySelector(".lk-stage"), aw = st.clientWidth - 16, ah = st.clientHeight - 16, s = Math.min(aw / cv.width, ah / cv.height); box.style.width = Math.floor(cv.width * s) + "px"; box.style.height = Math.floor(cv.height * s) + "px"; };
+    fit(); addEventListener("resize", fit);
+    let base = null;
+    if (inkImg) { base = new Image(); base.src = inkImg.getAttribute("src"); await new Promise((res) => { base.onload = res; base.onerror = () => { base = null; res(); }; }); }
+    let txt = null;
+    const T = lkInkSurface(cv, base, {
+      onText: (p, e) => {
+        if (txt) txt.blur();
+        const r = cv.getBoundingClientRect(), size = Math.round(T.unit() * 5.5 * T.size);
+        txt = document.createElement("textarea"); txt.className = "lk-itxt"; txt.rows = 1;
+        txt.style.left = e.clientX - box.getBoundingClientRect().left + "px"; txt.style.top = e.clientY - box.getBoundingClientRect().top - 4 + "px"; txt.style.color = LK_MARKS.some((m) => m[0] === T.color) ? "#111111" : T.color; txt.style.fontSize = size * (r.width / cv.width) + "px";
+        box.appendChild(txt); setTimeout(() => txt && txt.focus(), 30);
+        const t0 = txt, tc = LK_MARKS.some((m) => m[0] === T.color) ? "#111111" : T.color, commit = () => { if (t0.value.trim()) T.addText({ type: "text", x: p[0], y: p[1], text: t0.value, color: tc, size }); t0.remove(); if (txt === t0) txt = null; };
+        t0.addEventListener("blur", commit); t0.addEventListener("keydown", (ev) => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); t0.blur(); } if (ev.key === "Escape") { t0.value = ""; t0.blur(); } });
+      },
+    });
+    const close = () => { removeEventListener("resize", fit); ov.remove(); };
+    lkInkBarWire(ov.querySelector(".lk-inkbar"), T, async (b) => {
+      if (b.dataset.fsz != null) { [...fig.classList].forEach((c) => /^sz-/.test(c) && fig.classList.remove(c)); if (b.dataset.fsz) fig.classList.add("sz-" + b.dataset.fsz); ov.querySelectorAll("[data-fsz]").forEach((x) => x.classList.toggle("on", x === b)); lkSave(); return; }
+      if (b.dataset.fx != null) { close(); return; }
+      if (b.dataset.fdel != null) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich entfernen?"; return; } const nx = fig.nextSibling; fig.remove(); if (nx && nx.nodeName === "HR") nx.remove(); lkSave(); close(); return; }
+      if (b.dataset.fok != null) {
+        if (txt) txt.blur();
+        if (!T.dirty) { close(); return; }
+        b.disabled = true; b.textContent = "Speichert …";
+        try {
+          if (T.empty()) { if (inkImg) inkImg.remove(); }
+          else { const r2 = await state.assets.upload(await lkToBlob(cv, "image/png"), { type: "image/png" }); let ink = fig.querySelector("img.lk-ink"); if (!ink) { ink = document.createElement("img"); ink.className = "lk-ink"; ink.alt = ""; fig.appendChild(ink); } ink.src = "/_blob/" + r2.id; }
+          lkSave(); close();
+        } catch (err) { console.error(err); b.disabled = false; b.textContent = "Fertig"; alertMsg && alertMsg("Speichern hat nicht geklappt."); }
+      }
+    });
+  }
+  const alertMsg = (t) => lkStat(t);
+  // ---------- Projizieren: dieselbe Seite, ohne Kopfzeile, Leisten nur bei Bedarf ----------
+  function lkProj(on) {
+    const H = document.documentElement;
+    if (on === H.classList.contains("lk-proj")) return;
+    H.classList.toggle("lk-proj", on); H.classList.remove("lk-tools");
+    if (on) { LK.pside = false; LK.pdocs = false; try { H.requestFullscreen && H.requestFullscreen().catch(() => {}); } catch (e) {} }
+    else { lkPenOff(true); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
+    lkLayout(); lkOpenHead();
+  }
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.documentElement.classList.contains("lk-proj") && !document.querySelector(".lk-show")) lkProj(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.documentElement.classList.contains("lk-proj") && !document.querySelector(".lk-show, .lk-inkov, .overlay")) lkProj(false); });
+  // Stift beim Projizieren: über die ganze Seite schreiben (nur vorübergehend, wird nicht gespeichert)
+  let lkPen = null;
+  function lkPenOn() {
+    const main = $("#lk-main"); if (!main || lkPen) return;
+    const cv = document.createElement("canvas"); cv.className = "lk-draw"; const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = main.scrollWidth, h = main.scrollHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px";
+    main.appendChild(cv);
+    const bar = document.createElement("div"); bar.className = "lk-penbar"; bar.innerHTML = lkInkBar(null, { tail: '<span class="lk-sep"></span><button type="button" class="lk-tb" data-pnoff title="Stift aus, Geschriebenes bleibt stehen">Stift aus</button>' });
+    document.getElementById("view-lektion").appendChild(bar);
+    const T = lkInkSurface(cv, null, { unit: () => 2 * dpr, off: () => !document.documentElement.classList.contains("lk-pen") });
+    lkInkBarWire(bar, T, (b) => { if (b.dataset.pnoff != null) lkPenOff(false); });
+    lkPen = { cv, bar, T }; document.documentElement.classList.add("lk-pen"); lkOpenHead();
+  }
+  function lkPenOff(remove) {
+    document.documentElement.classList.remove("lk-pen");
+    if (lkPen) { lkPen.bar.remove(); if (remove || lkPen.T.empty()) { lkPen.cv.remove(); lkPen = null; } else lkPen.cv.classList.add("idle"); }
+    lkOpenHead();
+  }
+  function lkPenResume() { if (lkPen && lkPen.cv.isConnected) { lkPen.cv.classList.remove("idle"); document.getElementById("view-lektion").appendChild(lkPen.bar); document.documentElement.classList.add("lk-pen"); lkOpenHead(); } else { lkPen = null; lkPenOn(); } }
+  function lkOpenHead() {
+    const acts = $("#lk-acts"); if (!acts) return;
+    const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
+    acts.innerHTML = '<span class="status" id="lk-status"></span>' + (P
+      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
+      : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Titel und Trennlinien beginnen neue Folien)">Folien</button><button type="button" class="btn ghost" id="lk-print" title="Als PDF speichern oder drucken – zum Weitergeben an die Klasse">PDF / Drucken</button>');
   }
   const lkPopsClose = (keep) => document.querySelectorAll("#view-lektion .lk-pop").forEach((p) => { if (p !== keep) p.hidden = true; });
   document.addEventListener("mousedown", (e) => { if (!e.target.closest(".lk-tbw")) lkPopsClose(); });
@@ -6592,13 +6890,21 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   document.getElementById("view-lektion").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); const a = e.target.closest("a[data-doc]");
     if (a) { e.preventDefault(); const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); return; }
+    const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { lkInk(fg); return; }
     if (!b) return;
-    if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { LK.side = b.id === "lk-sideopen"; lkSaveSel(); lkLayout(); return; }
-    if (b.id === "lk-docsfold" || b.id === "lk-docsopen") { LK.docs = b.id === "lk-docsopen"; lkSaveSel(); lkLayout(); return; }
+    if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
+    if (b.id === "lk-docsfold" || b.id === "lk-docsopen") { if (lkIsProj()) LK.pdocs = b.id === "lk-docsopen"; else { LK.docs = b.id === "lk-docsopen"; lkSaveSel(); } lkLayout(); return; }
+    if (b.id === "lk-proj") { lkSave(); lkProj(true); return; }
+    if (b.id === "lk-projx") { lkProj(false); return; }
+    if (b.id === "lk-tools") { document.documentElement.classList.toggle("lk-tools"); lkOpenHead(); return; }
+    if (b.id === "lk-pen") { if (document.documentElement.classList.contains("lk-pen")) lkPenOff(false); else if (lkPen) lkPenResume(); else lkPenOn(); return; }
+    if (b.id === "lk-penclr") { if (lkPen) { lkPen.cv.remove(); lkPen.bar.remove(); lkPen = null; } lkOpenHead(); return; }
+    if (b.dataset.z) { LK.pz = Math.max(0.8, Math.min(3, Math.round(((LK.pz || 1.35) + 0.15 * +b.dataset.z) * 100) / 100)); try { localStorage.setItem("zeitplan-lkpz", LK.pz); } catch (e2) {} lkLayout(); return; }
+    if (b.id === "lk-slides") { lkSave(); lkPresent(); return; }
+    if (b.dataset.lkpick) { const f = lkAllDocs()[b.dataset.lkpick]; if (f) lkPick(f); return; }
     if (b.dataset.lkk) { LK.kid = b.dataset.lkk; LK.sel = null; lkSaveSel(); renderLK(); return; }
     if (b.dataset.lks) { LK.sel = b.dataset.lks; lkSaveSel(); renderLK(); if (document.documentElement.classList.contains("mob")) { const m = $("#lk-main"); if (m) m.scrollIntoView({ block: "start" }); } return; }
     if (b.dataset.lkpast != null) { LK.showPast = !LK.showPast; renderLK(); return; }
-    if (b.id === "lk-show") { lkSave(); lkPresent(); return; }
     if (b.id === "lk-print") { lkPrint(); return; }
     if (b.dataset.lkopen) { const f = lkAllDocs()[b.dataset.lkopen]; if (f) openViewer(f); return; }
     if (b.dataset.lkpop) { const p = b.parentNode.querySelector(".lk-pop"); lkPopsClose(p); p.hidden = !p.hidden; return; }
@@ -6606,7 +6912,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.dataset.lkins && pg) { const f = lkAllDocs()[b.dataset.lkins]; if (!f) return; if (!pg.contains(getSelection().anchorNode)) pg.focus(); document.execCommand("insertHTML", false, '<a class="lk-doc" data-doc="' + esc(f.id) + '" contenteditable="false">📄 ' + esc(f.name) + "</a>&nbsp;"); lkSave(); return; }
     if (b.dataset.lkcmd && pg) { lkCmd(b.dataset.lkcmd, b.dataset.arg || ""); if (b.closest(".lk-pop") && b.dataset.lkcmd !== "lh") lkPopsClose(); else if (b.dataset.lkcmd === "lh") lkPopsClose(); }
   });
-  document.getElementById("view-lektion").addEventListener("mousedown", (e) => { if (e.target.closest(".lk-tb, .lk-sw, .lk-ins")) e.preventDefault(); });
+  document.getElementById("view-lektion").addEventListener("mousedown", (e) => { if (e.target.closest(".lk-tb, .lk-sw, .lk-ins, [data-lkpick]")) e.preventDefault(); });
   document.getElementById("view-lektion").addEventListener("input", (e) => { if (e.target.id === "lk-page") lkSave(); });
   document.getElementById("view-lektion").addEventListener("keydown", (e) => { if (e.target.id !== "lk-page" || !(e.ctrlKey || e.metaKey)) return; if (e.key === "+" || e.key === "=") { e.preventDefault(); lkCmd("fs", "1"); } else if (e.key === "-") { e.preventDefault(); lkCmd("fs", "-1"); } });
   document.getElementById("view-lektion").addEventListener("change", async (e) => {
