@@ -935,7 +935,10 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-box { display: grid; align-content: start; min-height: 0; }
 .jp-grid.eqh .jp-box { height: var(--jph, 560px); overflow: auto; resize: vertical; min-height: 120px; }
 .jp-grid.eqh .jp-col { align-self: start; }
-.jp-eye { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 0.8rem; cursor: pointer; vertical-align: middle; }
+.jp-rt { display: inline-flex; align-items: center; gap: 4px; justify-self: end; }
+.jp-car { cursor: pointer; color: var(--muted); padding: 0 3px; border-radius: 4px; font-size: 0.85rem; }
+.jp-car:hover { background: var(--accent-soft); color: var(--accent); }
+.jp-eye { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 1px; font-size: 0.72rem !important; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 0.8rem; cursor: pointer; vertical-align: middle; }
 .jp-eye:hover { border-color: var(--danger); color: var(--danger); }
 .jp-parked .jp-eye:hover { border-color: var(--accent); color: var(--accent); }
 .jp-sec { border-top: 1px solid var(--line); padding: 8px 6px 6px; }
@@ -3348,6 +3351,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const id = ey.dataset.jpeye, y = +ey.dataset.y, r = U.reihen[id]; if (!r) return;
     setParked(id, y, !isParked(r, y)); renderU();
   }, true);
+  // Reihe in ein anderes Schuljahr ziehen: im Hauptjahr wandert das Hauptjahr mit; als Mehrfach-Reihe wird nur dieses Jahr getauscht
+  // (gibt es sie im Zieljahr schon, verschwindet sie einfach aus dem alten). Mit Strg/Alt bleibt sie zusätzlich im alten Jahr.
+  function moveYear(id, from, to, keep) {
+    const r = U.reihen[id]; if (!r) return;
+    const wasHome = homeYear(r) === from;
+    let ys = yearsOf(r).slice(); if (!keep) ys = ys.filter((z) => z !== from); if (!ys.includes(to)) ys.push(to); ys.sort((x, y2) => x - y2);
+    r.years = ys; if (r.year != null) delete r.year;
+    if (wasHome && !keep) r.home = to;
+    if (!keep && r.parked) { const pk = { ...r.parked }; delete pk[from]; if (Object.keys(pk).length) r.parked = pk; else delete r.parked; }
+    saveReihe(id, 0);
+    uStatus && uStatus("«" + (r.title || "Reihe") + "» " + (keep ? "ist jetzt zusätzlich in " : "ist jetzt in ") + YEAR_SHORT[to] + (wasHome && !keep ? " (Hauptjahr)" : ""));
+  }
   (function jpDrag() {
     const box = document.getElementById("jp-main"); if (!box) return;
     let drag = null, justDragged = 0;
@@ -3360,8 +3375,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     box.addEventListener("dragover", (e) => {
       if (!drag) return;
       const tog = e.target.closest(".jp-park-tog");
-      if (tog) { if (+tog.dataset.parktog !== drag.year) return; e.preventDefault(); clear(); tog.classList.add("drop-into"); return; }
-      const col = e.target.closest(".jp-items[data-zone]"); if (!col || +col.dataset.year !== drag.year) return;
+      if (tog) { e.preventDefault(); clear(); tog.classList.add("drop-into"); return; }
+      const col = e.target.closest(".jp-items[data-zone]"); if (!col) return;
       const items = [...col.querySelectorAll(".jp-item")];
       e.preventDefault(); clear();
       if (!items.length) { col.classList.add("drop-into"); return; }
@@ -3376,10 +3391,13 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       clear();
       const d = drag; drag = null; justDragged = Date.now();
       if (!zone) return;
-      const changed = setParked(d.id, d.year, zone === "park");
+      const tEl = tog || into || b || a, ty = tog ? +tog.dataset.parktog : +(tEl.closest("[data-year]") || {}).dataset.year;
+      let changed = false;
+      if (!isNaN(ty) && ty !== d.year) { moveYear(d.id, d.year, ty, e.ctrlKey || e.altKey || e.metaKey); d.year = ty; changed = true; }
+      changed = setParked(d.id, d.year, zone === "park") || changed;
       if (b && b.dataset.open !== d.id) jpMove(d.id, d.year, b.dataset.open, false);
       else if (a && a.dataset.open !== d.id) jpMove(d.id, d.year, a.dataset.open, true);
-      else if (changed) renderU();
+      else if (changed) { if (!b && !a) jpMove(d.id, d.year, "__end", false); else renderU(); }
     });
     box.addEventListener("dragend", () => { clear(); box.querySelectorAll(".dragging").forEach((el) => el.classList.remove("dragging")); drag = null; justDragged = Date.now(); });
     box.addEventListener("click", (e) => { if (Date.now() - justDragged < 300 && e.target.closest(".jp-item")) { e.stopPropagation(); e.preventDefault(); } }, true);
@@ -3544,8 +3562,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + '</span><span class="n">' +
+          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="jp-rt"><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
+            (subsOf(r).length ? '<span class="sub-car jp-car" data-subtog="' + id + '" role="button" title="' + (subsOpen(id) ? "Unterpunkte einklappen" : "Unterpunkte aufklappen") + '">' + (subsOpen(id) ? "▾" : "▸") + "</span>" : "") +
+            (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-box\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
