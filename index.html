@@ -728,6 +728,25 @@ html.lk-proj .lk-page .lk-fig::after { content: "✎"; opacity: 0.5; }
 #lo-od-box .fp-list { max-height: 34vh; margin: 0; }
 #lo-od-box { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
 #lo-od-box input { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.lk-page { display: flow-root; }
+:is(.lk-page, .lk-slide, #lk-printbox) hr { clear: both; }
+:is(.lk-page, #lk-printbox) .lk-fig.pos-l { margin-left: 0; margin-right: auto; }
+:is(.lk-page, #lk-printbox) .lk-fig.pos-r { margin-left: auto; margin-right: 0; }
+:is(.lk-page, #lk-printbox) .lk-fig.fl-l { float: left; margin: 4px 18px 8px 0; }
+:is(.lk-page, #lk-printbox) .lk-fig.fl-r { float: right; margin: 4px 0 8px 18px; }
+.lk-slide .lk-fig { width: fit-content !important; float: none !important; left: 0 !important; margin: 10px auto !important; }
+.lk-page .lk-fig img { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.lk-page .lk-fig.sel { outline: 3px solid var(--accent); outline-offset: 2px; cursor: move; touch-action: none; user-select: none; }
+.lk-page .lk-fig.sel::after { content: "✥ ziehen"; }
+.lk-figpop { position: fixed; z-index: 1500; width: 250px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.22); padding: 10px 12px; display: grid; gap: 6px; font-size: 0.9rem; }
+.lk-fph { display: flex; justify-content: space-between; align-items: center; }
+.lk-fpl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); display: flex; justify-content: space-between; }
+.lk-fpl span { color: var(--ink); text-transform: none; letter-spacing: 0; }
+.lk-figpop input[type=range] { width: 100%; accent-color: var(--accent); }
+.lk-fpg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; } .lk-fpg.two { grid-template-columns: 1fr 1fr; }
+.lk-fpg .lk-tb { padding: 5px 4px; font-size: 0.8rem; }
+.lk-fpmove { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; } .lk-fpmove .lk-tb { padding: 5px 0; }
+.lk-fphint { margin: 0; font-size: 0.75rem; color: var(--muted); }
 .lk-tb.danger { color: var(--danger, #b3261e); }
 .lk-pick { width: min(1100px, 100%); height: 88vh; grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .lk-pick-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .lk-pick-h h3 { margin: 0; }
@@ -6511,8 +6530,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
         if (tag === "FIGURE") {
           const okSrc = (i) => i && /^\/_blob\/[0-9a-f]{8,64}$/.test(i.getAttribute("src") || "");
           const imgs = [...n.querySelectorAll("img")], bi = imgs.find((i) => !i.classList.contains("lk-ink")), ii = imgs.find((i) => i.classList.contains("lk-ink"));
-          const sz = [...n.classList].find((c) => /^sz-[123]$/.test(c));
-          if (okSrc(bi)) out += '<figure class="lk-fig' + (sz ? " " + sz : "") + '" contenteditable="false"><img src="' + bi.getAttribute("src") + '" alt="">' + (okSrc(ii) ? '<img class="lk-ink" src="' + ii.getAttribute("src") + '" alt="">' : "") + "</figure>";
+          const fv = lkFigGet(n);
+          if (okSrc(bi)) out += '<figure class="lk-fig' + (fv.pos ? " " + fv.pos : "") + '"' + lkFigStyle(fv) + ' contenteditable="false"><img src="' + bi.getAttribute("src") + '" alt="">' + (okSrc(ii) ? '<img class="lk-ink" src="' + ii.getAttribute("src") + '" alt="">' : "") + "</figure>";
           continue;
         }
         if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) out += '<img src="' + src + '" alt="">'; continue; }
@@ -6818,8 +6837,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   async function lkInk(fig) {
     const baseImg = fig.querySelector("img:not(.lk-ink)"), inkImg = fig.querySelector("img.lk-ink"); if (!baseImg) return;
     const ov = document.createElement("div"); ov.className = "lk-inkov";
-    const szBtn = (v, l) => '<button type="button" class="lk-tb' + ((fig.classList.contains("sz-" + v) || (!v && !/sz-/.test(fig.className))) ? " on" : "") + '" data-fsz="' + v + '">' + l + "</button>";
-    ov.innerHTML = lkInkBar(null, { text: true, tail: '<span class="lk-ilbl">Grösse in der Seite</span><div class="lk-ig">' + szBtn("", "ganz") + szBtn("3", "¾") + szBtn("2", "½") + szBtn("1", "⅓") + '</div><span class="lk-igrow"></span><button type="button" class="lk-tb danger" data-fdel title="Dieses Bild aus der Seite entfernen">🗑 Entfernen</button><button type="button" class="lk-tb" data-fx>Abbrechen</button><button type="button" class="btn primary" data-fok>Fertig</button>' }) +
+    const szBtn = (v, l) => '<button type="button" class="lk-tb' + (lkFigGet(fig).w === (+v || 100) ? " on" : "") + '" data-fsz="' + v + '">' + l + "</button>";
+    ov.innerHTML = lkInkBar(null, { text: true, tail: '<span class="lk-ilbl">Grösse in der Seite</span><div class="lk-ig">' + szBtn("", "ganz") + szBtn("75", "¾") + szBtn("50", "½") + szBtn("33", "⅓") + '</div><span class="lk-igrow"></span><button type="button" class="lk-tb danger" data-fdel title="Dieses Bild aus der Seite entfernen">🗑 Entfernen</button><button type="button" class="lk-tb" data-fx>Abbrechen</button><button type="button" class="btn primary" data-fok>Fertig</button>' }) +
       '<div class="lk-stage"><div class="lk-sbox"><img alt=""><canvas></canvas></div></div><p class="lk-ihint">Mit Stift oder Finger schreiben. Mit dem Apple Pencil bzw. Stift wird die aufliegende Hand ignoriert.</p>';
     document.body.appendChild(ov);
     const img = ov.querySelector(".lk-sbox img"), cv = ov.querySelector("canvas"), box = ov.querySelector(".lk-sbox");
@@ -6844,7 +6863,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     });
     const close = () => { removeEventListener("resize", fit); ov.remove(); };
     lkInkBarWire(ov, T, async (b) => {
-      if (b.dataset.fsz != null) { [...fig.classList].forEach((c) => /^sz-/.test(c) && fig.classList.remove(c)); if (b.dataset.fsz) fig.classList.add("sz-" + b.dataset.fsz); ov.querySelectorAll("[data-fsz]").forEach((x) => x.classList.toggle("on", x === b)); lkSave(); return; }
+      if (b.dataset.fsz != null) { lkFigSet(fig, { w: +b.dataset.fsz || 100 }); ov.querySelectorAll("[data-fsz]").forEach((x) => x.classList.toggle("on", x === b)); lkSave(); return; }
       if (b.dataset.fx != null) { close(); return; }
       if (b.dataset.fdel != null) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich entfernen?"; return; } const nx = fig.nextSibling; fig.remove(); if (nx && nx.nodeName === "HR") nx.remove(); lkSave(); close(); return; }
       if (b.dataset.fok != null) {
@@ -6961,7 +6980,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     async function block(el, boxPr) {
       const tg = el.tagName, bp = boxPr || "";
       if (tg === "HR") return P('<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="BBBBBB"/></w:pBdr><w:spacing w:before="120" w:after="240"/>', "");
-      if (tg === "FIGURE") { const img = el.querySelector("img:not(.lk-ink)"); const m = img && (await lkImgData(el, img)); if (!m) return ""; m.frac = { "sz-3": 0.75, "sz-2": 0.5, "sz-1": 0.33 }[cls(el, /^sz-/)] || 1; return P('<w:jc w:val="center"/><w:spacing w:before="120" w:after="120"/>', drawing(m)); }
+      if (tg === "FIGURE") { const img = el.querySelector("img:not(.lk-ink)"); const m = img && (await lkImgData(el, img)); if (!m) return ""; const fv = lkFigGet(el); m.frac = fv.w / 100; return P('<w:jc w:val="' + (/-l$/.test(fv.pos) ? "left" : /-r$/.test(fv.pos) ? "right" : "center") + '"/><w:spacing w:before="120" w:after="120"/>', drawing(m)); }
       if (/^H[123]$/.test(tg)) { const lv = tg.slice(1); return P('<w:pStyle w:val="Heading' + lv + '"/>' + pPr(el), await runs(el, { b: true, sz: szOf(el, { 1: 36, 2: 30, 3: 25 }[lv]) })); }
       if (tg === "UL" || tg === "OL") {
         let out = "", k = 0;
@@ -7070,6 +7089,72 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       };
     });
   }
+  // ---------- Bilder/Folien in der Seite: Grösse, Lage, Text daneben, verschieben ----------
+  const LK_FIGPOS = ["pos-l", "pos-r", "fl-l", "fl-r"];
+  function lkFigGet(fig) {
+    const st = fig.style, szc = [...fig.classList].find((c) => /^sz-[123]$/.test(c));
+    let w = parseFloat(st.width); if (!(w > 0)) w = szc ? { "sz-3": 75, "sz-2": 50, "sz-1": 33 }[szc] : 100;
+    return { w: Math.max(10, Math.min(100, Math.round(w))), pos: LK_FIGPOS.find((c) => fig.classList.contains(c)) || "", dx: Math.round(parseFloat(st.left) || 0), dy: Math.round(parseFloat(st.marginTop) || 0) };
+  }
+  function lkFigSet(fig, o) {
+    const v = { ...lkFigGet(fig), ...o };
+    v.w = Math.max(10, Math.min(100, Math.round(v.w))); v.dx = Math.max(-800, Math.min(800, Math.round(v.dx))); v.dy = Math.max(-400, Math.min(800, Math.round(v.dy)));
+    [...fig.classList].forEach((c) => { if (/^sz-/.test(c) || LK_FIGPOS.includes(c)) fig.classList.remove(c); });
+    if (v.pos) fig.classList.add(v.pos);
+    fig.style.width = v.w < 100 ? v.w + "%" : ""; fig.style.left = v.dx ? v.dx + "px" : ""; fig.style.marginTop = v.dy ? v.dy + "px" : "";
+    if (!fig.getAttribute("style")) fig.removeAttribute("style");
+    return v;
+  }
+  const lkFigStyle = (v) => { const s = []; if (v.w < 100) s.push("width:" + v.w + "%"); if (v.dx) s.push("left:" + v.dx + "px"); if (v.dy) s.push("margin-top:" + v.dy + "px"); return s.length ? ' style="' + s.join(";") + '"' : ""; };
+  let lkFP = null; // offenes Fenster { fig, el }
+  function lkFigClose() { if (!lkFP) return; lkFP.fig.classList.remove("sel"); lkFP.el.remove(); lkFP = null; lkSave(); }
+  function lkFigPop(fig) {
+    lkFigClose(); lkPopsClose();
+    const v = lkFigGet(fig), el = document.createElement("div"); el.className = "lk-figpop";
+    const PB = (p, l, t) => '<button type="button" class="lk-tb' + (v.pos === p ? " on" : "") + '" data-fpos="' + p + '" title="' + t + '">' + l + "</button>";
+    el.innerHTML = '<div class="lk-fph"><b>Bild / Folie</b><button type="button" class="lk-fold" data-fpx title="Schliessen">✕</button></div>' +
+      '<label class="lk-fpl">Grösse <span id="lk-fpw">' + v.w + ' %</span></label><input type="range" min="10" max="100" step="1" value="' + v.w + '" id="lk-fprange">' +
+      '<span class="lk-fpl">Lage</span><div class="lk-fpg">' + PB("pos-l", "◧ Links", "Links, ohne Text daneben") + PB("", "▣ Mitte", "In der Mitte") + PB("pos-r", "◨ Rechts", "Rechts, ohne Text daneben") + "</div>" +
+      '<span class="lk-fpl">Mit Text daneben</span><div class="lk-fpg two">' + PB("fl-l", "▤ Bild links", "Bild links, Text fliesst rechts daneben") + PB("fl-r", "Bild rechts ▤", "Bild rechts, Text fliesst links daneben") + "</div>" +
+      '<span class="lk-fpl">Verschieben</span><div class="lk-fpmove"><button type="button" class="lk-tb" data-fmv="0,-10" title="Nach oben">↑</button><button type="button" class="lk-tb" data-fmv="-10,0" title="Nach links">←</button><button type="button" class="lk-tb" data-fmv="10,0" title="Nach rechts">→</button><button type="button" class="lk-tb" data-fmv="0,10" title="Nach unten (Platz darüber)">↓</button><button type="button" class="lk-tb" data-fmv="reset" title="Verschiebung zurücksetzen">⟲</button></div>' +
+      '<p class="lk-fphint">Solange dieses Fenster offen ist, können Sie das Bild auch mit Maus, Finger oder Stift ziehen.</p>' +
+      '<div class="lk-fpg two"><button type="button" class="lk-tb" data-fink>✎ Reinschreiben</button><button type="button" class="lk-tb danger" data-fdel2>🗑 Entfernen</button></div><button type="button" class="btn primary" data-fpx>Fertig</button>';
+    document.body.appendChild(el); fig.classList.add("sel"); lkFP = { fig, el };
+    const place = () => { const r = fig.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight; let x = r.right + 10, y = Math.max(8, r.top); if (x + w > innerWidth - 8) x = Math.max(8, r.left - w - 10); if (x < 8 || r.left - w - 10 < 8 && r.right + 10 + w > innerWidth - 8) x = innerWidth - w - 8; y = Math.min(y, innerHeight - h - 8); el.style.left = x + "px"; el.style.top = Math.max(8, y) + "px"; };
+    place();
+    const upd = (o) => { const nv = lkFigSet(fig, o); el.querySelector("#lk-fpw").textContent = nv.w + " %"; el.querySelectorAll("[data-fpos]").forEach((b) => b.classList.toggle("on", b.dataset.fpos === nv.pos)); lkSave(); };
+    el.querySelector("#lk-fprange").addEventListener("input", (e) => upd({ w: +e.target.value }));
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.fpx != null) { lkFigClose(); return; }
+      if (b.dataset.fpos != null) { upd({ pos: b.dataset.fpos }); place(); return; }
+      if (b.dataset.fmv) { const c = lkFigGet(fig); if (b.dataset.fmv === "reset") upd({ dx: 0, dy: 0 }); else { const [a, d] = b.dataset.fmv.split(",").map(Number); upd({ dx: c.dx + a, dy: c.dy + d }); } return; }
+      if (b.dataset.fink != null) { lkFigClose(); lkInk(fig); return; }
+      if (b.dataset.fdel2 != null) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich?"; return; } lkFigClose(); const nx = fig.nextSibling; fig.remove(); if (nx && nx.nodeName === "HR") nx.remove(); lkSave(); }
+    });
+  }
+  // Ziehen, solange das Fenster offen ist; lange drücken (Tablet) öffnet das Fenster
+  let lkFigDrag = null, lkFigLong = null, lkFigNoClick = 0;
+  document.addEventListener("pointerdown", (e) => {
+    if (lkFP && !lkFP.el.contains(e.target) && !lkFP.fig.contains(e.target)) { lkFigClose(); }
+    const fig = e.target.closest && e.target.closest("#lk-page .lk-fig"); if (!fig) return;
+    if (lkFP && lkFP.fig === fig) {
+      if (e.button) return; e.preventDefault(); const c = lkFigGet(fig); lkFigDrag = { fig, x: e.clientX, y: e.clientY, dx: c.dx, dy: c.dy, moved: false, id: e.pointerId };
+      try { fig.setPointerCapture(e.pointerId); } catch (e2) {}
+      return;
+    }
+    if (e.pointerType !== "mouse") { const x0 = e.clientX, y0 = e.clientY; clearTimeout(lkFigLong && lkFigLong.t); lkFigLong = { x0, y0, t: setTimeout(() => { lkFigNoClick = Date.now(); lkFigLong = null; lkFigPop(fig); }, 550) }; }
+  }, true);
+  document.addEventListener("pointermove", (e) => {
+    if (lkFigLong && Math.hypot(e.clientX - lkFigLong.x0, e.clientY - lkFigLong.y0) > 10) { clearTimeout(lkFigLong.t); lkFigLong = null; }
+    if (!lkFigDrag || e.pointerId !== lkFigDrag.id) return;
+    const ddx = e.clientX - lkFigDrag.x, ddy = e.clientY - lkFigDrag.y; if (Math.abs(ddx) + Math.abs(ddy) > 3) lkFigDrag.moved = true;
+    lkFigSet(lkFigDrag.fig, { dx: lkFigDrag.dx + ddx, dy: lkFigDrag.dy + ddy });
+  }, true);
+  const lkFigUp = () => { if (lkFigLong) { clearTimeout(lkFigLong.t); lkFigLong = null; } if (lkFigDrag) { if (lkFigDrag.moved) { lkFigNoClick = Date.now(); lkSave(); } lkFigDrag = null; } };
+  document.addEventListener("pointerup", lkFigUp, true); document.addEventListener("pointercancel", lkFigUp, true);
+  document.addEventListener("contextmenu", (e) => { const fig = e.target.closest && e.target.closest("#lk-page .lk-fig"); if (!fig) return; e.preventDefault(); lkFigNoClick = Date.now(); lkFigPop(fig); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && lkFP) { e.stopPropagation(); lkFigClose(); } }, true);
   const lkPopsClose = (keep) => document.querySelectorAll("#view-lektion .lk-pop").forEach((p) => { if (p !== keep) p.hidden = true; });
   document.addEventListener("mousedown", (e) => { if (!e.target.closest(".lk-tbw")) lkPopsClose(); });
   function lkCmd(cmd, arg) {
@@ -7097,7 +7182,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   document.getElementById("view-lektion").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); const a = e.target.closest("a[data-doc]");
     if (a) { e.preventDefault(); const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); return; }
-    const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { lkInk(fg); return; }
+    const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { if (Date.now() - lkFigNoClick < 700) { lkFigNoClick = 0; return; } if (lkFP && lkFP.fig === fg) return; lkInk(fg); return; }
     if (!b) return;
     if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
     if (b.id === "lk-docsfold" || b.id === "lk-docsopen") { if (lkIsProj()) LK.pdocs = b.id === "lk-docsopen"; else { LK.docs = b.id === "lk-docsopen"; lkSaveSel(); } lkLayout(); return; }
@@ -7129,7 +7214,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     for (const f of [...e.target.files]) {
       if (!/^image\//.test(f.type)) continue;
       lkStat("Bild wird gespeichert …");
-      try { const r2 = await state.assets.upload(f, { type: f.type }); pg.focus(); document.execCommand("insertHTML", false, '<img src="/_blob/' + r2.id + '" alt=""><p><br></p>'); lkSave(); }
+      try { const r2 = await state.assets.upload(f, { type: f.type }); pg.focus(); document.execCommand("insertHTML", false, lkFigHtml(r2.id) + "<p><br></p>"); lkWrapStray(pg); lkSave(); }
       catch (err) { lkStat("Bild konnte nicht gespeichert werden."); }
     }
     e.target.value = "";
