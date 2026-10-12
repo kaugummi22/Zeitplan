@@ -933,7 +933,9 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-item .bar-mini > i { display: block; height: 100%; background: var(--c-gruen); background: color-mix(in srgb, var(--accent) 55%, var(--c-gruen)); }
 .jp-add { margin: 0 4px 6px; justify-self: start; }
 .jp-box { display: grid; align-content: start; min-height: 0; }
-.jp-grid.eqh .jp-box { height: var(--jph, 560px); overflow: auto; resize: vertical; min-height: 120px; }
+.jp-grid.eqh .jp-box { overflow: auto; resize: vertical; min-height: 100px; }
+.jp-grid:not(.eqh) .jp-box { height: auto !important; }
+.jp-stack { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .jp-grid.eqh .jp-col { align-self: start; }
 .jp-rt { display: inline-flex; align-items: center; gap: 4px; justify-self: end; }
 .jp-car { cursor: pointer; color: var(--muted); padding: 0 3px; border-radius: 4px; font-size: 0.85rem; }
@@ -3108,9 +3110,9 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   try { const up = JSON.parse(localStorage.getItem("zeitplan-upos") || "null"); if (up) { if (["jahresplan", "reihen", "vorlagen"].includes(up.view)) U.view = up.view; if (typeof up.year === "number") U.year = up.year; if (up.sel) U.sel = up.sel; } } catch (e) {}
   // Am Handy beginnt der Unterricht immer mit den Reihen (der Jahresplan bleibt über «Jahresplan» erreichbar)
   if (Math.min(innerWidth, screen.width || innerWidth) < 700) U.view = "reihen";
-  const YEARS = [0, 1, 2, 3, 4, 5];
-  const YEAR_SHORT = ["LZG", "1. SJ", "2. SJ", "3. SJ", "4. SJ", "Anderes"];
-  const DEFAULT_LABELS = ["LZG-Teil", "1. Schuljahr", "2. Schuljahr", "3. Schuljahr", "4. Schuljahr / Maturajahr", "Anderes oder mehrfach möglich"];
+  const YEARS = [0, 1, 2, 3, 4, 5, 6];
+  const YEAR_SHORT = ["LZG", "1. SJ", "2. SJ", "3. SJ", "4. SJ", "Anderes", "Einzellektionen"];
+  const DEFAULT_LABELS = ["LZG-Teil", "1. Schuljahr", "2. Schuljahr", "3. Schuljahr", "4. Schuljahr / Maturajahr", "Anderes oder mehrfach möglich", "Einzellektionen – noch nicht zugeordnet"];
   const LN_SUGGEST = ["Prüfung", "Abgabe", "Vortrag", "Dossier", "Kein Leistungsnachweis"];
   const uEl = document.querySelector("main"); // Unterricht und Klassen teilen sich den Reihen-Editor
   const uTimers = {}, dirtyU = new Set();
@@ -3281,7 +3283,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const allOpen = YEARS.every((y) => PARK_OPEN[y]);
-    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["eqh", "Spalten gleich hoch (scrollbar, unten ziehen)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
+    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["eqh", "Spalten mit fester Höhe (scrollbar, unten rechts ziehen)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
     m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
@@ -3547,7 +3549,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false)); $("#u-legend").hidden = !UP.prio;
     const hideP = UP.hide || {};
     { const nOff = PRIOS.filter(([v]) => hideP[v]).length; $("#u-legend").textContent = nOff ? "Filter (" + (PRIOS.length - nOff) + " von " + PRIOS.length + ") ▾" : "Filter ▾"; }
-    let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + (UP.eqh !== false ? " eqh" : "") + (UP.eye ? " eye-on" : "") + '" style="--jph:' + JPH + 'px">';
+    let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + (UP.eqh !== false ? " eqh" : "") + (UP.eye ? " eye-on" : "") + '">';
+    const stack = [];
     for (const y of YEARS) {
       const multi = (r) => yearsOf(r).length > 1;
       const vis = byYear(y).filter(([, r]) => !(UP.prio && (UP.hide || {})[prioOf(r)]) && stVisible(r))
@@ -3567,31 +3570,34 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
-      h += '<section class="jp-col' + (y === 5 ? " jp-other" : "") + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-box\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
+      let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-box\" data-box=\"" + y + "\" style=\"height:" + jphOf(y) + "px\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
         (UP.prio || !UP.groups ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
         '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button></div>' +
         (p.wichtig && filled(p.wichtig[y]) ? '<div class="jp-sec"><span class="lbl">Wichtig (alt)</span>' + edHtml('data-plan="wichtig.' + y + '" aria-label="Wichtig ' + YEAR_SHORT[y] + '"', p.wichtig[y], "…") + "</div>" : "") +
         (p.fakultativ && filled(p.fakultativ[y]) ? '<div class="jp-sec"><span class="lbl">Fakultativ (alt)</span>' + edHtml('data-plan="fakultativ.' + y + '" aria-label="Fakultativ ' + YEAR_SHORT[y] + '"', p.fakultativ[y], "…") + "</div>" : "") + "</section>";
+      if (y >= 5) stack.push(sec); else h += sec;
     }
+    h += '<div class="jp-stack">' + stack.join("") + "</div>";
     $("#jp-main").innerHTML = h + "</div></div>";
     const eb = $("#u-eye"); if (eb) eb.setAttribute("aria-pressed", String(!!UP.eye));
     jpBoxes();
   }
-  // Gleich hohe Spalten: eine Höhe für alle, unten an einer Spalte ziehen ändert alle
-  let JPH = 560; try { JPH = +localStorage.getItem("zeitplan-jph") || 560; } catch (e) {}
+  // Jede Spalte hat ihre eigene Höhe (unten rechts ziehen); gemerkt pro Gerät
+  let JPHS = {}; try { JPHS = JSON.parse(localStorage.getItem("zeitplan-jphs") || "{}") || {}; } catch (e) {}
+  const jphOf = (y) => JPHS[y] || (y >= 5 ? 280 : 560);
   function jpBoxes() {
     const grid = document.querySelector("#jp-main .jp-grid.eqh"); if (!grid) return;
-    const boxes = [...grid.querySelectorAll(".jp-box")]; let busy = false, t = 0;
+    let t = 0;
     try {
       const ro = new ResizeObserver((ents) => {
-        if (busy) return;
-        for (const en of ents) { const hh = Math.round(en.target.getBoundingClientRect().height); if (hh > 80 && Math.abs(hh - JPH) > 2) { JPH = hh; busy = true; grid.style.setProperty("--jph", JPH + "px"); boxes.forEach((b) => { if (b !== en.target) b.style.height = ""; }); en.target.style.height = ""; busy = false; clearTimeout(t); t = setTimeout(() => { try { localStorage.setItem("zeitplan-jph", String(JPH)); } catch (err) {} }, 300); break; } }
+        for (const en of ents) { const y = en.target.dataset.box, hh = Math.round(en.target.getBoundingClientRect().height); if (hh > 80 && Math.abs(hh - jphOf(+y)) > 2) { JPHS[y] = hh; clearTimeout(t); t = setTimeout(() => { try { localStorage.setItem("zeitplan-jphs", JSON.stringify(JPHS)); } catch (err) {} }, 300); } }
       });
-      boxes.forEach((b) => ro.observe(b));
+      grid.querySelectorAll(".jp-box").forEach((bx) => ro.observe(bx));
     } catch (e) {}
   }
+
   function renderRSide() {
     $("#r-years").innerHTML = YEARS.map((y) => '<button type="button" data-year="' + y + '" aria-pressed="' + (y === U.year) + '">' + YEAR_SHORT[y] + "</button>").join("");
     $("#u-cross").setAttribute("aria-pressed", String(UP.cross));
