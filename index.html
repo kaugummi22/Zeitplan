@@ -722,6 +722,12 @@ html.lk-proj .lk-page .lk-fig::after { content: "✎"; opacity: 0.5; }
 .lk-slide .lk-fig > img:first-child { max-height: 80vh; width: auto; }
 #lk-printbox .lk-fig { break-inside: avoid; }
 .lk-tb.on, .lk-sw.on { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lo-row { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+.lo-row input { font: inherit; font-size: 1rem; color: var(--ink); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.lo-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#lo-od-box .fp-list { max-height: 34vh; margin: 0; }
+#lo-od-box { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+#lo-od-box input { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
 .lk-tb.danger { color: var(--danger, #b3261e); }
 .lk-pick { width: min(1100px, 100%); height: 88vh; grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .lk-pick-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .lk-pick-h h3 { margin: 0; }
@@ -732,11 +738,26 @@ html.lk-proj .lk-page .lk-fig::after { content: "✎"; opacity: 0.5; }
 .lk-pth.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .lk-pth.on::after { content: "✓"; position: absolute; right: 6px; top: 6px; background: var(--accent); color: #fff; border-radius: 999px; width: 24px; height: 24px; display: grid; place-items: center; font-weight: 700; }
 .lk-pick-f { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.lk-inkbar { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.lk-inkbar { display: flex; flex-direction: column; gap: 6px; width: 118px; background: var(--surface); padding: 8px; overflow-y: auto; }
+.lk-ihead { display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.lk-ifold { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 2px 9px; cursor: pointer; color: var(--ink); font: inherit; font-size: 0.9rem; }
+.lk-ilbl { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+.lk-ig { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; justify-items: center; }
+.lk-ig.three { grid-template-columns: 1fr 1fr 1fr; }
+.lk-ig .lk-tb { width: 100%; padding: 6px 4px; text-align: center; }
+.lk-inkbar > .lk-tb, .lk-inkbar > .btn { width: 100%; }
+.lk-igrow { flex: 1; min-height: 6px; }
+.lk-inkbar .lk-sw.ink { width: 32px; height: 32px; }
+.lk-dot { display: inline-block; width: var(--d); height: var(--d); border-radius: 50%; background: currentColor; vertical-align: middle; }
+.lk-iopen { display: none; position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 5; border: 1px solid var(--line); border-left: 0; background: var(--surface); color: var(--ink); border-radius: 0 10px 10px 0; padding: 18px 7px; font-size: 1rem; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.ink-off > .lk-inkbar { display: none; }
+body:has(.lk-inkov) #zl-badge, html.lk-pen #zl-badge { display: none !important; }
+.ink-off > .lk-iopen { display: block; }
 .lk-inkbar .lk-sw.ink { border-radius: 999px; }
 .lk-isz { display: inline-flex; gap: 4px; align-items: center; font-size: 0.85rem; color: var(--muted); }
-.lk-inkov { position: fixed; inset: 0; z-index: 2000; background: #2b2f36; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
-.lk-inkov .lk-inkbar { background: var(--surface); padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.lk-inkov { position: fixed; inset: 0; z-index: 2000; background: #2b2f36; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.lk-inkov > .lk-inkbar { grid-row: 1 / 3; grid-column: 1; border-right: 1px solid var(--line); }
+.lk-inkov > .lk-stage, .lk-inkov > .lk-ihint { grid-column: 2; }
 .lk-stage { display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; }
 .lk-sbox { position: relative; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
 .lk-sbox > img, .lk-sbox > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -745,7 +766,10 @@ html.lk-proj .lk-page .lk-fig::after { content: "✎"; opacity: 0.5; }
 .lk-ihint { color: #c9ced6; text-align: center; font-size: 0.8rem; margin: 4px; }
 .lk-draw { position: absolute; left: 0; top: 0; z-index: 20; touch-action: none; cursor: crosshair; }
 .lk-draw.idle { pointer-events: none; }
-.lk-penbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 950; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); padding: 6px 8px; max-width: calc(100vw - 16px); }
+.lk-penbar { position: fixed; left: 8px; top: 50%; transform: translateY(-50%); z-index: 950; max-height: calc(100vh - 16px); display: flex; }
+.lk-penbar > .lk-inkbar { border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); max-height: calc(100vh - 16px); }
+.lk-penbar.ink-off { left: 0; }
+.lk-penbar > .lk-iopen { position: static; transform: none; }
 html.lk-proj #view-lektion { position: fixed; inset: 0; z-index: 900; overflow: auto; background: var(--bg); padding: 8px; --hdr: 0px; }
 html.lk-proj .overlay { z-index: 1000; }
 html.lk-proj #zl-badge { display: none !important; }
@@ -6762,17 +6786,27 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     T.redraw = redraw; T.unit = unit;
     redraw(); return T;
   }
+  const lkInkOff = () => { try { return localStorage.getItem("zeitplan-inkoff") === "1"; } catch (e) { return false; } };
   function lkInkBar(T, extra) {
     const sw = (k, c, n) => '<button type="button" class="lk-sw ink" data-ink="' + k + '" data-c="' + c + '" title="' + n + '" style="background:' + c + '"></button>';
-    return '<div class="lk-inkbar">' + LK_PENS.map(([c, n]) => sw("pen", c, "Stift " + n)).join("") + '<span class="lk-sep"></span>' + LK_MARKS.map(([c, n]) => sw("mark", c, "Marker " + n)).join("") + '<span class="lk-sep"></span>' +
-      '<button type="button" class="lk-tb" data-ink="erase" title="Radierer">⌫ Radierer</button>' + (extra && extra.text ? '<button type="button" class="lk-tb" data-ink="text" title="Text tippen: auf die Stelle tippen, schreiben, Enter">T Text</button>' : "") +
-      '<span class="lk-sep"></span><button type="button" class="lk-tb" data-isz="1" title="Dünn">●</button><button type="button" class="lk-tb on" data-isz="2" title="Mittel">⬤</button><button type="button" class="lk-tb" data-isz="4" title="Dick"><b>⬤</b></button>' +
-      '<span class="lk-sep"></span><button type="button" class="lk-tb" data-ink="undo" title="Rückgängig">↶</button><button type="button" class="lk-tb" data-ink="clear" title="Alles Geschriebene löschen">Alles löschen</button>' + (extra && extra.tail ? extra.tail : "") + "</div>";
+    return '<div class="lk-inkbar"><div class="lk-ihead"><span>Werkzeuge</span><button type="button" class="lk-ifold" data-ifold title="Werkzeuge ausblenden">◂</button></div>' +
+      '<span class="lk-ilbl">Stift</span><div class="lk-ig">' + LK_PENS.map(([c, n]) => sw("pen", c, "Stift " + n)).join("") + "</div>" +
+      '<span class="lk-ilbl">Marker</span><div class="lk-ig">' + LK_MARKS.map(([c, n]) => sw("mark", c, "Marker " + n)).join("") + "</div>" +
+      '<div class="lk-ig"><button type="button" class="lk-tb" data-ink="erase" title="Radierer">⌫</button>' + (extra && extra.text ? '<button type="button" class="lk-tb" data-ink="text" title="Text tippen: auf die Stelle tippen, schreiben, Enter">T</button>' : "") + "</div>" +
+      '<span class="lk-ilbl">Dicke</span><div class="lk-ig three"><button type="button" class="lk-tb" data-isz="1" title="Dünn"><i class="lk-dot" style="--d:5px"></i></button><button type="button" class="lk-tb on" data-isz="2" title="Mittel"><i class="lk-dot" style="--d:9px"></i></button><button type="button" class="lk-tb" data-isz="4" title="Dick"><i class="lk-dot" style="--d:14px"></i></button></div>' +
+      '<button type="button" class="lk-tb" data-ink="undo" title="Rückgängig">↶ Zurück</button><button type="button" class="lk-tb" data-ink="clear" title="Alles Geschriebene löschen">Alles löschen</button>' + (extra && extra.tail ? extra.tail : "") + "</div>" +
+      '<button type="button" class="lk-iopen" data-iopen title="Werkzeuge zeigen">▸</button>';
   }
-  function lkInkBarWire(bar, T, onOther) {
+  function lkInkBarWire(box, T, onOther, onFold) {
+    const bar = box.querySelector(".lk-inkbar");
     const mark = () => { bar.querySelectorAll("[data-ink]").forEach((b) => b.classList.toggle("on", (b.dataset.c ? b.dataset.c === T.color && b.dataset.ink === T.tool : b.dataset.ink === T.tool))); bar.querySelectorAll("[data-isz]").forEach((b) => b.classList.toggle("on", +b.dataset.isz === T.size)); };
-    bar.addEventListener("click", (e) => {
-      const b = e.target.closest("button"); if (!b) return;
+    const fold = (off) => { box.classList.toggle("ink-off", off); try { localStorage.setItem("zeitplan-inkoff", off ? "1" : "0"); } catch (e) {} if (onFold) onFold(); };
+    box.classList.toggle("ink-off", lkInkOff());
+    box.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b || !box.contains(b)) return;
+      if (b.dataset.ifold != null) { fold(true); return; }
+      if (b.dataset.iopen != null) { fold(false); return; }
+      if (!bar.contains(b)) return;
       if (b.dataset.isz) { T.size = +b.dataset.isz; mark(); return; }
       const k = b.dataset.ink;
       if (k === "undo") T.undo(); else if (k === "clear") T.clear();
@@ -6785,17 +6819,17 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const baseImg = fig.querySelector("img:not(.lk-ink)"), inkImg = fig.querySelector("img.lk-ink"); if (!baseImg) return;
     const ov = document.createElement("div"); ov.className = "lk-inkov";
     const szBtn = (v, l) => '<button type="button" class="lk-tb' + ((fig.classList.contains("sz-" + v) || (!v && !/sz-/.test(fig.className))) ? " on" : "") + '" data-fsz="' + v + '">' + l + "</button>";
-    ov.innerHTML = lkInkBar(null, { text: true, tail: '<span class="lk-sep"></span><span class="lk-isz">Grösse ' + szBtn("", "ganz") + szBtn("3", "¾") + szBtn("2", "½") + szBtn("1", "⅓") + '</span><span style="flex:1"></span><button type="button" class="lk-tb danger" data-fdel title="Dieses Bild aus der Seite entfernen">🗑 Entfernen</button><button type="button" class="lk-tb" data-fx>Abbrechen</button><button type="button" class="btn primary" data-fok>Fertig</button>' }) +
-      '<div class="lk-stage"><div class="lk-sbox"><img alt="" src="' + baseImg.getAttribute("src") + '"><canvas></canvas></div></div><p class="lk-ihint">Mit Stift oder Finger schreiben. Mit dem Apple Pencil bzw. Stift wird die aufliegende Hand ignoriert.</p>';
+    ov.innerHTML = lkInkBar(null, { text: true, tail: '<span class="lk-ilbl">Grösse in der Seite</span><div class="lk-ig">' + szBtn("", "ganz") + szBtn("3", "¾") + szBtn("2", "½") + szBtn("1", "⅓") + '</div><span class="lk-igrow"></span><button type="button" class="lk-tb danger" data-fdel title="Dieses Bild aus der Seite entfernen">🗑 Entfernen</button><button type="button" class="lk-tb" data-fx>Abbrechen</button><button type="button" class="btn primary" data-fok>Fertig</button>' }) +
+      '<div class="lk-stage"><div class="lk-sbox"><img alt=""><canvas></canvas></div></div><p class="lk-ihint">Mit Stift oder Finger schreiben. Mit dem Apple Pencil bzw. Stift wird die aufliegende Hand ignoriert.</p>';
     document.body.appendChild(ov);
     const img = ov.querySelector(".lk-sbox img"), cv = ov.querySelector("canvas"), box = ov.querySelector(".lk-sbox");
-    await new Promise((res) => { if (img.complete && img.naturalWidth) res(); else { img.onload = res; img.onerror = res; } });
-    const nw = img.naturalWidth || 1600, nh = img.naturalHeight || 1200, k = Math.min(1, 2400 / Math.max(nw, nh));
+    const bimg = await lkLoadImg(baseImg.getAttribute("src")); if (bimg) img.src = bimg.src;
+    const nw = (bimg && bimg.naturalWidth) || 1600, nh = (bimg && bimg.naturalHeight) || 1200, k = Math.min(1, 2400 / Math.max(nw, nh));
     cv.width = Math.round(nw * k); cv.height = Math.round(nh * k);
     const fit = () => { const st = ov.querySelector(".lk-stage"), aw = st.clientWidth - 16, ah = st.clientHeight - 16, s = Math.min(aw / cv.width, ah / cv.height); box.style.width = Math.floor(cv.width * s) + "px"; box.style.height = Math.floor(cv.height * s) + "px"; };
     fit(); addEventListener("resize", fit);
     let base = null;
-    if (inkImg) { base = new Image(); base.src = inkImg.getAttribute("src"); await new Promise((res) => { base.onload = res; base.onerror = () => { base = null; res(); }; }); }
+    if (inkImg) base = await lkLoadImg(inkImg.getAttribute("src"));
     let txt = null;
     const T = lkInkSurface(cv, base, {
       onText: (p, e) => {
@@ -6809,7 +6843,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       },
     });
     const close = () => { removeEventListener("resize", fit); ov.remove(); };
-    lkInkBarWire(ov.querySelector(".lk-inkbar"), T, async (b) => {
+    lkInkBarWire(ov, T, async (b) => {
       if (b.dataset.fsz != null) { [...fig.classList].forEach((c) => /^sz-/.test(c) && fig.classList.remove(c)); if (b.dataset.fsz) fig.classList.add("sz-" + b.dataset.fsz); ov.querySelectorAll("[data-fsz]").forEach((x) => x.classList.toggle("on", x === b)); lkSave(); return; }
       if (b.dataset.fx != null) { close(); return; }
       if (b.dataset.fdel != null) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich entfernen?"; return; } const nx = fig.nextSibling; fig.remove(); if (nx && nx.nodeName === "HR") nx.remove(); lkSave(); close(); return; }
@@ -6823,7 +6857,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
           lkSave(); close();
         } catch (err) { console.error(err); b.disabled = false; b.textContent = "Fertig"; alertMsg && alertMsg("Speichern hat nicht geklappt."); }
       }
-    });
+    }, () => setTimeout(fit, 0));
   }
   const alertMsg = (t) => lkStat(t);
   // ---------- Projizieren: dieselbe Seite, ohne Kopfzeile, Leisten nur bei Bedarf ----------
@@ -6844,7 +6878,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const cv = document.createElement("canvas"); cv.className = "lk-draw"; const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = main.scrollWidth, h = main.scrollHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px";
     main.appendChild(cv);
-    const bar = document.createElement("div"); bar.className = "lk-penbar"; bar.innerHTML = lkInkBar(null, { tail: '<span class="lk-sep"></span><button type="button" class="lk-tb" data-pnoff title="Stift aus, Geschriebenes bleibt stehen">Stift aus</button>' });
+    const bar = document.createElement("div"); bar.className = "lk-penbar"; bar.innerHTML = lkInkBar(null, { tail: '<button type="button" class="lk-tb" data-pnoff title="Stift aus, Geschriebenes bleibt stehen">Stift aus</button>' });
     document.getElementById("view-lektion").appendChild(bar);
     const T = lkInkSurface(cv, null, { unit: () => 2 * dpr, off: () => !document.documentElement.classList.contains("lk-pen") });
     lkInkBarWire(bar, T, (b) => { if (b.dataset.pnoff != null) lkPenOff(false); });
@@ -6861,7 +6895,180 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
     acts.innerHTML = '<span class="status" id="lk-status"></span>' + (P
       ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
-      : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Titel und Trennlinien beginnen neue Folien)">Folien</button><button type="button" class="btn ghost" id="lk-print" title="Als PDF speichern oder drucken – zum Weitergeben an die Klasse">PDF / Drucken</button>');
+      : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Titel und Trennlinien beginnen neue Folien)">Folien</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+  }
+  // ---------- Ausgeben: Word, PDF, Drucken; speichern auf dem Gerät oder in einem OneDrive-Ordner ----------
+  const LK_BOXFILL = { gelb: ["FBF0A8", "B89A00"], apricot: ["FBD3B4", "C47A3C"], rost: ["EEBCAB", "B45A40"], rosa: ["F5D0DC", "B0607C"], lila: ["DDD6F0", "7A68B0"], blau: ["C9E3EF", "3F7F9C"], gruen: ["D4E8C4", "5F8A4A"], grau: ["DFE3E8", "7A8594"], weiss: ["FFFFFF", "888888"] };
+  const LK_FS = { 1: 0.75, 2: 0.88, 4: 1.2, 5: 1.45, 6: 1.8, 7: 2.3 };
+  // Bild der App laden (läuft über fetch, damit OneDrive-Dokumente gefunden werden)
+  const lkImgCache = {};
+  async function lkLoadImg(src) {
+    try {
+      if (!lkImgCache[src]) { const r = await fetch(src); if (!r.ok) throw new Error(r.status); lkImgCache[src] = URL.createObjectURL(await r.blob()); }
+      return await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = lkImgCache[src]; });
+    } catch (e) { delete lkImgCache[src]; return null; }
+  }
+  async function lkImgData(fig, img) {
+    // Bild (bei Folien samt Geschriebenem) als JPEG/PNG für Word
+    const load = lkLoadImg;
+    const base = await load(img.getAttribute("src")); if (!base) return null;
+    const ink = fig && fig.querySelector("img.lk-ink") ? await load(fig.querySelector("img.lk-ink").getAttribute("src")) : null;
+    const k = Math.min(1, 2000 / Math.max(base.naturalWidth, base.naturalHeight)), c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(base.naturalWidth * k)); c.height = Math.max(1, Math.round(base.naturalHeight * k));
+    const x = c.getContext("2d"); if (fig) { x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); }
+    x.drawImage(base, 0, 0, c.width, c.height); if (ink) x.drawImage(ink, 0, 0, c.width, c.height);
+    const jpg = !!fig, blob = await lkToBlob(c, jpg ? "image/jpeg" : "image/png", 0.9);
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), ext: jpg ? "jpeg" : "png", w: base.naturalWidth, h: base.naturalHeight };
+  }
+  async function lkDocx(html, title) {
+    await loadScript(JSZIP_URL);
+    const root = document.createElement("div"); root.innerHTML = lkSanitize(html); lkWrapStray(root);
+    const X = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const media = []; let did = 0;
+    const CW = 9638 * 635; // Textbreite A4 mit 2-cm-Rändern, in EMU
+    const drawing = (m, frac) => {
+      did++; const rid = "rIdImg" + did, w = Math.round(m.frac ? CW * m.frac : Math.min(CW, m.w * 9525)), h = Math.round(w * m.h / m.w);
+      media.push({ rid, name: "image" + did + "." + m.ext, bytes: m.bytes });
+      return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + w + '" cy="' + h + '"/><wp:docPr id="' + did + '" name="Bild ' + did + '"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' + did + '" name="Bild ' + did + '"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + w + '" cy="' + h + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+    };
+    const cls = (el, re) => { const c = [...(el.classList || [])].find((x) => re.test(x)); return c || ""; };
+    async function runs(node, f) {
+      let out = "";
+      for (const n of node.childNodes) {
+        if (n.nodeType === 3) {
+          const t = n.nodeValue.replace(/\s+/g, " "); if (!t) continue;
+          out += "<w:r><w:rPr>" + (f.b ? "<w:b/>" : "") + (f.i ? "<w:i/>" : "") + (f.u ? '<w:u w:val="single"/>' : "") + (f.color ? '<w:color w:val="' + f.color + '"/>' : "") + '<w:sz w:val="' + f.sz + '"/><w:szCs w:val="' + f.sz + '"/>' + (f.hl ? '<w:shd w:val="clear" w:color="auto" w:fill="' + f.hl + '"/>' : "") + '</w:rPr><w:t xml:space="preserve">' + X(t) + "</w:t></w:r>";
+        } else if (n.nodeType === 1) {
+          const tg = n.tagName;
+          if (tg === "BR") { out += "<w:r><w:br/></w:r>"; continue; }
+          if (tg === "IMG") { const m = await lkImgData(null, n); if (m) out += drawing(m); continue; }
+          const g = { ...f };
+          if (tg === "B") g.b = true; if (tg === "I") g.i = true; if (tg === "U") g.u = true;
+          const tc = cls(n, /^tc-/), hl = cls(n, /^hl-/);
+          if (tc) { const v = LK_TC[tc.slice(3)]; g.color = tc === "tc-std" ? "" : v ? v.slice(1).toUpperCase() : g.color; }
+          if (hl) { const v = LK_HL[hl.slice(3)]; g.hl = hl === "hl-0" ? "" : v ? v.slice(1).toUpperCase() : g.hl; }
+          out += await runs(n, g);
+        }
+      }
+      return out;
+    }
+    const pPr = (el, extra) => {
+      const al = cls(el, /^al-/), lh = cls(el, /^lh-/);
+      return (extra || "") + (lh ? '<w:spacing w:after="120" w:line="' + ({ "lh-1": 252, "lh-3": 396, "lh-4": 504 }[lh] || 288) + '" w:lineRule="auto"/>' : "") + (al ? '<w:jc w:val="' + ({ "al-c": "center", "al-r": "right", "al-j": "both" }[al]) + '"/>' : "");
+    };
+    const szOf = (el, base) => Math.round(base * (LK_FS[(cls(el, /^fs-/) || "fs-3").slice(3)] || 1));
+    const P = (ppr, inner) => "<w:p>" + (ppr ? "<w:pPr>" + ppr + "</w:pPr>" : "") + inner + "</w:p>";
+    async function block(el, boxPr) {
+      const tg = el.tagName, bp = boxPr || "";
+      if (tg === "HR") return P('<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="BBBBBB"/></w:pBdr><w:spacing w:before="120" w:after="240"/>', "");
+      if (tg === "FIGURE") { const img = el.querySelector("img:not(.lk-ink)"); const m = img && (await lkImgData(el, img)); if (!m) return ""; m.frac = { "sz-3": 0.75, "sz-2": 0.5, "sz-1": 0.33 }[cls(el, /^sz-/)] || 1; return P('<w:jc w:val="center"/><w:spacing w:before="120" w:after="120"/>', drawing(m)); }
+      if (/^H[123]$/.test(tg)) { const lv = tg.slice(1); return P('<w:pStyle w:val="Heading' + lv + '"/>' + pPr(el), await runs(el, { b: true, sz: szOf(el, { 1: 36, 2: 30, 3: 25 }[lv]) })); }
+      if (tg === "UL" || tg === "OL") {
+        let out = "", k = 0;
+        for (const li of el.children) { if (li.tagName !== "LI") continue; k++; const sz = szOf(li, szOf(el, 22));
+          out += P(bp + '<w:ind w:left="720" w:hanging="360"/>' + pPr(li), '<w:r><w:rPr><w:sz w:val="' + sz + '"/></w:rPr><w:t xml:space="preserve">' + (tg === "OL" ? k + ".\t" : "•\t") + "</w:t></w:r>" + (await runs(li, { sz }))); }
+        return out;
+      }
+      if (tg === "DIV" && el.classList.contains("lk-box")) {
+        const c = LK_BOXFILL[(cls(el, /^c-/) || "c-gelb").slice(2)] || LK_BOXFILL.gelb;
+        const pr = '<w:pBdr><w:top w:val="single" w:sz="4" w:space="6" w:color="' + c[0] + '"/><w:left w:val="single" w:sz="24" w:space="8" w:color="' + c[1] + '"/><w:bottom w:val="single" w:sz="4" w:space="6" w:color="' + c[0] + '"/><w:right w:val="single" w:sz="4" w:space="8" w:color="' + c[0] + '"/></w:pBdr><w:shd w:val="clear" w:color="auto" w:fill="' + c[0] + '"/><w:ind w:left="240" w:right="240"/>';
+        const kids = [...el.childNodes];
+        if (kids.some((n) => n.nodeType === 1 && LK_BLK.test(n.tagName))) { const tmp = document.createElement("div"); kids.forEach((n) => tmp.appendChild(n.cloneNode(true))); lkWrapStray(tmp); let out = ""; for (const ch of tmp.children) out += await block(ch, pr); return out; }
+        return P(pr + pPr(el), await runs(el, { sz: szOf(el, 22) }));
+      }
+      if (tg === "DIV" && [...el.children].some((c) => LK_BLK.test(c.tagName))) { let out = ""; for (const ch of el.children) out += await block(ch, bp); return out; }
+      const r = await runs(el, { sz: szOf(el, 22) });
+      return P(bp + pPr(el), r);
+    }
+    let body = P('<w:pStyle w:val="Title"/>', '<w:r><w:t xml:space="preserve">' + X(title) + "</w:t></w:r>");
+    for (const el of root.children) body += await block(el);
+    const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+    const H = (id, name, sz, before) => '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="' + before + '" w:after="80"/>' + (/^Heading/.test(id) ? '<w:outlineLvl w:val="' + (+id.slice(7) - 1) + '"/>' : "") + '</w:pPr><w:rPr><w:b/><w:color w:val="1D2733"/><w:sz w:val="' + sz + '"/></w:rPr></w:style>';
+    const zip = new window.JSZip();
+    zip.file("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+    zip.file("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    zip.file("word/_rels/document.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' + media.map((m) => '<Relationship Id="' + m.rid + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/' + m.name + '"/>').join("") + "</Relationships>");
+    media.forEach((m) => zip.file("word/media/" + m.name, m.bytes));
+    zip.file("word/styles.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="de-CH"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="288" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
+      H("Title", "Title", 44, 0) + H("Heading1", "heading 1", 36, 280) + H("Heading2", "heading 2", 30, 240) + H("Heading3", "heading 3", 25, 200) + "</w:styles>");
+    zip.file("word/document.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + "><w:body>" + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>');
+    return zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  }
+  const LK_MIME = { docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", pdf: "application/pdf" };
+  async function lkMakeFile(fmt, title, say) {
+    const pg = $("#lk-page"); say("Erstellt die Word-Datei …");
+    const docx = await lkDocx(pg ? pg.innerHTML : "", title);
+    if (fmt === "docx") return docx;
+    if (!window.ZLOCAL || !window.ZLOCAL.toPdf) throw new Error("PDF-Datei geht nur mit OneDrive. Bitte «Drucken» und dort «Als PDF speichern» wählen.");
+    say("Microsoft wandelt in ein PDF um …");
+    try { return await window.ZLOCAL.toPdf({ bytes: new Uint8Array(await docx.arrayBuffer()), name: "seite.docx" }); }
+    catch (e) { throw new Error("Microsoft konnte kein PDF erstellen (" + (e.message || e) + "). Bitte «Drucken» und dort «Als PDF speichern» wählen."); }
+  }
+  const lkFname = (t) => (String(t || "Lektion").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim() || "Lektion").slice(0, 120);
+  function lkOutput() {
+    lkSave();
+    const x = lkLessons(LK.kid).find((y) => y.key === LK.sel); if (!x) return;
+    const k = K.klassen[LK.kid] || {}, title = x.u.label + (x.u.phase ? " · " + x.u.phase : "");
+    let fmt = "docx"; try { fmt = localStorage.getItem("zeitplan-lkfmt") || "docx"; } catch (e) {}
+    const Z = window.ZLOCAL;
+    openModal('<h3>Ausgeben</h3><label class="lo-row">Dateiname<input type="text" id="lo-name" value="' + esc(lkFname(title + " – " + (k.name || ""))) + '"></label>' +
+      '<div class="lo-row"><span>Format</span><div class="seg" id="lo-fmt"><button type="button" data-f="docx" aria-pressed="' + (fmt === "docx") + '">Word (.docx)</button><button type="button" data-f="pdf" aria-pressed="' + (fmt === "pdf") + '">PDF</button></div></div>' +
+      '<div class="lo-acts"><button type="button" class="btn primary" id="lo-dev" title="Einen Ordner auf diesem Gerät auswählen">💾 Speichern unter …</button>' + (Z && Z.list ? '<button type="button" class="btn" id="lo-od" title="Einen Ordner in Ihrem OneDrive (0_Planung) auswählen">☁ In OneDrive-Ordner …</button>' : "") + '<button type="button" class="btn ghost" id="lo-print" title="Druckdialog öffnen – dort geht auch «Als PDF speichern»">🖨 Drucken</button></div>' +
+      '<p class="msg" id="lo-msg"></p><div id="lo-od-box" hidden></div><div class="actions"><button type="button" class="btn ghost" id="lo-close">Schliessen</button></div>', (root) => {
+      const msg = root.querySelector("#lo-msg"), say = (t, w) => { msg.className = "msg" + (w ? " warn" : ""); msg.textContent = t; };
+      const name = () => lkFname(root.querySelector("#lo-name").value) + "." + fmt;
+      root.querySelector("#lo-close").onclick = closeModal;
+      root.querySelector("#lo-fmt").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b) return; fmt = b.dataset.f; try { localStorage.setItem("zeitplan-lkfmt", fmt); } catch (e2) {} root.querySelectorAll("#lo-fmt [data-f]").forEach((y) => y.setAttribute("aria-pressed", String(y === b))); });
+      root.querySelector("#lo-print").onclick = () => { closeModal(); lkPrint(); };
+      root.querySelector("#lo-dev").onclick = async () => {
+        let handle = null;
+        if (window.showSaveFilePicker) {
+          try { handle = await window.showSaveFilePicker({ suggestedName: name(), types: [{ description: fmt === "pdf" ? "PDF" : "Word-Dokument", accept: { [LK_MIME[fmt]]: ["." + fmt] } }] }); }
+          catch (e) { if (e && e.name === "AbortError") return; handle = null; }
+        }
+        try {
+          const blob = await lkMakeFile(fmt, title, say);
+          if (handle) { const w = await handle.createWritable(); await w.write(blob); await w.close(); say("✓ Gespeichert: " + handle.name); }
+          else { await state.downloads.save({ filename: name(), data: blob }); say("✓ Heruntergeladen: " + name()); }
+        } catch (err) { console.error(err); say(err.message || String(err), true); }
+      };
+      const od = root.querySelector("#lo-od");
+      if (od) od.onclick = () => {
+        const box = root.querySelector("#lo-od-box"); box.hidden = false; od.disabled = true;
+        let cur = ""; try { cur = localStorage.getItem("zeitplan-lkout") || ""; } catch (e) {}
+        if (!cur || !cur.startsWith(Z.root)) cur = k.folder && k.folder.startsWith(Z.root) ? k.folder : Z.root;
+        const draw = async () => {
+          const rel = cur.slice(Z.root.length).split("\\").filter(Boolean);
+          box.innerHTML = '<p class="fp-crumb">📂 ' + esc(["0_Planung", ...rel].join(" › ")) + '</p><div class="fp-list" id="lo-fl"><span class="msg">Lädt …</span></div><div class="lo-acts"><button type="button" class="btn ghost" id="lo-new">+ Neuer Ordner</button><span style="flex:1"></span><button type="button" class="btn primary" id="lo-here">Hier speichern</button></div>';
+          let names = []; try { names = await Z.list(cur); } catch (e) {}
+          const fl = box.querySelector("#lo-fl"); if (!fl) return;
+          fl.innerHTML = (cur !== Z.root ? '<button type="button" data-fpup>↑ Eine Ebene höher</button>' : "") + names.map((n) => '<button type="button" data-fpin="' + esc(n) + '">📁 ' + esc(n) + "</button>").join("") + (names.length ? "" : '<span class="msg">Keine Unterordner.</span>');
+        };
+        box.onclick = async (e) => {
+          const b = e.target.closest("button"); if (!b) return;
+          if (b.dataset.fpup != null) { cur = cur.split("\\").slice(0, -1).join("\\"); draw(); return; }
+          if (b.dataset.fpin) { cur = cur + "\\" + b.dataset.fpin; draw(); return; }
+          if (b.id === "lo-new") { b.outerHTML = '<input type="text" id="lo-nn" placeholder="Name des Ordners"><button type="button" class="btn" id="lo-nnok">Anlegen</button>'; box.querySelector("#lo-nn").focus(); return; }
+          if (b.id === "lo-nnok") { const nn = lkFname(box.querySelector("#lo-nn").value); if (!nn) return; try { await Z.mkdir(cur + "\\" + nn); cur = cur + "\\" + nn; } catch (err) { say("Ordner konnte nicht angelegt werden.", true); } draw(); return; }
+          if (b.id === "lo-over" || b.id === "lo-here") {
+            const path = cur + "\\" + name();
+            try {
+              if (b.id === "lo-here" && (await Z.exists(path))) { say("«" + name() + "» gibt es in diesem Ordner schon.", true); b.insertAdjacentHTML("afterend", '<button type="button" class="btn danger" id="lo-over">Ersetzen</button>'); return; }
+              b.disabled = true;
+              const blob = await lkMakeFile(fmt, title, say);
+              say("Speichert in OneDrive …");
+              if (b.id === "lo-over") await Z.write(path, blob); else await Z.place(cur, name(), blob, false);
+              try { localStorage.setItem("zeitplan-lkout", cur); } catch (e2) {}
+              say("✓ Gespeichert in " + ["0_Planung", ...path.slice(Z.root.length).split("\\").filter(Boolean)].join(" › "));
+              msg.insertAdjacentHTML("beforeend", ' <button type="button" class="linkbtn" id="lo-open">Öffnen</button>');
+              msg.querySelector("#lo-open").onclick = () => Z.open(path).catch(() => {});
+              const ov = box.querySelector("#lo-over"); if (ov) ov.remove(); b.disabled = false;
+            } catch (err) { console.error(err); b.disabled = false; say(err.message || String(err), true); }
+          }
+        };
+        draw();
+      };
+    });
   }
   const lkPopsClose = (keep) => document.querySelectorAll("#view-lektion .lk-pop").forEach((p) => { if (p !== keep) p.hidden = true; });
   document.addEventListener("mousedown", (e) => { if (!e.target.closest(".lk-tbw")) lkPopsClose(); });
@@ -6906,6 +7113,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     if (b.dataset.lks) { LK.sel = b.dataset.lks; lkSaveSel(); renderLK(); if (document.documentElement.classList.contains("mob")) { const m = $("#lk-main"); if (m) m.scrollIntoView({ block: "start" }); } return; }
     if (b.dataset.lkpast != null) { LK.showPast = !LK.showPast; renderLK(); return; }
     if (b.id === "lk-print") { lkPrint(); return; }
+    if (b.id === "lk-out") { lkOutput(); return; }
     if (b.dataset.lkopen) { const f = lkAllDocs()[b.dataset.lkopen]; if (f) openViewer(f); return; }
     if (b.dataset.lkpop) { const p = b.parentNode.querySelector(".lk-pop"); lkPopsClose(p); p.hidden = !p.hidden; return; }
     const pg = $("#lk-page");
