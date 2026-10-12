@@ -14,7 +14,7 @@
 (function () {
   if (window.claude && window.claude.use) return;
   const CFG = window.ZP_CONFIG || {};
-  const COLS = ["days", "notes", "reihen", "plan", "klassen", "vorlagen"];
+  const COLS = ["days", "notes", "reihen", "plan", "klassen", "vorlagen", "seiten"];
   const BASE = "0_Planung/Zeitplan-App";
   const GRAPH = "https://graph.microsoft.com/v1.0";
   const SCOPES = "openid profile offline_access User.Read Files.ReadWrite";
@@ -572,8 +572,54 @@ html.phone .ldocs { border-left: 0; border-top: 1px dashed var(--line); }
 html.phone .ldocs:empty { display: none; }
 html.phone .r-top, html.phone .r-tools, html.phone .r-meta, html.phone .r-years-pick, html.phone .chips { flex-wrap: wrap; }
 html.phone .r-title { font-size: 1.15rem; flex-basis: 100%; }
-html.phone .tabs button { padding: 8px 14px; }
+html.phone .tabs button { padding: 8px 10px; }
+@media (max-width: 700px) { nav.tabs button { padding-left: 8px; padding-right: 8px; } .top-right { flex-wrap: wrap; gap: 6px; } }
 html.phone .k-vbar { flex-wrap: wrap; gap: 8px; }
+/* ---------- Unterricht: Lektionsseiten ---------- */
+.lk-lbl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+#lk-classes { flex-wrap: wrap; }
+.lk-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px; align-items: start; }
+.lk-side { position: sticky; top: calc(var(--hdr) + 8px); max-height: calc(100vh - var(--hdr) - 24px); overflow: auto; }
+.lk-list { display: grid; gap: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px; }
+.lk-it { display: grid; text-align: left; border: 0; background: none; border-radius: 6px; padding: 6px 8px; font: inherit; color: var(--ink); cursor: pointer; }
+.lk-it:hover { background: var(--accent-soft); }
+.lk-it.on { background: var(--accent); color: var(--surface); }
+.lk-it.today:not(.on) { box-shadow: inset 3px 0 0 var(--accent); }
+.lk-it .lk-d { font-size: 0.74rem; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.lk-it .lk-t { font-weight: 600; }
+.lk-it small { font-size: 0.74rem; opacity: 0.7; }
+.lk-past { justify-self: start; margin: 4px 6px; font-size: 0.82rem; }
+.lk-main { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.lk-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: start; }
+.lk-head h2 { margin: 2px 0; font-family: var(--font-display); font-size: 1.35rem; }
+.lk-meta { color: var(--muted); font-size: 0.85rem; }
+.lk-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.lk-tbar { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.lk-tb { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 4px 9px; font: inherit; font-size: 0.85rem; cursor: pointer; color: var(--ink); }
+.lk-tb:hover { border-color: var(--accent); }
+.lk-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 14px; align-items: start; }
+.lk-page { min-height: 340px; outline: none; font-size: 1.05rem; line-height: 1.55; padding: 6px 4px; overflow-wrap: anywhere; }
+.lk-page:empty::before { content: attr(data-ph); color: var(--muted); }
+.lk-page h2, .lk-show h2 { font-family: var(--font-display); font-size: 1.5em; margin: 0.6em 0 0.3em; }
+.lk-page h3, .lk-show h3 { font-size: 1.15em; margin: 0.6em 0 0.2em; }
+.lk-page img, .lk-show img, #lk-printbox img { max-width: 100%; border-radius: 6px; }
+.lk-box { background: color-mix(in srgb, var(--c-gelb) 60%, var(--surface)); border-left: 4px solid color-mix(in srgb, var(--c-gelb) 60%, var(--ink)); border-radius: 6px; padding: 10px 14px; margin: 8px 0; }
+.lk-doc { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 1px 10px; font-size: 0.9em; cursor: pointer; text-decoration: none; }
+.lk-docs { display: grid; gap: 6px; align-content: start; border-left: 1px solid var(--line); padding-left: 12px; }
+.lk-docs .lbl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.lk-drow { display: flex; gap: 4px; align-items: center; } .lk-drow .doc { flex: 1; min-width: 0; }
+.lk-show { position: fixed; inset: 0; z-index: 100000; background: #fff; color: #111; display: grid; grid-template-rows: 1fr auto; outline: none; }
+.lk-slide { overflow: auto; padding: 4vh 6vw; font-size: clamp(20px, 2.6vw, 40px); line-height: 1.45; }
+.lk-slide .lk-box { background: #fff6c8; border-left-color: #b89a00; }
+.lk-nav { display: flex; justify-content: center; align-items: center; gap: 14px; padding: 8px; background: #f2f2f2; font: 600 16px system-ui, sans-serif; }
+.lk-nav button { border: 1px solid #ccc; background: #fff; border-radius: 8px; padding: 6px 16px; font-size: 18px; cursor: pointer; }
+.lk-nav button[disabled] { opacity: 0.35; }
+#lk-printbox { display: none; }
+@media print { html.lk-printing body > *:not(#lk-printbox) { display: none !important; } html.lk-printing #lk-printbox { display: block; font: 12pt/1.5 system-ui, sans-serif; color: #000; } }
+html.mob .lk-layout, html.phone .lk-layout { grid-template-columns: minmax(0, 1fr); }
+html.mob .lk-side { position: static; max-height: 30vh; }
+html.mob .lk-wrap { grid-template-columns: minmax(0, 1fr); }
+html.mob .lk-docs { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 8px; }
 .dpm-nav { display: flex; align-items: center; gap: 6px; } .dpm-nav span { font-weight: 600; }
 .dpm { display: grid; gap: 10px; margin: 8px 0 14px; }
 .dpm-day { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; display: grid; gap: 6px; }
@@ -1533,7 +1579,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     <div class="top-right">
       <nav class="tabs" role="tablist">
         <button role="tab" aria-selected="true" data-tab="termine">Termine</button>
-        <button role="tab" aria-selected="false" data-tab="unterricht">Unterricht</button>
+        <button role="tab" aria-selected="false" data-tab="unterricht">Planung</button>
+        <button role="tab" aria-selected="false" data-tab="lektion">Unterricht</button>
         <button role="tab" aria-selected="false" data-tab="klassen">Klassen</button>
       </nav>
       <button class="codebtn savebtn" id="saveBtn" type="button" title="Speicherpunkte und Sicherungen – zu einem früheren Stand zurückkehren" aria-label="Speicherpunkte und Sicherungen">💾</button>
@@ -1610,6 +1657,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       </div>
     </div>
     <div id="u-view-vorlagen" hidden><div id="v-main"></div></div>
+  </section>
+
+  <section id="view-lektion" hidden>
+    <div class="bar"><span class="lbl lk-lbl">Klasse</span><div class="seg" role="group" aria-label="Klasse" id="lk-classes"></div><span class="status" id="lk-status"></span></div>
+    <div class="lk-layout">
+      <aside class="lk-side"><div class="lk-list" id="lk-list"></div></aside>
+      <div class="lk-main" id="lk-main"></div>
+    </div>
   </section>
 
   <section id="view-klassen" hidden>
@@ -5344,7 +5399,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     kinds().map((x) => '<option value="' + esc(x) + '"' + (s.kind === x ? " selected" : "") + ">" + esc(x) + "</option>").join("") + '<option value="__neu">+ Neue Art …</option></select>';
   // ---------- Speicherpunkte: vollständige Kopien aller Daten ----------
   // Jede Kopie wird als JSON-Datei abgelegt; das Verzeichnis steht in notes/sicherungen.
-  const SV_COLS = ["days", "notes", "reihen", "plan", "klassen", "vorlagen"];
+  const SV_COLS = ["days", "notes", "reihen", "plan", "klassen", "vorlagen", "seiten"];
   const SV_KEEP = { auto: 20, vorher: 10 };
   let svChain = Promise.resolve();
   const svQueue = (fn) => (svChain = svChain.then(fn, fn));
@@ -6249,17 +6304,144 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
   $("#t-showhol").addEventListener("change", (e) => { spSet({ showHol: e.target.checked }); spSave(0); render(); });
   $("#t-hol").onclick = () => openHolidays("termine");
   $("#t-ser").onclick = () => openSeries();
+  // ================= Unterricht: eine Seite pro Lektion (zum Zeigen, Projizieren und Weitergeben) =================
+  // Gespeichert in «seiten», Schlüssel: Klasse ~ Reihen-Kopie ~ Lektion. Die Unterrichtsplanung selbst kommt hier nicht hinein.
+  const LK = { kid: null, sel: null, page: null, pid: null, t: 0, showPast: false };
+  try { const o = JSON.parse(localStorage.getItem("zeitplan-lk") || "null"); if (o) { LK.kid = o.kid; LK.sel = o.sel; } } catch (e) {}
+  const lkSaveSel = () => { try { localStorage.setItem("zeitplan-lk", JSON.stringify({ kid: LK.kid, sel: LK.sel })); } catch (e) {} };
+  function lkLessons(kid) {
+    const units = classUnits(kid).filter((u) => !u.omitted), sched = classSchedule(kid), first = {}, seen = new Set(), out = [];
+    for (const s2 of sched) if (s2.unit) { const k = s2.unit.rid + "~" + s2.unit.i; if (!first[k]) first[k] = s2; }
+    for (const u of units) { const k = u.rid + "~" + u.i; if (seen.has(k)) continue; seen.add(k); out.push({ key: k, u, slot: first[k] || null }); }
+    return out;
+  }
+  function lkSanitize(html) {
+    const tpl = document.createElement("template"); tpl.innerHTML = html || ""; let out = "";
+    const ok = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "div", UL: "ul", OL: "ol", LI: "li", B: "b", STRONG: "b", I: "i", EM: "i", U: "u", BLOCKQUOTE: "blockquote" };
+    (function walk(node) {
+      for (const n of node.childNodes) {
+        if (n.nodeType === 3) { out += esc(n.nodeValue.replace(/\u00a0/g, " ")); continue; }
+        if (n.nodeType !== 1) continue;
+        const tag = n.tagName;
+        if (tag === "BR") { out += "<br>"; continue; }
+        if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) out += '<img src="' + src + '" alt="">'; continue; }
+        if (tag === "A" && n.dataset.doc) { out += '<a class="lk-doc" data-doc="' + esc(n.dataset.doc) + '" contenteditable="false">📄 ' + esc(n.textContent.replace(/^📄\s*/, "")) + "</a>"; continue; }
+        if (/^(STYLE|SCRIPT|META|TITLE)$/.test(tag)) continue;
+        const t = ok[tag]; const box = tag === "DIV" && /\blk-box\b/.test(n.className || "");
+        if (t) out += "<" + t + (box ? ' class="lk-box"' : "") + ">";
+        walk(n);
+        if (t) out += "</" + t + ">";
+      }
+    })(tpl.content);
+    return out;
+  }
+  function lkDocs(rid, i) {
+    const r = U.reihen[rid]; if (!r) return [];
+    const m = (r.meta || {})[i] || {};
+    return [...(m.files || []), ...(r.mainFiles || [])].filter((f) => f && !f.folder);
+  }
+  function renderLK() {
+    if ($("#view-lektion").hidden) return;
+    const kids = activeKids(); if (!LK.kid || !kids.includes(LK.kid)) LK.kid = kids[0] || null;
+    $("#lk-classes").innerHTML = kids.length ? kids.map((id) => '<button type="button" data-lkk="' + id + '" aria-pressed="' + (id === LK.kid) + '"><i class="kdot f-' + kColor(id) + '"></i> ' + esc(K.klassen[id].name || "Klasse") + "</button>").join("") : "";
+    if (!LK.kid) { $("#lk-list").innerHTML = ""; $("#lk-main").innerHTML = '<div class="empty">Legen Sie zuerst unter «Klassen» eine Klasse an und fügen Sie ihr Reihen hinzu. Hier erscheinen dann die Lektionen der Klasse.</div>'; return; }
+    const list = lkLessons(LK.kid), tk = keyOf(today());
+    if (!LK.sel || !list.some((x) => x.key === LK.sel)) { const nx = list.find((x) => x.slot && x.slot.date >= tk) || list[0]; LK.sel = nx ? nx.key : null; }
+    const past = list.filter((x) => x.slot && x.slot.date < tk), rest = list.filter((x) => !(x.slot && x.slot.date < tk));
+    const row = (x) => { const r = U.reihen[x.u.rid] || {}, d = x.slot ? fromKey(x.slot.date) : null;
+      return '<button type="button" class="lk-it' + (x.key === LK.sel ? " on" : "") + (x.slot && x.slot.date === tk ? " today" : "") + '" data-lks="' + x.key + '"><span class="lk-d">' + (d ? TAGE[d.getDay()].slice(0, 2) + " " + fmt(d).slice(0, 6) : "ohne Datum") + '</span><span class="lk-t">' + esc(x.u.label) + (x.u.phase ? " · " + esc(x.u.phase) : "") + "</span><small>" + esc(r.title || "") + "</small></button>"; };
+    $("#lk-list").innerHTML = (past.length ? '<button type="button" class="linkbtn lk-past" data-lkpast>' + (LK.showPast ? "▾" : "▸") + " Frühere Lektionen (" + past.length + ")</button>" + (LK.showPast ? past.map(row).join("") : "") : "") + (rest.length ? rest.map(row).join("") : '<div class="empty">Keine Lektionen.</div>');
+    lkOpen();
+  }
+  async function lkOpen() {
+    const main = $("#lk-main"), x = lkLessons(LK.kid).find((y) => y.key === LK.sel);
+    if (!x) { main.innerHTML = '<div class="empty">Wählen Sie links eine Lektion.</div>'; return; }
+    const pid = LK.kid + "~" + x.key, r = U.reihen[x.u.rid] || {}, k = K.klassen[LK.kid] || {}, d = x.slot ? fromKey(x.slot.date) : null;
+    if (LK.pid !== pid) { LK.pid = pid; LK.page = null; try { const snap = await state.db.collection("seiten").doc(pid).get(); LK.page = snap.exists ? snap.data() : null; } catch (e) { LK.page = null; } if (LK.pid !== pid) return; }
+    const docs = lkDocs(x.u.rid, x.u.i);
+    const TB = (cmd, arg, label, title) => '<button type="button" class="lk-tb" data-lkcmd="' + cmd + '"' + (arg ? ' data-arg="' + arg + '"' : "") + ' title="' + title + '">' + label + "</button>";
+    main.innerHTML = '<div class="lk-head"><div><div class="lk-meta"><i class="kdot f-' + kColor(LK.kid) + '"></i> ' + esc(k.name || "Klasse") + (d ? " · " + TAGE[d.getDay()] + ", " + fmt(d) + " · " + esc(x.slot.from) : "") + "</div><h2>" + esc(x.u.label) + (x.u.phase ? " · " + esc(x.u.phase) : "") + "</h2><div class=\"lk-meta\">" + esc(r.title || "") + "</div></div>" +
+      '<div class="lk-acts"><button type="button" class="btn primary" id="lk-show">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-print" title="Als PDF speichern oder drucken – zum Weitergeben an die Klasse">PDF / Drucken</button></div></div>' +
+      '<div class="lk-tbar">' + TB("formatBlock", "h2", "Titel", "Grosser Titel – beim Projizieren beginnt hier eine neue Folie") + TB("formatBlock", "h3", "Untertitel", "Untertitel") + TB("formatBlock", "p", "Text", "Normaler Text") +
+      TB("bold", "", "<b>F</b>", "Fett") + TB("italic", "", "<i>K</i>", "Kursiv") + TB("insertUnorderedList", "", "• Liste", "Aufzählung") + TB("insertOrderedList", "", "1. Liste", "Nummerierte Liste") + TB("box", "", "▭ Kasten", "Hervorgehobener Kasten, z. B. Auftrag") +
+      '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
+      '<div class="lk-wrap"><div class="lk-page" id="lk-page" contenteditable="true" data-ph="Schreiben Sie hier die Seite für diese Lektion: Ablauf für die Klasse, Aufträge, Bilder, Links zu Dokumenten …">' + lkSanitize((LK.page || {}).html || "") + "</div>" +
+      '<aside class="lk-docs"><div class="lbl">Dokumente der Lektion</div>' + (docs.length ? docs.map((f) => '<div class="lk-drow"><button type="button" class="doc" data-lkopen="' + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + '</span></button><button type="button" class="btn ghost lk-ins" data-lkins="' + esc(f.id) + '" title="Als Verweis in die Seite einfügen">＋</button></div>').join("") : '<p class="help">Diese Lektion hat keine Dokumente.</p>') + "</aside></div>";
+  }
+  function lkSave() {
+    const pg = $("#lk-page"); if (!pg || !LK.pid) return;
+    const html = lkSanitize(pg.innerHTML), pid = LK.pid; LK.page = { ...(LK.page || {}), html, at: new Date().toISOString() };
+    clearTimeout(LK.t); $("#lk-status").textContent = "Ungespeichert …";
+    LK.t = setTimeout(async () => { try { await state.db.collection("seiten").doc(pid).set({ html, at: new Date().toISOString() }); $("#lk-status").textContent = "Gespeichert"; } catch (e) { $("#lk-status").textContent = "Nicht gespeichert"; } }, 700);
+  }
+  function lkAllDocs() { const out = {}; for (const r of Object.values(U.reihen)) { const add = (a) => (a || []).forEach((f) => { if (f && f.id) out[f.id] = f; }); add(r.files); add(r.mainFiles); Object.values(r.meta || {}).forEach((m) => m && add(m.files)); } return out; }
+  // Projizieren: Seite gross, mit «Titel» als Folienwechsel; Pfeiltasten blättern
+  function lkPresent() {
+    const html = lkSanitize(($("#lk-page") || {}).innerHTML || ""), tmp = document.createElement("div"); tmp.innerHTML = html;
+    const slides = []; let cur = [];
+    [...tmp.childNodes].forEach((n) => { if (n.nodeType === 1 && /^H[12]$/.test(n.tagName) && cur.length) { slides.push(cur); cur = []; } cur.push(n.nodeType === 1 ? n.outerHTML : esc(n.textContent)); });
+    if (cur.length) slides.push(cur); if (!slides.length) slides.push(['<p class="help">Noch leer.</p>']);
+    let i = 0;
+    const ov = document.createElement("div"); ov.className = "lk-show"; ov.tabIndex = 0;
+    const draw = () => { ov.innerHTML = '<div class="lk-slide">' + slides[i].join("") + '</div><div class="lk-nav"><button type="button" data-lkn="-1"' + (i ? "" : " disabled") + '>‹</button><span>' + (i + 1) + " / " + slides.length + '</span><button type="button" data-lkn="1"' + (i < slides.length - 1 ? "" : " disabled") + '>›</button><button type="button" data-lkn="x" title="Beenden (Esc)">✕</button></div>'; };
+    const close = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} ov.remove(); };
+    ov.addEventListener("click", (e) => { const b = e.target.closest("[data-lkn]"); if (b) { if (b.dataset.lkn === "x") close(); else { i = Math.max(0, Math.min(slides.length - 1, i + +b.dataset.lkn)); draw(); } return; } const a = e.target.closest("[data-doc]"); if (a) { const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); } });
+    ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); else if (/Right|Down|PageDown| /.test(e.key)) { if (i < slides.length - 1) { i++; draw(); } e.preventDefault(); } else if (/Left|Up|PageUp/.test(e.key)) { if (i) { i--; draw(); } e.preventDefault(); } });
+    document.addEventListener("fullscreenchange", function fc() { if (!document.fullscreenElement && document.body.contains(ov)) { ov.remove(); document.removeEventListener("fullscreenchange", fc); } });
+    draw(); document.body.appendChild(ov); ov.focus();
+    try { ov.requestFullscreen && ov.requestFullscreen().catch(() => {}); } catch (e) {}
+  }
+  function lkPrint() {
+    const pg = $("#lk-page"); if (!pg) return; lkSave();
+    const head = $("#lk-main .lk-head h2"), box = document.createElement("div"); box.id = "lk-printbox";
+    box.innerHTML = "<h1>" + esc(head ? head.textContent : "Lektion") + "</h1>" + pg.innerHTML;
+    document.body.appendChild(box); document.documentElement.classList.add("lk-printing");
+    const done = () => { box.remove(); document.documentElement.classList.remove("lk-printing"); removeEventListener("afterprint", done); };
+    addEventListener("afterprint", done); setTimeout(() => window.print(), 300);
+  }
+  document.getElementById("view-lektion").addEventListener("click", async (e) => {
+    const b = e.target.closest("button"); const a = e.target.closest("a[data-doc]");
+    if (a) { e.preventDefault(); const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); return; }
+    if (!b) return;
+    if (b.dataset.lkk) { LK.kid = b.dataset.lkk; LK.sel = null; lkSaveSel(); renderLK(); return; }
+    if (b.dataset.lks) { LK.sel = b.dataset.lks; lkSaveSel(); renderLK(); return; }
+    if (b.dataset.lkpast != null) { LK.showPast = !LK.showPast; renderLK(); return; }
+    if (b.id === "lk-show") { lkSave(); lkPresent(); return; }
+    if (b.id === "lk-print") { lkPrint(); return; }
+    if (b.dataset.lkopen) { const f = lkAllDocs()[b.dataset.lkopen]; if (f) openViewer(f); return; }
+    const pg = $("#lk-page");
+    if (b.dataset.lkins && pg) { const f = lkAllDocs()[b.dataset.lkins]; if (!f) return; pg.focus(); document.execCommand("insertHTML", false, '<a class="lk-doc" data-doc="' + esc(f.id) + '" contenteditable="false">📄 ' + esc(f.name) + "</a>&nbsp;"); lkSave(); return; }
+    if (b.dataset.lkcmd && pg) {
+      pg.focus();
+      if (b.dataset.lkcmd === "box") document.execCommand("insertHTML", false, '<div class="lk-box">Auftrag …</div><p><br></p>');
+      else document.execCommand(b.dataset.lkcmd, false, b.dataset.arg ? "<" + b.dataset.arg + ">" : null);
+      lkSave();
+    }
+  });
+  document.getElementById("view-lektion").addEventListener("mousedown", (e) => { if (e.target.closest(".lk-tb")) e.preventDefault(); });
+  document.getElementById("view-lektion").addEventListener("input", (e) => { if (e.target.id === "lk-page") lkSave(); });
+  document.getElementById("view-lektion").addEventListener("change", async (e) => {
+    if (e.target.id !== "lk-img" || !e.target.files.length) return;
+    const pg = $("#lk-page"); if (!pg || !state.assets) return;
+    for (const f of [...e.target.files]) {
+      if (!/^image\//.test(f.type)) continue;
+      $("#lk-status").textContent = "Bild wird gespeichert …";
+      try { const r2 = await state.assets.upload(f, { type: f.type }); pg.focus(); document.execCommand("insertHTML", false, '<img src="/_blob/' + r2.id + '" alt=""><p><br></p>'); lkSave(); }
+      catch (err) { $("#lk-status").textContent = "Bild konnte nicht gespeichert werden."; }
+    }
+    e.target.value = "";
+  });
   function setTab(tab) {
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
-    $("#view-termine").hidden = tab !== "termine"; $("#view-unterricht").hidden = tab !== "unterricht"; $("#view-klassen").hidden = tab !== "klassen";
+    $("#view-termine").hidden = tab !== "termine"; $("#view-unterricht").hidden = tab !== "unterricht"; $("#view-klassen").hidden = tab !== "klassen"; $("#view-lektion").hidden = tab !== "lektion";
     try { localStorage.setItem("zeitplan-tab", tab); } catch (e) {}
     if (window.__fit) window.__fit();
-    if (tab === "termine") autosizeAll(); else if (tab === "unterricht") renderU(); else renderK();
+    if (tab === "termine") autosizeAll(); else if (tab === "unterricht") renderU(); else if (tab === "lektion") renderLK(); else renderK();
   }
   document.querySelectorAll("nav.tabs button").forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
   const hashTab = location.hash.replace("#", "");
   let savedTab = null; try { savedTab = localStorage.getItem("zeitplan-tab"); } catch (e) {}
-  const TABS = ["termine", "unterricht", "klassen"];
+  const TABS = ["termine", "unterricht", "lektion", "klassen"];
   setTab(TABS.includes(hashTab) ? hashTab : TABS.includes(savedTab) ? savedTab : "termine");
 
   // Höhe der Kopfzeile für die klebende Spaltenüberschrift
@@ -6276,8 +6458,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
     };
     const check = () => {
       const sw = Math.min(innerWidth, screen.width || innerWidth), small = sw < 900, phone = sw < 700;
-      const tT = !$("#view-termine").hidden, tU = !$("#view-unterricht").hidden, tK = !$("#view-klassen").hidden;
-      const cal = small && ((tT && state.view === "kalender") || (phone && ((tU && U.view !== "jahresplan") || tK)));
+      const tT = !$("#view-termine").hidden, tU = !$("#view-unterricht").hidden, tK = !$("#view-klassen").hidden, tL = !$("#view-lektion").hidden;
+      const cal = small && ((tT && state.view === "kalender") || tL || (phone && ((tU && U.view !== "jahresplan") || tK)));
       const narrow = small && !cal;
       root.classList.toggle("phone", phone && cal);
       root.classList.toggle("mob", cal);
@@ -6321,7 +6503,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       return;
     }
     let gotReihen = false, gotPlan = false;
-    const uReady = () => { if (gotReihen && gotPlan) { U.loaded = true; renderU(); } };
+    const uReady = () => { if (gotReihen && gotPlan) { U.loaded = true; renderU(); if (!LK.pid) renderLK(); } };
     db.collection("reihen").onSnapshot((snap) => {
       const m = {};
       snap.docs.forEach((d) => { const v = d.data(); if (v) m[d.id] = normReihe(v); });
@@ -6332,7 +6514,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
       const m = {};
       snap.docs.forEach((d) => { const v = d.data(); if (v) m[d.id] = clone(v); });
       for (const k of Object.keys(uTimers)) if (k.startsWith("k:") && K.klassen[k.slice(2)]) m[k.slice(2)] = K.klassen[k.slice(2)];
-      K.klassen = m; K.loaded = true; renderK(); render();
+      K.klassen = m; K.loaded = true; renderK(); render(); if (!LK.pid) renderLK();
     }, (err) => { console.error(err); uStatus("Die Reihen konnten nicht geladen werden. Bitte die Seite neu laden.", true); });
     db.collection("plan").doc("stundenplan").onSnapshot((snap) => {
       if (!uTimers.sp) K.sp = snap.exists ? clone(snap.data()) : null;
