@@ -79,10 +79,13 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
   - Spaltenhöhen einzeln einstellbar.
   - Reihen zwischen Jahren ziehen.
 
+**Kopfzeile am Handy** (unter 700 px): Semper und Datum in einer Zeile, Reiter darunter, − + 💾 ‹› hinter ⋯ (`hdrMore`). Am Handy springen Termine (Kalender) und Klassen (Tagesplan) beim Öffnen zu heute (`jumpTodayNow`). Lange Hilfetexte stehen hinter «ⓘ Hilfe» (`details.hint`).
+
 **Klassen** (`view-klassen`)
 - Klassen mit Wochenstundenplan (Zusatz, z. B. Zimmer) und Reihen-Kopien pro Klasse.
 - Die Lektionen werden automatisch verteilt (`classSchedule`): Verschieben, Tagesplan und Lektionsnamen.
 - Klassenordner in OneDrive.
+- Zeitplan der Klasse: Reihe klein, dann «L1» bzw. eigener Name (`slots[sk].label`, leer = L1), darunter der Titel aus dem Original (Phase, sonst erste Zeile der Planung; änderbar als `topic`). Im Tagesplan-Dialog «Thema im Tagesplan» (`dp`) = eigener Text, leer = Reihe · Lektion.
 - «Als Original übernehmen» schreibt eine Fassung aus der Klasse zurück in die Reihe.
 
 **Unterricht** (`data-tab="lektion"`, `view-lektion`, Code-Präfix `lk`)
@@ -125,6 +128,9 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
   - Karten Timer/Stoppuhr, Zufall, QR-Code, Umfrage (`LKW_DEF`): erscheinen im Hauptfenster und gleichzeitig im Beamer-Fenster, verschiebbar, gross/klein.
   - Auf der Unterrichtsseite auch ohne Projizieren über den Knopf «Werkzeuge ▾» (nur dort; beim Wechsel des Reiters schliessen sich die Karten). QR-Code mit «Als Bild speichern», Zufall mit Klassenwahl oder eigener Liste. Umfrage: QR-Code zur Abstimmungsseite `umfrage/` (Frage und Antworten nur im Link nach #), Stimmen über ntfy.sh (Thema `semper-<zufall>`, Nachricht `runde:nummer`), Live-Balken in Semper und im Beamer-Fenster; «Neue Runde» = neuer QR-Code. Ein Handy stimmt pro Runde einmal ab.
   - Regeln: Namen für den Zufall nur im Browser des Geräts (`semper-namen-<klasse>`), nie in OneDrive. QR-Code wird im Browser erzeugt (qrcode-generator von jsdelivr), nur für öffentliche Links. Umfrage siehe Ausnahme in Regel 6.
+- **Zeigen ▾** (`lkShowPop`): Projizieren, Folien und Beamer in einem Knopf (beim Projizieren bleiben die Einzelknöpfe).
+- **Start der Seite** (`lkAutoPick`): öffnet Klasse und Lektion, die gerade läuft oder als Nächstes kommt; eine eigene Wahl bleibt, bis die nächste Lektion beginnt.
+- Aufklappmenüs bleiben im Bildschirm (`lkPopFit`); am Handy ist die Werkzeugleiste eine Reihe zum Wischen.
 - **Ausgeben** (`lkOutput`):
   - Formate Word (eigener Generator `lkDocx` mit JSZip; Absatz-Eigenschaften in Schema-Reihenfolge über `PPR`) und PDF (Word → Microsoft-Umwandlung).
   - Speichern unter auf dem Gerät (`showSaveFilePicker`) oder in einen OneDrive-Ordner mit Ordnerwahl; ausserdem Drucken.

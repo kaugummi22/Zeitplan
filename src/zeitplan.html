@@ -239,6 +239,13 @@ html.mob .lk-side, html.mob .lk-docs { position: static; max-height: none; }
 html.mob .lk-side .lk-list { max-height: 34vh; overflow: auto; }
 html.mob .lk-rail { writing-mode: horizontal-tb; min-height: 0; padding: 8px 12px; position: static; text-align: left; }
 html.mob .lk-tbar { position: static; }
+/* Handy: Werkzeugleiste in einer Reihe zum Wischen (Menüs schweben darüber) */
+@media (max-width: 700px) {
+  .lk-tbar { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .lk-tbar::-webkit-scrollbar { display: none; }
+  .lk-tbar > * { flex: none; }
+  .lk-tbar .lk-pop { position: fixed; }
+}
 .lk-main { position: relative; }
 .lk-fig { position: relative; display: block; width: fit-content; max-width: 100%; margin: 10px auto; }
 .lk-fig img { display: block; max-width: 100%; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); }
@@ -452,6 +459,9 @@ body.beam .lkw button, body.beam .lkw-ctl, body.beam .lkw input, body.beam .lkw 
 .lkw-opt b { text-align: right; font-variant-numeric: tabular-nums; }
 .lkw-tot { text-align: center; font-size: 0.85em; color: var(--muted); }
 .lk-acts .lkw-menu { left: auto; right: 0; }
+.lk-showmenu { min-width: 260px; }
+.lk-showmenu .lk-tb { display: grid; gap: 1px; padding: 7px 10px; font-weight: 700; }
+.lk-showmenu .lk-tb small { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
 .lkw-poll { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .lkw-pqr { display: grid; gap: 4px; } .lkw-pqr .lkw-qr svg { width: min(30vh, 46vw); } .lkw.big .lkw-pqr .lkw-qr svg { width: min(56vh, 46vw); }
 .lkw-pres { display: grid; gap: 8px; min-width: min(18em, 80vw); flex: 1; }
@@ -696,6 +706,13 @@ html.fit body { touch-action: pan-x pan-y; }
 .empty { padding: 20px 12px; color: var(--muted); text-align: center; }
 .month { padding: 8px 8px 4px; font-family: var(--font-display); font-weight: 700; border-top: 1px solid var(--line); }
 .help { color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+/* lange Hilfetexte erst auf ⓘ hin */
+details.hint { margin-top: 8px; }
+details.hint > summary { list-style: none; display: inline-block; cursor: pointer; color: var(--muted); font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+details.hint > summary::-webkit-details-marker { display: none; }
+details.hint > summary:hover { color: var(--accent); border-color: var(--accent); }
+details.hint[open] > summary { color: var(--accent); background: var(--accent-soft); }
+details.hint > .help { margin-top: 6px; }
 kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--surface); }
 
 @media (max-width: 0px) and (max-width: 760px) {
@@ -1030,6 +1047,9 @@ mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b 
 .sm-row.arch { opacity: 0.7; }
 .sm-h { margin: 14px 0 6px; font-size: 0.9rem; color: var(--muted); }
 @media (max-width: 700px) { .sm-row { grid-template-columns: 1fr 1fr; } .sm-row .rtfield { grid-column: 1 / -1; } }
+.ks-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.ks-rt { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.78rem; color: var(--muted); }
+.ks-line .ks-title { flex: 1; min-width: 60px; margin-left: 0; }
 .ks-title { width: 100%; border: 1px solid transparent; border-radius: 5px; padding: 2px 5px; margin-left: -5px; background: none; font-weight: 700; color: var(--ink); }
 .ks-title:hover, .ks-title:focus { border-color: var(--line); background: var(--bg); }
 .ks-unit .ks-ph { margin-left: 0; }
@@ -1069,6 +1089,13 @@ button.ks-unit:hover b { color: var(--accent); text-decoration: underline; }
 .ks-unit.none { color: var(--muted); font-style: italic; }
 .ks-ph { display: block; font-size: 0.74rem; color: var(--muted); }
 .ks-note { border: 1px solid transparent; border-radius: 5px; padding: 3px 6px; background: none; min-width: 0; }
+/* Handy: Zeitplan der Klasse in zwei Zeilen statt sechs schmalen Spalten */
+@media (max-width: 700px) {
+  .ks-row, .k-sched.no-kind .ks-row { grid-template-columns: 78px minmax(0, 1fr) auto; grid-template-areas: "d u a" "t u k" "n n n"; row-gap: 2px; padding: 6px 8px; }
+  .ks-date { grid-area: d; } .ks-time { grid-area: t; font-size: 0.74rem; } .ks-row > .ks-unit { grid-area: u; } .ks-act { grid-area: a; justify-self: end; }
+  .ks-kind, .ks-kind-ph { grid-area: k; width: auto; max-width: 96px; justify-self: end; } .ks-note { grid-area: n; }
+  .ks-rt { max-width: 50%; }
+}
 .ks-note:hover, .ks-note:focus { border-color: var(--line); background: var(--bg); }
 .ks-skip { font-size: 0.8rem; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
 @media (max-width: 0px) and (max-width: 760px) { .ks-row, .k-sched.no-kind .ks-row { grid-template-columns: 70px minmax(0, 1fr); } .ks-note, .ks-skip { grid-column: 1 / -1; } .ks-time { grid-column: 2; grid-row: 1; justify-self: end; } }
@@ -1416,6 +1443,22 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 nav.tabs button { font-size: calc(15px * var(--hs)); padding: calc(6px * var(--hs)) calc(15px * var(--hs)); }
 header.top .codebtn { width: calc(34px * var(--hs)); height: calc(34px * var(--hs)); font-size: calc(15px * var(--hs)); }
 header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var(--hs)); }
+/* Handy: Kopfzeile schmal – Semper und Datum in einer Zeile, Reiter darunter über die ganze Breite, übrige Knöpfe hinter ⋯ */
+.hdr-tools { display: contents; }
+.hdr-morebtn { display: none !important; }
+@media (max-width: 700px) {
+  .top-inner { padding-block: calc(8px * var(--hs)) calc(6px * var(--hs)); gap: 6px; }
+  .brand { width: 100%; align-items: center; }
+  .brand h1 { font-size: calc(1.25rem * var(--hs)); }
+  .brand .today { font-size: calc(13px * var(--hs)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .hdr-morebtn { display: grid !important; margin-left: auto; flex: none; font-size: 18px !important; font-weight: 700; }
+  .top-right { width: 100%; }
+  nav.tabs { flex: 1; display: flex; }
+  nav.tabs button { flex: 1 1 auto; min-width: 0; font-size: calc(14px * var(--hs)); padding-left: 2px !important; padding-right: 2px !important; }
+  .hdr-tools { display: none; }
+  html.hdr-open .hdr-tools { display: flex; align-items: center; gap: 8px; position: absolute; right: 12px; top: calc(100% - 2px); z-index: 40; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+  .top-inner { position: relative; }
+}
 .hdr-size { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
 .hdr-size button { border: 0; background: none; color: var(--muted); font-weight: 700; font-size: calc(14px * var(--hs)); width: calc(28px * var(--hs)); height: calc(32px * var(--hs)); padding: 0; line-height: 1; }
 .hdr-size button + button { border-left: 1px solid var(--line); }
@@ -1426,7 +1469,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 
 <header class="top" id="hdr">
   <div class="top-inner">
-    <div class="brand"><h1>Semper</h1><span class="today" id="todayLabel"></span></div>
+    <div class="brand"><h1>Semper</h1><span class="today" id="todayLabel"></span><button class="codebtn hdr-morebtn" id="hdrMore" type="button" title="Weitere Knöpfe: Grösse der Kopfzeile, Sicherungen, Code" aria-label="Weitere Knöpfe" aria-expanded="false">⋯</button></div>
     <div class="top-right">
       <nav class="tabs" role="tablist">
         <button role="tab" aria-selected="true" data-tab="termine">Termine</button>
@@ -1434,9 +1477,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         <button role="tab" aria-selected="false" data-tab="klassen">Klassen</button>
         <button role="tab" aria-selected="false" data-tab="lektion">Unterricht</button>
       </nav>
+      <div class="hdr-tools" id="hdrTools">
       <div class="hdr-size" role="group" aria-label="Grösse der Kopfzeile"><button type="button" id="hdrMinus" title="Kopfzeile verkleinern" aria-label="Kopfzeile verkleinern">−</button><button type="button" id="hdrPlus" title="Kopfzeile vergrössern" aria-label="Kopfzeile vergrössern">+</button></div>
       <button class="codebtn savebtn" id="saveBtn" type="button" title="Speicherpunkte und Sicherungen – zu einem früheren Stand zurückkehren" aria-label="Speicherpunkte und Sicherungen">💾</button>
       <button class="codebtn" id="codeBtn" type="button" title="Code der Seite ansehen und ändern" aria-label="Code der Seite ansehen und ändern"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4 1.5 8l4 4M10.5 4l4 4-4 4"/></svg></button>
+      </div>
     </div>
   </div>
 </header>
@@ -1459,7 +1504,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       <div>
         <div class="list" id="list"></div>
         <div class="cal" id="cal" hidden></div>
-        <p class="help">Doppelklick auf ein Feld zum Schreiben (oder Feld anklicken und lostippen). <kbd>Alt</kbd> + <kbd>Enter</kbd> macht eine neue Zeile, <kbd>Enter</kbd> springt zum nächsten Tag, <kbd>Esc</kbd> beendet das Schreiben. Markierter Text lässt sich fett, kursiv oder unterstrichen machen. Beim Schreiben erscheint oben rechts ein Plus: ein Klick darauf öffnet das Feld gross für Details, Links und Dokumente. Ein Punkt oben rechts zeigt, dass dort schon etwas steht. Am rechten Rand eines Feldes können Sie ziehen, um es breiter zu machen; das Nachbarfeld wird dabei schmaler, sein Inhalt bleibt erhalten.</p>
+        <details class="hint"><summary title="Hilfe anzeigen">ⓘ Hilfe</summary><p class="help">Doppelklick auf ein Feld zum Schreiben (oder Feld anklicken und lostippen). <kbd>Alt</kbd> + <kbd>Enter</kbd> macht eine neue Zeile, <kbd>Enter</kbd> springt zum nächsten Tag, <kbd>Esc</kbd> beendet das Schreiben. Markierter Text lässt sich fett, kursiv oder unterstrichen machen. Beim Schreiben erscheint oben rechts ein Plus: ein Klick darauf öffnet das Feld gross für Details, Links und Dokumente. Ein Punkt oben rechts zeigt, dass dort schon etwas steht. Am rechten Rand eines Feldes können Sie ziehen, um es breiter zu machen; das Nachbarfeld wird dabei schmaler, sein Inhalt bleibt erhalten.</p></details>
       </div>
       <aside class="side">
         <div class="side-rz" data-side="termine" title="Ziehen, um die Spalte breiter oder schmaler zu machen" aria-hidden="true"></div>
@@ -1859,15 +1904,28 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     return '<div class="tlessons">' + items.map((x) => { const k = K.klassen[x.kid], nm = (k && k.name) || "Klasse";
       return '<button type="button" class="tl f-' + kColor(x.kid) + (x.free ? " skip" : "") + '" data-tgo="' + x.kid + "|" + x.sk + '" title="' + esc(nm + " " + x.from + "–" + x.to + (x.free ? " (fällt aus)" : "") + " · zur Klasse") + '"><b>' + esc(x.from) + "</b> " + esc(nm) + "</button>"; }).join("") + "</div>";
   }
+  // Handy: beim Öffnen von Termine oder Klassen zum heutigen Tag springen (einmal pro Wechsel)
+  let jumpToday = { termine: true, klassen: true };
+  function jumpTodayNow() {
+    const R = document.documentElement; if ((!R.classList.contains("mob") && !R.classList.contains("phone")) || !K.loaded || !U.loaded) return;
+    const tab = !$("#view-termine").hidden ? "termine" : !$("#view-klassen").hidden ? "klassen" : ""; if (!tab || !jumpToday[tab]) return;
+    const sel = tab === "termine" ? ["#cal .cal-d.is-today", "#list .day.is-today"] : ["#k-sp .dpm-day.is-today", "#k-sp .dpm-day:not(.past)"];
+    let el = null; for (const q of sel) { el = document.querySelector(q); if (el && el.offsetParent) break; el = null; }
+    if (!el) return;
+    jumpToday[tab] = false;
+    const hh = ($("#hdr") || {}).offsetHeight || 0, y = el.getBoundingClientRect().top + scrollY - hh - 10;
+    if (y > 40) scrollTo({ top: y, behavior: "auto" });
+  }
   function render() {
     if (editingInList()) { pendingRender = true; return; }
+    queueMicrotask(jumpTodayNow);
     try { curLB = lessonsByDay(); } catch (e) { curLB = {}; }
     try { const sp = spGet(); $("#t-show").checked = sp.show; $("#t-showhol").checked = sp.showHol; } catch (e) {}
     pendingRender = false;
     const t = today();
     $("#todayLabel").textContent = TAGE[t.getDay()] + ", " + fmt(t) + " · KW " + isoWeek(t);
     const isCal = state.view === "kalender";
-    $("#list").hidden = isCal; $("#cal").hidden = !isCal; { const hp = $("#cal").nextElementSibling; if (hp && hp.classList.contains("help")) hp.hidden = isCal; }
+    $("#list").hidden = isCal; $("#cal").hidden = !isCal; { const hp = $("#cal").nextElementSibling; if (hp && (hp.classList.contains("help") || hp.classList.contains("hint"))) hp.hidden = isCal; }
     if (isCal) { renderCal(); return; }
     let html = HEAD;
     if (state.view === "kommend") {
@@ -3883,7 +3941,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const box = $("#v-main"); if (!box) return;
     const a = document.activeElement; if (a && box.contains(a) && a.id === "v-q") { vRenderList(); return; }
     const canUp = !!(state.db && state.assets);
-    box.innerHTML = '<div class="v-head"><div><h2>Vorlagen</h2><p class="help">Ihre Unterrichtsvorlagen, geordnet nach Schuljahr und Reihe. Jede Datei wird hier als Kopie gespeichert – zusätzlich zum Original in OneDrive. Beim Abgleichen werden neue und geänderte Dateien übernommen; ältere Fassungen bleiben erhalten, und nichts wird gelöscht, nur weil es im Ordner fehlt.</p></div>' +
+    box.innerHTML = '<div class="v-head"><div><h2>Vorlagen</h2><details class="hint"><summary title="Hilfe anzeigen">ⓘ Hilfe</summary><p class="help">Ihre Unterrichtsvorlagen, geordnet nach Schuljahr und Reihe. Jede Datei wird hier als Kopie gespeichert – zusätzlich zum Original in OneDrive. Beim Abgleichen werden neue und geänderte Dateien übernommen; ältere Fassungen bleiben erhalten, und nichts wird gelöscht, nur weil es im Ordner fehlt.</p></details></div>' +
       (canUp ? '<div class="v-tools"><label class="btn primary">OneDrive-Ordner abgleichen …<input type="file" id="v-dir" webkitdirectory directory multiple hidden></label>' +
         '<label class="btn ghost">+ Dateien hinzufügen<input type="file" id="v-add" multiple hidden accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,.csv,.json"></label>' +
         '<button type="button" class="btn ghost" id="v-zip">Alle als ZIP für OneDrive</button></div>' : '<p class="msg warn">Vorlagen speichern geht nur in der Claude-Ansicht.</p>') + "</div>" +
@@ -4038,7 +4096,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<select id="r-rel-add" aria-label="Andere Reihe verknüpfen"><option value="">+ Reihe verknüpfen …</option>' + relOptions(r) + "</select>" +
       '<input type="text" id="r-relnote" data-rf="relnote" value="' + esc(r.relnote || "") + '" placeholder="Notiz, z. B. baut auf Reihe XY auf"></div>' +
       '<div class="r-foot"><button class="btn ghost danger" type="button" id="r-del" title="' + (r.klasse ? "Diese Kopie aus der Klasse entfernen" : "Reihe löschen – es wird nochmals nachgefragt") + '">' + (r.klasse ? "Aus Klasse entfernen" : "Reihe löschen") + "</button></div>" +
-      '<p class="help">Doppelklick auf ein Feld zum Schreiben, <kbd>Alt</kbd> + <kbd>Enter</kbd> für eine neue Zeile. Beim Schreiben erscheint oben rechts ein Plus für die ausführliche Planung und Dokumente. Die Linie zwischen zwei Lektionen anklicken, um sie als Doppellektion zu verbinden oder zu einem Feld zusammenzulegen. Rechtsklick auf eine angewählte Lektion für die Farbe. Die Phase unter L1, L2 … können Sie direkt anpassen.</p>';
+      '<details class="hint"><summary title="Hilfe anzeigen">ⓘ Hilfe</summary><p class="help">Doppelklick auf ein Feld zum Schreiben, <kbd>Alt</kbd> + <kbd>Enter</kbd> für eine neue Zeile. Beim Schreiben erscheint oben rechts ein Plus für die ausführliche Planung und Dokumente. Die Linie zwischen zwei Lektionen anklicken, um sie als Doppellektion zu verbinden oder zu einem Feld zusammenzulegen. Rechtsklick auf eine angewählte Lektion für die Farbe. Die Phase unter L1, L2 … können Sie direkt anpassen.</p></details>';
   }
 
   function saveReihe(id, delay) {
@@ -4972,7 +5030,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     }
     return map;
   }
-  const unitText = (s) => s.hol ? s.hol : s.skip ? "fällt aus" : s.ins != null ? s.ins : s.unit ? (s.custom != null ? s.custom : s.unit.title + " · " + s.unit.label) : "noch nichts geplant";
+  const unitOrig = (u) => { if (u.phase) return u.phase; const r = U.reihen[u.rid]; if (!r || typeof u.i !== "number") return ""; const t = htmlToPlain((r.lessons || [])[u.i] || "").trim().split(/\n/)[0] || ""; return t.length > 70 ? t.slice(0, 68) + " …" : t; };
+  const unitPart = (u) => u.label + (u.s > 1 ? " (" + (u.part + 1) + "/" + u.s + ")" : "");
+  const unitName = (s) => { const c = s.custom; if (c == null) return unitPart(s.unit); const pre = s.unit.title + " · "; return c.startsWith(pre) ? c.slice(pre.length) : c; };
+  const unitText = (s) => s.hol ? s.hol : s.skip ? "fällt aus" : s.ins != null ? s.ins : s.unit ? (s.custom != null && !s.custom.startsWith(s.unit.title + " · ") && s.custom.startsWith(s.unit.title) ? s.custom : s.unit.title + " · " + unitName(s)) : "noch nichts geplant";
 
   // ---------- Darstellung: Tagesplan (Daten links, Lektionszeiten oben, scrollbar) ----------
   try { K.kview = localStorage.getItem("zeitplan-kview") === "woche" ? "woche" : "tag"; } catch (e) { K.kview = "tag"; }
@@ -5088,8 +5149,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const orig = s.sk.split("|"), osem = semOf(orig[0]) || sem, ot = osem.times[+orig[1]] || ["", ""], meta = (k.slots || {})[s.sk] || {};
       const lessonTxt = s.unit ? s.unit.title + " · " + s.unit.label + (s.unit.s > 1 ? " (" + (s.unit.part + 1) + "/" + s.unit.s + ")" : "") : "";
       body = '<p class="msg"><span class="sq f-' + kColor(s.kid) + '"></span> <b>' + esc(k.name || "Klasse") + "</b>" + (s.moved ? " · verschoben, eigentlich " + esc(TAGE[fromKey(orig[0]).getDay()] + ", " + fmt(fromKey(orig[0])) + " · " + ot[0] + "–" + ot[1]) : " laut Stundenplan") + "</p>" +
-        (s.unit || s.ins != null ? '<label class="field"><span class="lbl">Im Tagesplan anzeigen <small>(kurze Notiz für Sie; leer = Titel der Lektion)</small></span><input type="text" id="dp-short" value="' + esc(s.dp || "") + '" placeholder="' + esc(unitText(s)) + '"></label>' : "") +
-        (s.unit ? '<label class="field"><span class="lbl">Lektion an diesem Tag <small>(leer = ' + esc(lessonTxt) + ")</small></span><input type=\"text\" id=\"dp-label\" value=\"" + esc(meta.label != null ? meta.label : "") + '" placeholder="' + esc(lessonTxt) + '"></label>' : "") +
+        (s.unit || s.ins != null ? '<label class="field"><span class="lbl">Thema im Tagesplan <small>(Ihr eigener Text; leer = Reihe und Lektion)</small></span><input type="text" id="dp-short" value="' + esc(s.dp || "") + '" placeholder="' + esc(unitText(s)) + '"></label>' : "") +
+        (s.unit ? '<label class="field"><span class="lbl">Name der Lektion <small>(leer = ' + esc(s.unit ? unitPart(s.unit) : "") + ")</small></span><input type=\"text\" id=\"dp-label\" value=\"" + esc(meta.label != null ? unitName(s) : "") + '" placeholder="' + esc(s.unit ? unitPart(s.unit) : "") + '"></label>' : "") +
         '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="4" placeholder="z. B. Prüfung zurückgeben, Szene 3 lesen …">' + esc(s.note || "") + "</textarea></label>" +
         '<div class="dp-grid"><label class="field"><span class="lbl">Zeit</span><span class="dp-time"><input type="text" id="dp-from" inputmode="numeric" maxlength="5" value="' + esc(s.from) + '"> – <input type="text" id="dp-to" inputmode="numeric" maxlength="5" value="' + esc(s.to) + '"></span></label>' +
         '<label class="field"><span class="lbl">Verschieben auf</span><span class="dp-time"><input type="date" id="dp-date" value="' + esc(s.date) + '"><select id="dp-p">' + (semOf(s.date) || sem).times.map((x, q) => '<option value="' + q + '"' + (q === s.p ? " selected" : "") + ">" + (q + 1) + ". " + esc(x[0]) + "</option>").join("") + "</select></span></label></div>" +
@@ -5116,7 +5177,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           const fr = tm(v("#dp-from"), ""), to = tm(v("#dp-to"), "");
           const patch = { note, skip: root.querySelector("#dp-skip").checked, from: fr && fr !== stdT[0] ? fr : "", to: to && to !== stdT[1] ? to : "" };
           if (v("#dp-short") != null) patch.dp = v("#dp-short");
-          if (v("#dp-label") != null) patch.label = v("#dp-label") || null;
+          if (v("#dp-label") != null) patch.label = v("#dp-label") && v("#dp-label") !== unitPart(s.unit) ? v("#dp-label") : null;
           kSlotSet(s.sk, patch, s.kid);
           if (pos !== s.at && v("#dp-date")) { const msg = kMove(s, pos); if (msg) { kStatus(msg, true); } }
         }
@@ -5224,12 +5285,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     h += '<div class="k-sched' + (UP.kind === false ? " no-kind" : "") + '">' + (rows.length ? rows.map((s) => {
       const d = fromKey(s.date), w = isoWeek(d);
       const wk = w !== lastW ? '<div class="ks-week">KW ' + w + "</div>" : ""; lastW = w;
-      const topic = '<input type="text" class="ks-topic" data-ktopic="' + s.sk + '" value="' + esc(s.topic != null ? s.topic : s.unit ? s.unit.phase || "" : "") + '" placeholder="Themen …" aria-label="Themen">';
+      const topic = '<input type="text" class="ks-topic" data-ktopic="' + s.sk + '" value="' + esc(s.topic != null ? s.topic : s.unit ? unitOrig(s.unit) : "") + '" placeholder="Titel / Thema …" aria-label="Titel der Lektion" title="Titel der Lektion – kommt aus der Originalreihe, hier änderbar">';
       let main;
       if (s.hol) main = '<div class="ks-unit"><span class="none hol">' + esc(s.hol) + "</span></div>";
       else if (s.skip) main = '<div class="ks-unit"><span class="none">fällt aus</span></div>';
       else if (s.ins != null) main = '<div class="ks-unit"><input type="text" class="ks-title ins" data-kins="' + s.sk + '" value="' + esc(s.ins) + '" aria-label="Eingeschobene Lektion">' + topic + "</div>";
-      else if (s.unit) main = '<div class="ks-unit"><input type="text" class="ks-title" data-klabel="' + s.sk + '" value="' + esc(s.custom != null ? s.custom : s.unit.title + " · " + s.unit.label + (s.unit.s > 1 ? " (" + (s.unit.part + 1) + "/" + s.unit.s + ")" : "")) + '" aria-label="Lektion"' + (s.custom != null ? ' title="Eigentlich: ' + esc(s.unit.title + " " + s.unit.label) + '"' : "") + ">" + topic + "</div>";
+      else if (s.unit) main = '<div class="ks-unit"><span class="ks-line"><span class="ks-rt">' + esc(s.unit.title) + '</span><input type="text" class="ks-title" data-klabel="' + s.sk + '" data-kdef="' + esc(unitPart(s.unit)) + '" value="' + esc(unitName(s)) + '" placeholder="' + esc(unitPart(s.unit)) + '" aria-label="Name der Lektion (leer = ' + esc(unitPart(s.unit)) + ')" title="Name der Lektion in dieser Klasse – leer lassen für ' + esc(unitPart(s.unit)) + '"></span>' + topic + "</div>";
       else main = '<div class="ks-unit"><input type="text" class="ks-title empty" data-kins="' + s.sk + '" value="" placeholder="noch nichts geplant – hier schreiben" aria-label="Lektion eintragen"></div>';
       return wk + '<div class="ks-row' + (slotFree(s) ? " skip" : "") + (s.ins != null ? " ins" : "") + (s.kind === "Prüfung" ? " pruef" : s.kind ? " kind" : "") + (s.date === todayK ? " today" : "") + '" data-row="' + s.sk + '"><span class="ks-date">' + WD[d.getDay()] + " " + pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + (s.special ? '<span class="ks-special">' + esc(s.special) + "</span>" : "") + "</span>" +
         '<span class="ks-time' + (s.moved || s.ownTime ? " own" : "") + '"' + (s.moved ? ' title="Nur diese Stunde verschoben – Stundenplan unverändert"' : "") + ">" + esc(s.from) + "–" + esc(s.to) + (s.moved ? " ↷" : "") + "</span>" + main +
@@ -5731,7 +5792,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function renderK() {
     if (kEl.hidden) return;
     if (kEditing()) { K.pending = true; return; }
-    K.pending = false;
+    K.pending = false; queueMicrotask(jumpTodayNow);
     $("#k-sp").innerHTML = kViewSeg() + (K.kview === "woche" ? spHtml() : isPhone() ? dayPlanPhoneHtml() : dayPlanHtml());
     if (K.kview !== "woche" && !isPhone()) dpAfter();
     const list = kSorted(false), arch = kSorted(true);
@@ -6087,7 +6148,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (nt.dataset.knote) kSlotSet(nt.dataset.knote, { note: nt.value });
       else if (nt.dataset.kins) kSlotSet(nt.dataset.kins, { ins: nt.value });
       else if (nt.dataset.ktopic) kSlotSet(nt.dataset.ktopic, { topic: nt.value });
-      else kSlotSet(nt.dataset.klabel, { label: nt.value });
+      else { const v = nt.value.trim(); kSlotSet(nt.dataset.klabel, { label: !v || v === nt.dataset.kdef ? null : v }); }
       return;
     }
     const t = e.target.closest && e.target.closest("[data-kf]"); if (!t) return;
@@ -6277,9 +6338,27 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   const lkIsProj = () => document.documentElement.classList.contains("lk-proj");
   function lkLayout() { const L = $("#lk-layout"), P = lkIsProj(); if (!L) return; L.classList.toggle("side-off", !(P ? LK.pside : LK.side)); L.classList.toggle("docs-off", !(P ? LK.pdocs : LK.docs)); const v = $("#view-lektion"); if (v) v.style.setProperty("--pz", LK.pz || 1.35); }
+  // Beim Öffnen der Unterrichtsseite: Klasse und Lektion, die gerade läuft oder als Nächstes kommt.
+  // Eine eigene Wahl bleibt, bis die nächste Lektion beginnt.
+  LK.wantAuto = true;
+  function lkNowSlot() {
+    const tk = keyOf(today()), n = new Date(), hm = pad(n.getHours()) + ":" + pad(n.getMinutes()); let best = null;
+    for (const kid of activeKids()) for (const s2 of classSchedule(kid)) {
+      if (!s2.unit || s2.date < tk || (s2.date === tk && s2.to < hm)) continue;
+      if (!best || s2.date < best.date || (s2.date === best.date && s2.from < best.from)) best = { kid, key: s2.unit.rid + "~" + s2.unit.i, at: s2.date + "|" + s2.p + "|" + kid, date: s2.date, from: s2.from };
+    }
+    return best;
+  }
+  function lkAutoPick() {
+    if (!LK.wantAuto || !K.loaded || !U.loaded) return;
+    LK.wantAuto = false;
+    const nw = lkNowSlot(); if (!nw || nw.at === LK.autoAt) return;
+    LK.autoAt = nw.at; LK.kid = nw.kid; LK.sel = nw.key; LK.scrolled = false; lkSaveSel();
+  }
   function renderLK() {
     if ($("#view-lektion").hidden) return;
     lkLayout();
+    lkAutoPick();
     const kids = activeKids(); if (!LK.kid || !kids.includes(LK.kid)) LK.kid = kids[0] || null;
     $("#lk-classes").innerHTML = kids.length ? kids.map((id) => '<button type="button" class="lk-k" data-lkk="' + id + '" aria-pressed="' + (id === LK.kid) + '"><i class="kdot f-' + kColor(id) + '"></i> ' + esc(K.klassen[id].name || "Klasse") + "</button>").join("") : '<p class="help">Noch keine Klassen.</p>';
     if (!LK.kid) { $("#lk-list").innerHTML = ""; $("#lk-layout").classList.add("nodocs"); $("#lk-main").innerHTML = '<div class="empty">Legen Sie zuerst unter «Klassen» eine Klasse an und fügen Sie ihr Reihen hinzu. Hier erscheinen dann die Lektionen der Klasse.</div>'; return; }
@@ -6299,7 +6378,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     return '<div class="lk-shead"><span class="lbl">Dokumente</span><button type="button" class="lk-fold" id="lk-docsfold" title="Dokumente einklappen">▸</button></div>' +
       (docs.length ? docs.map(row).join("") : '<p class="help">Diese Lektion hat keine eigenen Dokumente.</p>') +
       (more.length ? "<details><summary>Materialsammlung der Reihe (" + more.length + ")</summary><div>" + more.map(row).join("") + "</div></details>" : "") +
-      '<p class="help">Klick öffnet das Dokument; dort «Bearbeiten» oder «In Word bearbeiten». 🖼 holt einzelne Folien oder Seiten als Bild in die Seite – ein Klick auf das Bild, und Sie können hineinschreiben. ＋ setzt einen Verweis.</p>';
+      '<details class="hint"><summary title="Hilfe anzeigen">ⓘ Hilfe</summary><p class="help">Klick öffnet das Dokument; dort «Bearbeiten» oder «In Word bearbeiten». 🖼 holt einzelne Folien oder Seiten als Bild in die Seite – ein Klick auf das Bild, und Sie können hineinschreiben. ＋ setzt einen Verweis.</p></details>';
   }
   async function lkOpen() {
     const main = $("#lk-main"), L = $("#lk-layout"), x = lkLessons(LK.kid).find((y) => y.key === LK.sel);
@@ -6749,6 +6828,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function lkPenResume() { if (lkPen && lkPen.cv.isConnected) { lkPen.cv.classList.remove("idle"); document.getElementById("view-lektion").appendChild(lkPen.bar); document.documentElement.classList.add("lk-pen"); lkOpenHead(); } else { lkPen = null; lkPenOn(); } }
   const LKW_MENU = [["qr", "▦ QR-Code", "QR-Code zu einem Link oder Text – anzeigen oder als Bild speichern"], ["zufall", "🎲 Zufallsgenerator", "Wer ist dran? Oder Gruppen bilden"], ["timer", "⏱ Timer / Stoppuhr", "Gross sichtbar, mit Pause und Alarm"], ["umfrage", "📊 Umfrage", "Die Klasse stimmt mit dem Handy über einen QR-Code ab – anonym, Ergebnis live"]];
   const lkToolsPop = () => '<span class="lk-tbw"><button type="button" class="btn ghost" data-lkpop="hm" title="QR-Code, Zufallsgenerator, Timer, Umfrage">Werkzeuge ▾</button><div class="lk-pop lkw-menu" data-pop="hm" hidden>' + LKW_MENU.map(([k, l, t]) => '<button type="button" class="lk-tb" data-lkt="' + k + '" title="' + t + '">' + l + "</button>").join("") + "</div></span>";
+  // «Zeigen ▾»: Projizieren, Folien und Beamer in einem Knopf
+  const lkShowPop = () => '<span class="lk-tbw"><button type="button" class="btn primary" data-lkpop="show" title="Seite der Klasse zeigen">▶ Zeigen ▾</button><div class="lk-pop lkw-menu lk-showmenu" data-pop="show" hidden>' +
+    '<button type="button" class="lk-tb" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren<small>Die ganze Seite gross</small></button>' +
+    '<button type="button" class="lk-tb" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">▭ Folien<small>Abschnitt für Abschnitt in diesem Fenster</small></button>' +
+    '<button type="button" class="lk-tb" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 ' + (lkPresenting() ? "Beamer schliessen" : "Beamer") + "<small>" + (lkPresenting() ? "Zweites Fenster wieder schliessen" : "Zweites Fenster für den Beamer, hier bleibt Ihre Ansicht") + "</small></button></div></span>";
   function lkOpenHead() {
     const acts = $("#lk-acts"); if (!acts) return;
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
@@ -6756,7 +6840,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Bearbeiten</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") +
         '<button type="button" class="btn ghost" data-lkt="spot" title="Spotlight: alles abdunkeln, nur ein Bereich bleibt hell">🔦 Spotlight</button><button type="button" class="btn ghost" data-lkt="zoom" title="Vergrössern: Bereich aufziehen oder doppelt auf einen Absatz / ein Bild tippen">🔍 Zoom</button>' +
         lkToolsPop() + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
-      : lkToolsPop() + '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+      : lkToolsPop() + lkShowPop() + '<button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
     lkToolsMark();
   }
   // ---------- Hilfsmittel beim Projizieren ----------
@@ -7499,6 +7583,23 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     pg.innerHTML = LK.cur; lkWrapStray(pg); lkBlank(); lkPersist(LK.cur); lkUndoBtns();
   }
   const lkPopsClose = (keep) => document.querySelectorAll("#view-lektion .lk-pop").forEach((p) => { if (p !== keep) p.hidden = true; });
+  // Aufklappmenü ganz im Bildschirm zeigen (am Handy sonst links oder rechts abgeschnitten)
+  function lkPopFit(p, b) {
+    p.style.position = p.style.left = p.style.right = p.style.top = p.style.maxWidth = "";
+    const W = document.documentElement.clientWidth || innerWidth;
+    if (W < 700 || b.closest(".lk-tbar")) {
+      if (W >= 700) { const r0 = p.getBoundingClientRect(); if (r0.left >= 8 && r0.right <= W - 8) return; }
+      const br = b.getBoundingClientRect();
+      p.style.position = "fixed"; p.style.right = "auto"; p.style.maxWidth = (W - 16) + "px";
+      p.style.top = Math.round(br.bottom + 4) + "px";
+      const w = p.offsetWidth; p.style.left = Math.round(Math.max(8, Math.min(br.left, W - 8 - w))) + "px";
+      return;
+    }
+    const r = p.getBoundingClientRect();
+    if (r.left < 8) { p.style.left = (p.offsetLeft + 8 - r.left) + "px"; p.style.right = "auto"; }
+    else if (r.right > W - 8) { p.style.left = (p.offsetLeft - (r.right - W + 8)) + "px"; p.style.right = "auto"; }
+  }
+  addEventListener("scroll", () => { if (innerWidth < 700) lkPopsClose(); }, { passive: true });
   document.addEventListener("mousedown", (e) => { if (!e.target.closest(".lk-tbw")) lkPopsClose(); });
   function lkCmd(cmd, arg) {
     const pg = $("#lk-page"); if (!pg) return;
@@ -7552,6 +7653,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (!b) return;
     if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
     if (b.id === "lk-docsfold" || b.id === "lk-docsopen") { if (lkIsProj()) LK.pdocs = b.id === "lk-docsopen"; else { LK.docs = b.id === "lk-docsopen"; lkSaveSel(); } lkLayout(); return; }
+    if (b.closest(".lk-showmenu")) lkPopsClose();
     if (b.id === "lk-proj") { lkSave(); lkProj(true); return; }
     if (b.id === "lk-projx") { lkProj(false); return; }
     if (b.id === "lk-tools") { document.documentElement.classList.toggle("lk-tools"); lkOpenHead(); return; }
@@ -7569,7 +7671,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.id === "lk-print") { lkPrint(); return; }
     if (b.id === "lk-out") { lkOutput(); return; }
     if (b.dataset.lkopen) { const f = lkAllDocs()[b.dataset.lkopen]; if (f) openViewer(f); return; }
-    if (b.dataset.lkpop) { const p = b.parentNode.querySelector(".lk-pop"); lkPopsClose(p); p.hidden = !p.hidden; return; }
+    if (b.dataset.lkpop) { const p = b.parentNode.querySelector(".lk-pop"); lkPopsClose(p); p.hidden = !p.hidden; if (!p.hidden) lkPopFit(p, b); return; }
     const pg = $("#lk-page");
     if (b.dataset.lkins && pg) { const f = lkAllDocs()[b.dataset.lkins]; if (!f) return; if (!pg.contains(getSelection().anchorNode)) pg.focus(); document.execCommand("insertHTML", false, '<a class="lk-doc" data-doc="' + esc(f.id) + '" contenteditable="false">📄 ' + esc(f.name) + "</a>&nbsp;"); lkSave(); return; }
     if (b.dataset.lkcmd && pg) { lkCmd(b.dataset.lkcmd, b.dataset.arg || ""); if (b.closest(".lk-pop") && b.dataset.lkcmd !== "lh") lkPopsClose(); else if (b.dataset.lkcmd === "lh") lkPopsClose(); }
@@ -7617,7 +7719,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#view-termine").hidden = tab !== "termine"; $("#view-unterricht").hidden = tab !== "unterricht"; $("#view-klassen").hidden = tab !== "klassen"; $("#view-lektion").hidden = tab !== "lektion";
     try { localStorage.setItem("zeitplan-tab", tab); } catch (e) {}
     if (window.__fit) window.__fit();
-    if (tab === "termine") autosizeAll(); else if (tab === "unterricht") renderU(); else if (tab === "lektion") renderLK(); else renderK();
+    if (tab === "termine" || tab === "klassen") { jumpToday[tab] = true; setTimeout(jumpTodayNow, 0); }
+    if (tab === "termine") autosizeAll(); else if (tab === "unterricht") renderU(); else if (tab === "lektion") { LK.wantAuto = true; renderLK(); } else renderK();
   }
   document.querySelectorAll("nav.tabs button").forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
   const hashTab = location.hash.replace("#", "");
@@ -7638,6 +7741,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       try { localStorage.setItem("zeitplan-hdrsize2", String(i)); } catch (e) {}
     };
     $("#hdrMinus").onclick = () => set(i - 1); $("#hdrPlus").onclick = () => set(i + 1); set(i);
+    // Handy: ⋯ klappt die übrigen Knöpfe auf
+    const R = document.documentElement, more = $("#hdrMore");
+    const openMore = (on) => { R.classList.toggle("hdr-open", on); more.setAttribute("aria-expanded", String(on)); };
+    more.onclick = (e) => { e.stopPropagation(); openMore(!R.classList.contains("hdr-open")); };
+    document.addEventListener("click", (e) => { if (R.classList.contains("hdr-open") && !e.target.closest("#hdrTools #hdrMinus, #hdrTools #hdrPlus")) openMore(false); });
   })();
   // Handy: Seite in Computerbreite zeigen und auf den Bildschirm einpassen; Zwei-Finger-Geste vergrössert
   (function fitMode() {
