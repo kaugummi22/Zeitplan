@@ -117,6 +117,11 @@ pdf/index.html        ← Weiterleitung zur eigenen PDF-App (Repo kaugummi22/PDF
   - **Folien** (`lkPresent`): Abschnitte und Schritte in einem Fenster.
   - **🖥 Beamer** (`lkPrStart`): zweites Fenster mit Abschnitt für Abschnitt; Moderatoransicht mit Leiste, Bild↑/↓, Leer (B).
   - Die Aufteilung macht `lkDeck`. Gibt es keine Abschnittslinien, trennen Titel H1/H2.
+- **Checkliste und Tabelle** (Werkzeugleiste): `ul.lk-check` mit `li.done` (Klick aufs Kästchen, auch in Folien/Beamer; Zuordnung über die Reihenfolge `lkCheckIdx`), `table.lk-tab` mit Zeilen/Spalten-Befehlen (`lkTableOp`), Tab springt in die nächste Zelle. Word-Export kennt beides.
+- **Hilfsmittel beim Projizieren** (Kopfzeile «🔦 Spotlight», «🔍 Zoom», «🧰 Hilfsmittel», Folien-Leiste, Beamer-Leiste):
+  - Spotlight (`lkSpot`), Zoom (`lkZoom`, auch Doppelklick auf Absatz/Bild), Stift über Folien/Beamer (`lkPenDoc`, «Wegwischen», beim nächsten Abschnitt weg). Wirken im jeweiligen Fenster.
+  - Karten Timer/Stoppuhr, Zufall, QR-Code, Umfrage (`LKW_DEF`): erscheinen im Hauptfenster und gleichzeitig im Beamer-Fenster, verschiebbar, gross/klein.
+  - Regeln: Namen für den Zufall nur im Browser des Geräts (`semper-namen-<klasse>`), nie in OneDrive. QR-Code wird im Browser erzeugt (qrcode-generator von jsdelivr), nur für öffentliche Links. Umfrage zählt durch Antippen am Gerät (kein fremder Dienst); echte Handy-Abstimmung erst mit Schulkonto (z. B. Forms + QR-Code).
 - **Ausgeben** (`lkOutput`):
   - Formate Word (eigener Generator `lkDocx` mit JSZip; Absatz-Eigenschaften in Schema-Reihenfolge über `PPR`) und PDF (Word → Microsoft-Umwandlung).
   - Speichern unter auf dem Gerät (`showSaveFilePicker`) oder in einen OneDrive-Ordner mit Ordnerwahl; ausserdem Drucken.

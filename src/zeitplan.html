@@ -307,7 +307,7 @@ html.lk-presenting .lk-page hr:not(.lk-vis) { cursor: pointer; }
 html.lk-presenting .lk-page > .pr-off { opacity: 0.45; }
 html.lk-presenting .lk-page > .pr-next { opacity: 0.7; }
 html.lk-presenting .lk-page > .pr-on:not(hr) { box-shadow: -14px 0 0 -10px var(--accent); }
-#lk-prbar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 960; display: flex; gap: 6px; align-items: center; background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; box-shadow: 0 8px 26px rgba(0,0,0,0.25); padding: 6px 8px; max-width: calc(100vw - 16px); flex-wrap: wrap; justify-content: center; }
+#lk-prbar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 100006; display: flex; gap: 6px; align-items: center; background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; box-shadow: 0 8px 26px rgba(0,0,0,0.25); padding: 6px 8px; max-width: calc(100vw - 16px); flex-wrap: wrap; justify-content: center; }
 #lk-prbar .lk-tb { padding: 7px 14px; font-size: 1rem; }
 #lk-prbar .pr-next-btn { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lk-prpos { padding: 0 8px; font-size: 0.9rem; white-space: nowrap; }
@@ -371,6 +371,91 @@ html.lk-proj:not(.lk-tools) .lk-tbar { display: none; }
 html.lk-proj .lk-page { font-size: calc(1.05rem * var(--pz, 1.35)); }
 html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; max-height: calc(100vh - 16px); }
 .lk-acts .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+/* Checkliste und Tabelle in der Seite */
+:is(.lk-page, .lk-slide, #lk-printbox) ul.lk-check { list-style: none; padding-left: 0.2em; }
+:is(.lk-page, .lk-slide, #lk-printbox) ul.lk-check > li { position: relative; padding-left: 1.75em; margin: 0.2em 0; }
+:is(.lk-page, .lk-slide, #lk-printbox) ul.lk-check > li::before { content: ""; position: absolute; left: 0.1em; top: 0.22em; width: 1em; height: 1em; box-sizing: border-box; border: 2px solid currentColor; border-radius: 0.22em; opacity: 0.75; cursor: pointer; }
+:is(.lk-page, .lk-slide, #lk-printbox) ul.lk-check > li.done::after { content: "✓"; position: absolute; left: 0.22em; top: -0.12em; font-weight: 700; font-size: 1.1em; color: var(--accent); pointer-events: none; }
+:is(.lk-page, .lk-slide) ul.lk-check > li.done { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.lk-slide ul.lk-check > li.done { color: #888; }
+:is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: calc(1em * var(--fs, 1)); }
+:is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab :is(td, th) { border: 1px solid color-mix(in srgb, var(--muted) 55%, transparent); padding: 0.3em 0.55em; vertical-align: top; text-align: left; height: 1.5em; min-width: 2em; }
+:is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab th { background: var(--accent-soft); font-weight: 700; }
+:is(.lk-slide, #lk-printbox) table.lk-tab :is(td, th) { border-color: #999; } :is(.lk-slide, #lk-printbox) table.lk-tab th { background: #e9edf2; color: #111; }
+.lk-tgrid { display: grid; grid-template-columns: repeat(6, 22px); gap: 3px; }
+.lk-tgrid button { width: 22px; height: 18px; padding: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 3px; cursor: pointer; }
+.lk-tgrid button.hov { background: var(--accent-soft); border-color: var(--accent); }
+.lk-tsize { font-size: 0.8rem; color: var(--muted); min-height: 1.1em; }
+/* Hilfsmittel beim Projizieren: Spotlight, Zoom, Stift auf Folien, Timer, Zufall, QR-Code, Umfrage */
+.lk-ctl { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 100006; display: flex; gap: 6px; align-items: center; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 4px 5px 4px 14px; font: 600 14px var(--font-body); box-shadow: 0 6px 22px rgba(0,0,0,0.3); max-width: calc(100vw - 20px); }
+.lk-ctl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lk-spot { position: fixed; inset: 0; z-index: 100003; cursor: crosshair; touch-action: none; }
+.lk-spot-hole { position: absolute; box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.9); border-radius: 18px; cursor: move; outline: 2px solid rgba(255,255,255,0.35); touch-action: none; }
+.lk-spot-hole.round { border-radius: 50%; }
+.lk-spot-rs { position: absolute; right: -11px; bottom: -11px; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); cursor: nwse-resize; }
+.lk-zoomov { position: fixed; inset: 0; z-index: 100002; cursor: zoom-in; touch-action: none; }
+.lk-zoomov.zoomed { cursor: zoom-out; }
+.lk-zoomsel { position: absolute; border: 2px dashed var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 4px; }
+.lk-zhost { position: relative; z-index: 1; transform-origin: 0 0; transition: transform 0.35s ease; }
+.lk-show .lk-nav { position: relative; z-index: 100002; flex-wrap: wrap; }
+.lk-nav .lk-nsep { width: 1px; align-self: stretch; background: #ccc; margin: 0 2px; }
+.lk-nav button.lk-nt { padding: 6px 10px; }
+.lk-nav button.on { background: var(--accent-soft); border-color: var(--accent); }
+.lk-draw.fix { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 100001; }
+.lk-penbar.fix { z-index: 100004; }
+.lk-bstrip { position: fixed; left: 14px; top: 14px; z-index: 100004; display: flex; gap: 6px; opacity: 0.3; transition: opacity 0.2s; }
+.lk-bstrip:hover, .lk-bstrip:focus-within { opacity: 1; }
+.lk-bstrip button { font: 600 18px system-ui, sans-serif; padding: 8px 12px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+.lk-bstrip button.on { background: var(--accent-soft); border-color: var(--accent); opacity: 1; }
+#lk-prbar .lk-prsep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+.lkw-menu { min-width: 220px; }
+.lkw-layer { position: fixed; inset: 0; z-index: 100005; pointer-events: none; }
+.lkw { position: absolute; pointer-events: auto; background: var(--surface); color: var(--ink); border: 2px solid var(--accent); border-radius: 16px; box-shadow: 0 12px 34px rgba(0,0,0,0.28); width: max-content; min-width: 250px; max-width: min(560px, 94vw); max-height: 92vh; overflow: auto; font: 16px/1.35 var(--font-body); }
+.lkw.big { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); font-size: clamp(20px, 2.4vw, 38px); max-width: 94vw; }
+.lkw-h { display: flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px; cursor: move; background: var(--accent-soft); border-radius: 14px 14px 0 0; font-weight: 700; font-size: 0.85em; touch-action: none; user-select: none; }
+.lkw.big .lkw-h { cursor: default; }
+.lkw-sp { flex: 1; }
+.lkw-x { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 2px 8px; font: inherit; cursor: pointer; }
+.lkw-b { padding: 10px 14px 12px; display: grid; gap: 8px; }
+.lkw-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center; }
+.lkw-btn { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 0.3em 0.7em; font: inherit; font-size: 0.9em; cursor: pointer; }
+.lkw-btn:hover { border-color: var(--accent); }
+.lkw-btn.on { background: var(--accent-soft); border-color: var(--accent); }
+.lkw-btn.pri { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.lkw-note { margin: 0; font-size: 0.8em; color: var(--muted); max-width: 30em; }
+.lkw textarea, .lkw input[type="text"], .lkw input[type="url"], .lkw input[type="number"] { font: inherit; font-size: 0.95em; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+.lkw input[type="number"] { width: 5em; }
+.lkw label { font-size: 0.85em; display: flex; gap: 6px; align-items: center; }
+body.beam .lkw-ctl { opacity: 0.35; transition: opacity 0.2s; } body.beam .lkw:hover .lkw-ctl { opacity: 1; }
+.lkw-time { font: 700 3.4em/1 var(--font-body); font-variant-numeric: tabular-nums; text-align: center; letter-spacing: 0.02em; }
+.lkw.warn .lkw-time { color: var(--danger); }
+.lkw-timer.big .lkw-time { font-size: 5.5em; }
+.lkw-zufall.big .lkw-name { font-size: 3.6em; }
+.lkw-prog { height: 0.45em; background: var(--line); border-radius: 999px; overflow: hidden; }
+.lkw-prog i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.25s linear; }
+.lkw.warn .lkw-prog i { background: var(--danger); }
+.lkw.alarm { animation: lkwFlash 0.9s ease-in-out infinite; }
+.lkw.alarm .lkw-time::after { content: "Zeit ist um!"; display: block; font-size: 0.32em; margin-top: 0.3em; }
+@keyframes lkwFlash { 50% { background: color-mix(in srgb, var(--danger) 30%, var(--surface)); border-color: var(--danger); } }
+.lkw-name { font: 700 2.6em/1.15 var(--font-display); text-align: center; min-height: 1.2em; padding: 0.15em 0; overflow-wrap: anywhere; }
+.lkw-name.spin { color: var(--muted); }
+.lkw-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(9em, 1fr)); gap: 8px; }
+.lkw-groups div { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--bg); }
+.lkw-groups b { display: block; font-size: 0.8em; color: var(--accent); }
+.lkw-qr svg { display: block; width: min(42vh, 70vw); height: auto; background: #fff; border-radius: 8px; margin: 0 auto; }
+.lkw.big .lkw-qr svg { width: min(72vh, 80vw); }
+.lkw-url { text-align: center; font-size: 0.85em; color: var(--muted); overflow-wrap: anywhere; max-width: 28em; margin: 0 auto; }
+.lkw-sug { display: flex; flex-wrap: wrap; gap: 4px; }
+.lkw-sug button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lkw-q { font: 700 1.35em/1.25 var(--font-display); text-align: center; overflow-wrap: anywhere; }
+.lkw-opt { display: grid; grid-template-columns: minmax(5em, max-content) minmax(8em, 1fr) 3.2em; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 0.4em 0.7em; font: inherit; cursor: pointer; }
+.lkw-opt:hover { border-color: var(--accent); }
+.lkw-opt:active { transform: scale(0.98); }
+.lkw-barw { height: 1.1em; background: color-mix(in srgb, var(--line) 60%, transparent); border-radius: 6px; overflow: hidden; }
+.lkw-barw i { display: block; height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.3s ease; }
+.lkw-opt b { text-align: right; font-variant-numeric: tabular-nums; }
+.lkw-tot { text-align: center; font-size: 0.85em; color: var(--muted); }
+.lkw-thanks { text-align: center; font: 700 1.6em/1.3 var(--font-body); color: var(--accent); padding: 0.8em 0; }
 
 .dpm-nav { display: flex; align-items: center; gap: 6px; } .dpm-nav span { font-weight: 600; }
 .dpm { display: grid; gap: 10px; margin: 8px 0 14px; }
@@ -6092,13 +6177,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     return out;
   }
   // Nur erlaubte Formatierungen bleiben erhalten (Klassen statt freier Stile)
-  const LK_BLK = /^(H1|H2|H3|P|DIV|UL|OL|BLOCKQUOTE|HR|FIGURE)$/;
+  const LK_BLK = /^(H1|H2|H3|P|DIV|UL|OL|BLOCKQUOTE|HR|FIGURE|TABLE)$/;
   function lkSanitize(html) {
     const tpl = document.createElement("template"); tpl.innerHTML = html || ""; let out = "";
     const ok = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "div", UL: "ul", OL: "ol", LI: "li", B: "b", STRONG: "b", I: "i", EM: "i", U: "u", BLOCKQUOTE: "blockquote" };
     const blockCls = (n) => {
       const c = [];
-      (n.className && typeof n.className === "string" ? n.className.split(/\s+/) : []).forEach((x) => { if (/^(lk-box|al-[crj]|lh-[134]|fs-[124567]|ind-[1-8])$/.test(x) || (/^c-/.test(x) && LK_BOX.includes(x.slice(2)))) c.push(x); });
+      (n.className && typeof n.className === "string" ? n.className.split(/\s+/) : []).forEach((x) => { if (/^(lk-box|al-[crj]|lh-[134]|fs-[124567]|ind-[1-8])$/.test(x) || (/^c-/.test(x) && LK_BOX.includes(x.slice(2))) || (x === "lk-check" && n.tagName === "UL") || (x === "done" && n.tagName === "LI")) c.push(x); });
       const ta = n.style && n.style.textAlign; if (ta && !c.some((x) => /^al-/.test(x))) { if (ta === "center") c.push("al-c"); else if (ta === "right") c.push("al-r"); else if (ta === "justify") c.push("al-j"); }
       if (n.tagName !== "DIV") { const i = c.indexOf("lk-box"); if (i >= 0) c.splice(i, 1); }
       if (!c.includes("lk-box")) for (let i = c.length - 1; i >= 0; i--) if (/^c-/.test(c[i])) c.splice(i, 1);
@@ -6121,6 +6206,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) out += '<img src="' + src + '" alt="">'; continue; }
         if (tag === "A" && n.dataset.doc) { out += '<a class="lk-doc" data-doc="' + esc(n.dataset.doc) + '" contenteditable="false">📄 ' + esc(n.textContent.replace(/^📄\s*/, "")) + "</a>"; continue; }
         if (/^(STYLE|SCRIPT|META|TITLE)$/.test(tag)) continue;
+        if (tag === "TABLE") {
+          out += '<table class="lk-tab"><tbody>';
+          n.querySelectorAll(":scope > tr, :scope > tbody > tr, :scope > thead > tr, :scope > tfoot > tr").forEach((tr) => { out += "<tr>"; [...tr.children].forEach((c) => { if (!/^T[DH]$/.test(c.tagName)) return; const t2 = c.tagName.toLowerCase(); out += "<" + t2 + ">"; walk(c); out += "</" + t2 + ">"; }); out += "</tr>"; });
+          out += "</tbody></table>"; continue;
+        }
+        if (/^(TBODY|THEAD|TFOOT|TR|TD|TH|CAPTION)$/.test(tag)) { walk(n); continue; }
         if (tag === "SPAN" || tag === "FONT") {
           const c = []; (typeof n.className === "string" ? n.className.split(/\s+/) : []).forEach((x) => { if ((/^tc-/.test(x) && LK_TC[x.slice(3)]) || (/^hl-/.test(x) && LK_HL[x.slice(3)])) c.push(x); });
           const col = lkFind(LK_TC, lkHex(n.getAttribute("color") || (n.style && n.style.color))); if (col && !c.some((x) => /^tc-/.test(x))) c.push("tc-" + col);
@@ -6152,7 +6243,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     });
     if (!root.firstChild) root.innerHTML = "<p><br></p>";
   }
-  const lkBlank = () => { const pg = $("#lk-page"); if (!pg) return; pg.classList.toggle("blank", !pg.textContent.trim() && !pg.querySelector("img,hr,a,li,.lk-box")); pg.querySelectorAll(".lk-box").forEach((b) => b.classList.toggle("blank", !b.textContent.trim() && !b.querySelector("img,figure,li"))); };
+  const lkBlank = () => { const pg = $("#lk-page"); if (!pg) return; pg.classList.toggle("blank", !pg.textContent.trim() && !pg.querySelector("img,hr,a,li,table,.lk-box")); pg.querySelectorAll(".lk-box").forEach((b) => b.classList.toggle("blank", !b.textContent.trim() && !b.querySelector("img,figure,li"))); };
   // Kasten mit Schreibmarke: Platzhalter «…» ausblenden
   document.addEventListener("selectionchange", () => {
     const pg = $("#lk-page"); if (!pg) return;
@@ -6221,6 +6312,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const SW = (cmd, pre, name) => '<button type="button" class="lk-sw ' + pre + name + '" data-lkcmd="' + cmd + '" data-arg="' + name + '" title="' + (LK_NAMES[name] || name) + '">' + (name === "std" || name === "0" ? "✕" : "") + "</button>";
     const boxPop = '<span class="lbl">Neuer Kasten / Farbe ändern</span><div class="lk-sws">' + LK_BOX.map((c) => SW("box", "c-", c)).join("") + "</div>" + TB("unbox", "", "Kasten auflösen", "Den Kasten entfernen, der Text bleibt");
     const colPop = '<span class="lbl">Schriftfarbe</span><div class="lk-sws">' + Object.keys(LK_TC).map((c) => SW("tc", "t-", c)).join("") + '</div><span class="lbl">Marker</span><div class="lk-sws">' + Object.keys(LK_HL).map((c) => SW("hl", "h-", c)).join("") + "</div>";
+    const checkPop = TB("check", "", "☑ Checkliste ein / aus", "Markierte Zeilen werden zu Punkten zum Abhaken – ein Klick aufs Kästchen setzt das Häkchen, auch beim Projizieren") + TB("uncheck", "", "Alle Häkchen entfernen", "Alle Häkchen dieser Seite wieder entfernen, z. B. für die nächste Klasse");
+    let tgrid = ""; for (let r = 1; r <= 6; r++) for (let c = 1; c <= 6; c++) tgrid += '<button type="button" class="lk-tcell" data-lkcmd="table" data-arg="' + r + "x" + c + '" data-r="' + r + '" data-c="' + c + '" title="' + r + " Zeilen × " + c + ' Spalten"></button>';
+    const tabPop = '<span class="lbl">Neue Tabelle</span><div class="lk-tgrid">' + tgrid + '</div><span class="lk-tsize">Zeilen × Spalten wählen</span><span class="lbl">In der Tabelle</span>' + TB("trow", "", "+ Zeile darunter", "Neue Zeile unter der Zeile mit der Schreibmarke (auch: Tab in der letzten Zelle)") + TB("tcol", "", "+ Spalte rechts", "Neue Spalte rechts") + TB("tdelrow", "", "− Zeile löschen", "Zeile mit der Schreibmarke löschen") + TB("tdelcol", "", "− Spalte löschen", "Spalte mit der Schreibmarke löschen") + TB("thead", "", "Kopfzeile ein / aus", "Erste Zeile hervorheben") + TB("tdel", "", "Tabelle löschen", "Ganze Tabelle entfernen");
     const lhPop = TB("lh", "1", "Eng", "Zeilenabstand eng") + TB("lh", "", "Normal", "Zeilenabstand normal") + TB("lh", "3", "Weit", "Zeilenabstand weit") + TB("lh", "4", "Sehr weit", "Zeilenabstand sehr weit");
     main.innerHTML = '<div class="lk-head"><div><div class="lk-meta"><i class="kdot f-' + kColor(LK.kid) + '"></i> ' + esc(k.name || "Klasse") + (d ? " · " + TAGE[d.getDay()] + ", " + fmt(d) + " · " + esc(x.slot.from) : "") + "</div><h2>" + esc(x.u.label) + (x.u.phase ? " · " + esc(x.u.phase) : "") + "</h2><div class=\"lk-meta\">" + esc(r.title || "") + "</div></div>" +
       '<div class="lk-acts" id="lk-acts"></div></div>' +
@@ -6228,13 +6322,14 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       TB("fs", "-1", "A−", "Schrift kleiner (markierte Zeilen, auch Titel)") + TB("fs", "1", "A+", "Schrift grösser (markierte Zeilen, auch Titel)") + POP("lh", "↕", "Zeilenabstand", lhPop) + SEP +
       TB("al", "", "⯇≡", "Linksbündig") + TB("al", "al-c", "≡", "Zentriert") + TB("al", "al-r", "≡⯈", "Rechtsbündig") + TB("ind", "-1", "⇤", "Ausrücken (Umschalt+Tab)") + TB("ind", "1", "⇥", "Einrücken – jedes Mal eine Stufe weiter (Tab)") + SEP +
       TB("bold", "", "<b>F</b>", "Fett") + TB("italic", "", "<i>K</i>", "Kursiv") + TB("underline", "", "<u>U</u>", "Unterstrichen") + POP("col", '<span class="tc-rot">A</span>', "Schriftfarbe und Marker", colPop) + SEP +
-      TB("insertUnorderedList", "", "• Liste", "Aufzählung") + TB("insertOrderedList", "", "1. Liste", "Nummerierte Liste") + POP("box", "▭ Kasten", "Farbiger Kasten, z. B. für einen Auftrag", boxPop) +
+      TB("insertUnorderedList", "", "• Liste", "Aufzählung") + TB("insertOrderedList", "", "1. Liste", "Nummerierte Liste") + POP("check", "☑ Checkliste", "Checkliste zum Abhaken während des Unterrichts", checkPop) + POP("tab", "▦ Tabelle", "Einfache Tabelle", tabPop) + POP("box", "▭ Kasten", "Farbiger Kasten, z. B. für einen Auftrag", boxPop) +
       TB("dot", "", "·", "Mittelpunkt einfügen, z. B. «L6 · Die Prozesse»") + POP("emo", "💡", "Symbol einfügen", '<div class="lk-emo">' + LK_EMO.map((x) => '<button type="button" class="lk-sw lk-em" data-lkcmd="emo" data-arg="' + x[0] + '" title="' + x[1] + '">' + x[0] + "</button>").join("") + "</div>") + SEP + TB("hr", "", "<b style=\"color:var(--accent)\">━━</b> Abschnitt", "Abschnittslinie: beim Projizieren beginnt hier eine neue Folie (wird nicht gedruckt)") + TB("hr", "lk-step", "<span style=\"color:var(--muted);letter-spacing:-1px\">┅┅</span> Schritt", "Schrittlinie: beim Projizieren erscheint der Teil darunter erst beim Weiterschalten (wird nicht gedruckt)") + TB("hr", "lk-vis", "<span style=\"opacity:.7\">—</span> Visual", "Visual Line: kurze Linie in der Mitte, um die Seite zu gliedern (wird gedruckt)") + SEP +
       '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
       '<div class="lk-page" id="lk-page" contenteditable="true" data-ph="Schreiben Sie hier die Seite für diese Lektion: Ablauf für die Klasse, Aufträge, Bilder, Links zu Dokumenten …"></div>';
     const pg = $("#lk-page"); pg.innerHTML = lkSanitize((LK.page || {}).html || ""); lkWrapStray(pg); pg.querySelectorAll(".lk-box").forEach((bx) => lkWrapStray(bx)); lkBlank();
     if (LK.histPid !== pid) { LK.histPid = pid; LK.undo = []; LK.redo = []; if (lkPresenting()) { PR.s = 0; PR.k = 0; setTimeout(() => lkPrRender(true), 50); } } LK.cur = lkSanitize(pg.innerHTML); LK.lastType = 0;
     if (lkPen) { lkPen.bar.remove(); lkPen = null; document.documentElement.classList.remove("lk-pen"); }
+    if (lkZooms.has(document)) lkZooms.get(document).close();
     lkOpenHead(); lkUndoBtns();
     try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
   }
@@ -6284,17 +6379,39 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const lkStepHtml = (secs, s, k) => (secs[s] || []).slice(0, k + 1).map((p) => p.join("")).join("");
   // Folienansicht im selben Fenster (Pfeiltasten: zuerst Schritte, dann Abschnitte)
   function lkPresent() {
-    const tmp = document.createElement("div"); tmp.innerHTML = lkSanitize(($("#lk-page") || {}).innerHTML || ""); lkWrapStray(tmp);
-    const { secs } = lkDeck(tmp); let s = 0, k = 0;
+    let secs = [], s = 0, k = 0;
+    const build = () => { const tmp = document.createElement("div"); tmp.innerHTML = lkSanitize(($("#lk-page") || {}).innerHTML || ""); lkWrapStray(tmp); secs = lkDeck(tmp).secs; if (s >= secs.length) { s = secs.length - 1; k = 0; } if (k >= secs[s].length) k = secs[s].length - 1; };
+    build();
     const ov = document.createElement("div"); ov.className = "lk-show"; ov.tabIndex = 0;
-    const draw = () => { const nk = secs[s].length; ov.innerHTML = '<div class="lk-slide">' + lkStepHtml(secs, s, k) + '</div><div class="lk-nav"><button type="button" data-lkn="-1"' + (s || k ? "" : " disabled") + '>‹</button><span>' + (s + 1) + " / " + secs.length + (nk > 1 ? " · Schritt " + (k + 1) + "/" + nk : "") + '</span><button type="button" data-lkn="1"' + (s < secs.length - 1 || k < nk - 1 ? "" : " disabled") + '>›</button><button type="button" data-lkn="x" title="Beenden (Esc)">✕</button></div>'; };
-    const go = (d) => { if (d > 0) { if (k < secs[s].length - 1) k++; else if (s < secs.length - 1) { s++; k = 0; } } else { if (k > 0) k--; else if (s > 0) { s--; k = secs[s].length - 1; } } draw(); };
-    const close = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} ov.remove(); };
-    ov.addEventListener("click", (e) => { const b = e.target.closest("[data-lkn]"); if (b) { if (b.dataset.lkn === "x") close(); else go(+b.dataset.lkn); return; } const a = e.target.closest("[data-doc]"); if (a) { const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); } });
-    ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); else if (/Right|Down|PageDown| /.test(e.key)) { go(1); e.preventDefault(); } else if (/Left|Up|PageUp/.test(e.key)) { go(-1); e.preventDefault(); } });
-    document.addEventListener("fullscreenchange", function fc() { if (!document.fullscreenElement && document.body.contains(ov)) { ov.remove(); document.removeEventListener("fullscreenchange", fc); } });
-    draw(); document.body.appendChild(ov); ov.focus();
-    try { ov.requestFullscreen && ov.requestFullscreen().catch(() => {}); } catch (e) {}
+    ov.innerHTML = '<div class="lk-slide"></div><div class="lk-nav"></div>';
+    const sl = ov.querySelector(".lk-slide"), nav = ov.querySelector(".lk-nav");
+    const T = (t, ic, title) => '<button type="button" class="lk-nt" data-lkt="' + t + '" title="' + title + '">' + ic + "</button>";
+    const draw = () => {
+      const nk = secs[s].length; sl.innerHTML = lkStepHtml(secs, s, k); lkCheckIdx(sl, secs, s);
+      nav.innerHTML = '<button type="button" data-lkn="-1"' + (s || k ? "" : " disabled") + '>‹</button><span>' + (s + 1) + " / " + secs.length + (nk > 1 ? " · Schritt " + (k + 1) + "/" + nk : "") + '</span><button type="button" data-lkn="1"' + (s < secs.length - 1 || k < nk - 1 ? "" : " disabled") + '>›</button>' +
+        '<span class="lk-nsep"></span>' + T("pen", "🖊", "Stift, Marker, Radierer – über die Folie zeichnen") + T("spot", "🔦", "Spotlight: Rest abdunkeln, nur ein Bereich bleibt hell") + T("zoom", "🔍", "Zoom: Bereich aufziehen oder doppelt auf einen Absatz / ein Bild tippen") + T("timer", "⏱", "Timer / Stoppuhr") + T("zufall", "🎲", "Zufallsgenerator: wer ist dran?") + T("qr", "▦", "QR-Code zu einem Link") + T("umfrage", "📊", "Umfrage mit Live-Ergebnis") +
+        '<span class="lk-nsep"></span><button type="button" data-lkn="x" title="Beenden (Esc)">✕</button>';
+      lkToolsMark();
+    };
+    const go = (d) => {
+      const s0 = s;
+      if (d > 0) { if (k < secs[s].length - 1) k++; else if (s < secs.length - 1) { s++; k = 0; } } else { if (k > 0) k--; else if (s > 0) { s--; k = secs[s].length - 1; } }
+      if (s !== s0) { lkPenWipe(document); if (lkZooms.has(document)) lkZooms.get(document).close(); }
+      draw();
+    };
+    let gone = false;
+    const cleanup = () => { if (gone) return; gone = true; lkToolsReset(document); ov.remove(); lkwSync(); document.removeEventListener("fullscreenchange", fc); };
+    const close = () => { try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} cleanup(); };
+    function fc() { if (!document.fullscreenElement && document.body.contains(ov)) cleanup(); }
+    ov.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-lkn]"); if (b) { if (b.dataset.lkn === "x") close(); else go(+b.dataset.lkn); return; }
+      const li = e.target.closest(".lk-slide ul.lk-check > li"); if (li && lkCheckHit(li, e)) { lkCheckToggleIdx(+li.dataset.ci); build(); draw(); return; }
+      const a = e.target.closest("[data-doc]"); if (a) { const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); }
+    });
+    ov.addEventListener("keydown", (e) => { if (e.target.closest && e.target.closest(".lkw")) return; if (e.key === "Escape") close(); else if (/Right|Down|PageDown| /.test(e.key)) { go(1); e.preventDefault(); } else if (/Left|Up|PageUp/.test(e.key)) { go(-1); e.preventDefault(); } });
+    document.addEventListener("fullscreenchange", fc);
+    draw(); document.body.appendChild(ov); ov.focus(); lkwSync();
+    try { ov.requestFullscreen && ov.requestFullscreen().then(() => lkwSync()).catch(() => {}); } catch (e) {}
   }
   // ---------- Beamer-Fenster: Sie sehen die ganze Seite, der Beamer zeigt Abschnitt für Abschnitt ----------
   const PR = { win: null, s: 0, k: 0, black: false, deck: null, timer: 0, poll: 0 };
@@ -6312,7 +6429,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     let html = PR.black ? "" : lkStepHtml(d.secs, PR.s, PR.k);
     const srcs = [...new Set((html.match(/\/_blob\/[0-9a-f]{8,64}/g) || []))];
     for (const src of srcs) { const im = await lkLoadImg(src); if (im) html = html.split('src="' + src + '"').join('src="' + im.src + '"'); }
-    st.innerHTML = html; w.document.body.classList.toggle("black", PR.black);
+    st.innerHTML = html; w.document.body.classList.toggle("black", PR.black); lkCheckIdx(st, d.secs, PR.s);
+    if (PR.lastS !== PR.s) { if (PR.lastS != null) { lkPenWipe(w.document); if (lkZooms.has(w.document)) lkZooms.get(w.document).close(); } PR.lastS = PR.s; }
     // passend machen: Schrift verkleinern, bis alles Platz hat
     let fs = 1; st.style.fontSize = ""; await new Promise((r) => w.requestAnimationFrame(() => r()));
     const imgs = [...st.querySelectorAll("img")]; await Promise.all(imgs.map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; }))));
@@ -6322,10 +6440,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     let bar = $("#lk-prbar");
     if (!lkPresenting()) { if (bar) bar.remove(); document.documentElement.classList.remove("lk-presenting"); return; }
     document.documentElement.classList.add("lk-presenting");
-    if (!bar) { bar = document.createElement("div"); bar.id = "lk-prbar"; document.getElementById("view-lektion").appendChild(bar); }
+    if (!bar) { bar = document.createElement("div"); bar.id = "lk-prbar"; document.body.appendChild(bar); }
     const d = PR.deck, n = d.secs.length, nk = d.secs[PR.s].length;
     bar.innerHTML = '<button type="button" class="lk-tb" data-pr="-1" title="Zurück (Bild↑ / ←)">◀</button><span class="lk-prpos"><b>Abschnitt ' + (PR.s + 1) + " / " + n + "</b>" + (nk > 1 ? " · Schritt " + (PR.k + 1) + " / " + nk : "") + '</span><button type="button" class="lk-tb pr-next-btn" data-pr="1" title="Weiter (Bild↓ / → / Leertaste)">▶</button>' +
-      '<button type="button" class="lk-tb' + (PR.black ? " on" : "") + '" data-pr="black" title="Beamer kurz leer (Taste B)">⬛ Leer</button><button type="button" class="lk-tb" data-pr="stop" title="Beamer-Fenster schliessen">✕ Beamer</button>';
+      '<button type="button" class="lk-tb' + (PR.black ? " on" : "") + '" data-pr="black" title="Beamer kurz leer (Taste B)">⬛ Leer</button><button type="button" class="lk-tb" data-pr="stop" title="Beamer-Fenster schliessen">✕ Beamer</button>' +
+      '<span class="lk-prsep"></span><button type="button" class="lk-tb" data-lkb="pen" title="Stift auf dem Beamer (dort zeichnen)">🖊</button><button type="button" class="lk-tb" data-lkb="spot" title="Spotlight auf dem Beamer – im Beamer-Fenster verschieben">🔦</button><button type="button" class="lk-tb" data-lkb="zoom" title="Zoom auf dem Beamer – im Beamer-Fenster Bereich aufziehen oder doppelt tippen">🔍</button>';
+    lkToolsMark();
   }
   function lkPrGo(d) {
     if (!PR.deck) lkPrDeck(); const secs = PR.deck.secs; const s0 = PR.s;
@@ -6335,6 +6455,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   function lkPrKey(e) {
     if (!lkPresenting()) return false;
+    const ae = (e.view && e.view.document && e.view.document.activeElement) || document.activeElement;
+    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return false;
     const editing = document.activeElement && document.activeElement.id === "lk-page" && e.view === window;
     if (/^(PageDown|PageUp)$/.test(e.key) || (!editing && /^(ArrowRight|ArrowDown|ArrowLeft|ArrowUp| )$/.test(e.key))) { e.preventDefault(); lkPrGo(/PageDown|Right|Down| /.test(e.key) ? 1 : -1); return true; }
     if (!editing && /^[bB.]$/.test(e.key)) { e.preventDefault(); PR.black = !PR.black; lkPrRender(false); return true; }
@@ -6352,7 +6474,16 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '\nhtml,body{margin:0;height:100%;background:#fff;color:#111;overflow:hidden} .lk-show.aud{grid-template-rows:1fr} .lk-show.aud .lk-slide{height:100vh;box-sizing:border-box;overflow:hidden} body.black .lk-show{background:#000} body.black #st{visibility:hidden} #fs{position:fixed;right:14px;bottom:14px;z-index:100001;font:600 15px system-ui,sans-serif;padding:10px 16px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;opacity:.9} :fullscreen #fs{display:none} #hint{position:fixed;left:14px;bottom:14px;z-index:100001;font:13px system-ui,sans-serif;color:#666} :fullscreen #hint{display:none}</style></head>' +
       '<body><div class="lk-show aud"><div class="lk-slide" id="st"></div></div><span id="hint">Dieses Fenster auf den Beamer ziehen und «Vollbild» wählen. Weiterschalten im Hauptfenster.</span><button id="fs" type="button">⛶ Vollbild</button></body></html>');
     w.document.close();
-    PR.win = w; PR.s = 0; PR.k = 0; PR.black = false;
+    PR.win = w; PR.s = 0; PR.k = 0; PR.black = false; PR.lastS = null;
+    w.document.body.classList.add("beam");
+    const strip = w.document.createElement("div"); strip.className = "lk-bstrip";
+    strip.innerHTML = '<button type="button" data-lkt="pen" title="Stift, Marker, Radierer">🖊</button><button type="button" data-lkt="spot" title="Spotlight">🔦</button><button type="button" data-lkt="zoom" title="Zoom: Bereich aufziehen oder doppelt tippen">🔍</button>';
+    w.document.body.appendChild(strip);
+    w.document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-lkt]"); if (b) { lkTool(w.document, b.dataset.lkt); return; }
+      const li = e.target.closest("#st ul.lk-check > li"); if (li && lkCheckHit(li, e)) { li.classList.toggle("done"); lkCheckToggleIdx(+li.dataset.ci); }
+    });
+    w.document.addEventListener("dblclick", (e) => lkDbl(w.document, e));
     w.document.getElementById("fs").addEventListener("click", () => { try { w.document.documentElement.requestFullscreen(); } catch (e) {} });
     w.addEventListener("keydown", (e) => { if (lkPrKey(e)) return; if (e.key === "Escape" && w.document.fullscreenElement) return; });
     // auf den zweiten Bildschirm schieben, wenn der Browser das erlaubt (Chrome/Edge fragen einmal nach)
@@ -6364,14 +6495,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     } catch (e) {}
     clearInterval(PR.poll); PR.poll = setInterval(() => { if (!lkPresenting()) lkPrStop(); }, 1000);
     if (!document.documentElement.classList.contains("lk-proj")) lkProj(true);
-    lkPrRender(true); lkOpenHead(); window.focus();
+    lkPrRender(true); lkOpenHead(); lkwSync(); window.focus();
   }
   function lkPrStop() {
     clearInterval(PR.poll);
     if (PR.win && !PR.win.closed) { try { PR.win.close(); } catch (e) {} }
     PR.win = null; PR.deck = null;
+    [lkSpots, lkZooms, lkPens].forEach((m) => [...m.keys()].forEach((d) => { if (d !== document) m.delete(d); }));
     document.querySelectorAll("#lk-page .pr-on, #lk-page .pr-next, #lk-page .pr-off").forEach((el) => el.classList.remove("pr-on", "pr-next", "pr-off"));
-    lkPrBar(); lkOpenHead();
+    lkPrBar(); lkOpenHead(); lkwSync();
   }
   function lkPrint() {
     const pg = $("#lk-page"); if (!pg) return; lkSave();
@@ -6521,7 +6653,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<span class="lk-ilbl">Marker</span><div class="lk-ig">' + LK_MARKS.map(([c, n]) => sw("mark", c, "Marker " + n)).join("") + "</div>" +
       '<div class="lk-ig"><button type="button" class="lk-tb" data-ink="erase" title="Radierer">⌫</button>' + (extra && extra.text ? '<button type="button" class="lk-tb" data-ink="text" title="Text tippen: auf die Stelle tippen, schreiben, Enter">T</button>' : "") + "</div>" +
       '<span class="lk-ilbl">Dicke</span><div class="lk-ig three"><button type="button" class="lk-tb" data-isz="1" title="Dünn"><i class="lk-dot" style="--d:5px"></i></button><button type="button" class="lk-tb on" data-isz="2" title="Mittel"><i class="lk-dot" style="--d:9px"></i></button><button type="button" class="lk-tb" data-isz="4" title="Dick"><i class="lk-dot" style="--d:14px"></i></button></div>' +
-      '<button type="button" class="lk-tb" data-ink="undo" title="Rückgängig">↶ Zurück</button><button type="button" class="lk-tb" data-ink="clear" title="Alles Geschriebene löschen">Alles löschen</button>' + (extra && extra.tail ? extra.tail : "") + "</div>" +
+      '<button type="button" class="lk-tb" data-ink="undo" title="Rückgängig">↶ Zurück</button>' + (extra && extra.wipe ? '<button type="button" class="lk-tb" data-ink="wipe" title="Alles Geschriebene sofort wegwischen">Wegwischen</button>' : '<button type="button" class="lk-tb" data-ink="clear" title="Alles Geschriebene löschen">Alles löschen</button>') + (extra && extra.tail ? extra.tail : "") + "</div>" +
       '<button type="button" class="lk-iopen" data-iopen title="Werkzeuge zeigen">▸</button>';
   }
   function lkInkBarWire(box, T, onOther, onFold) {
@@ -6536,7 +6668,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (!bar.contains(b)) return;
       if (b.dataset.isz) { T.size = +b.dataset.isz; mark(); return; }
       const k = b.dataset.ink;
-      if (k === "undo") T.undo(); else if (k === "clear") { lkConfirm("Wirklich alles Geschriebene löschen?", "Alles löschen").then((y) => y && T.clear()); }
+      if (k === "undo") T.undo(); else if (k === "wipe") T.clear(); else if (k === "clear") { lkConfirm("Wirklich alles Geschriebene löschen?", "Alles löschen").then((y) => y && T.clear()); }
       else if (k) { T.tool = k; if (b.dataset.c) T.color = b.dataset.c; mark(); }
       else if (onOther) onOther(b);
     });
@@ -6593,7 +6725,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (on === H.classList.contains("lk-proj")) return;
     H.classList.toggle("lk-proj", on); H.classList.remove("lk-tools");
     if (on) { LK.pside = false; LK.pdocs = false; try { H.requestFullscreen && H.requestFullscreen().catch(() => {}); } catch (e) {} }
-    else { lkPenOff(true); lkPrStop(); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
+    else { lkPenOff(true); lkPrStop(); lkToolsReset(document); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
     lkLayout(); lkOpenHead();
   }
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.documentElement.classList.contains("lk-proj") && !document.querySelector(".lk-show")) lkProj(false); });
@@ -6605,7 +6737,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const cv = document.createElement("canvas"); cv.className = "lk-draw"; const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = main.scrollWidth, h = main.scrollHeight; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px";
     main.appendChild(cv);
-    const bar = document.createElement("div"); bar.className = "lk-penbar"; bar.innerHTML = lkInkBar(null, { tail: '<button type="button" class="lk-tb" data-pnoff title="Stift aus, Geschriebenes bleibt stehen">Stift aus</button>' });
+    const bar = document.createElement("div"); bar.className = "lk-penbar"; bar.innerHTML = lkInkBar(null, { wipe: true, tail: '<button type="button" class="lk-tb" data-pnoff title="Stift aus, Geschriebenes bleibt stehen">Stift aus</button>' });
     document.getElementById("view-lektion").appendChild(bar);
     const T = lkInkSurface(cv, null, { unit: () => 2 * dpr, off: () => !document.documentElement.classList.contains("lk-pen") });
     lkInkBarWire(bar, T, (b) => { if (b.dataset.pnoff != null) lkPenOff(false); });
@@ -6617,13 +6749,384 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     lkOpenHead();
   }
   function lkPenResume() { if (lkPen && lkPen.cv.isConnected) { lkPen.cv.classList.remove("idle"); document.getElementById("view-lektion").appendChild(lkPen.bar); document.documentElement.classList.add("lk-pen"); lkOpenHead(); } else { lkPen = null; lkPenOn(); } }
+  const LKW_MENU = [["timer", "⏱ Timer / Stoppuhr", "Gross sichtbar, mit Pause und Alarm"], ["zufall", "🎲 Zufallsgenerator", "Wer ist dran? Oder Gruppen bilden"], ["qr", "▦ QR-Code", "QR-Code zu einem Link, z. B. Lernvideo oder Formular"], ["umfrage", "📊 Umfrage", "Anonyme Umfrage mit Live-Ergebnis"]];
   function lkOpenHead() {
     const acts = $("#lk-acts"); if (!acts) return;
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
     acts.innerHTML = '<span class="status" id="lk-status"></span>' + (P
-      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
+      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") +
+        '<button type="button" class="btn ghost" data-lkt="spot" title="Spotlight: alles abdunkeln, nur ein Bereich bleibt hell">🔦 Spotlight</button><button type="button" class="btn ghost" data-lkt="zoom" title="Vergrössern: Bereich aufziehen oder doppelt auf einen Absatz / ein Bild tippen">🔍 Zoom</button>' +
+        '<span class="lk-tbw"><button type="button" class="btn ghost" data-lkpop="hm" title="Timer, Zufallsgenerator, QR-Code, Umfrage">🧰 Hilfsmittel ▾</button><div class="lk-pop lkw-menu" data-pop="hm" hidden>' + LKW_MENU.map(([k, l, t]) => '<button type="button" class="lk-tb" data-lkt="' + k + '" title="' + t + '">' + l + "</button>").join("") + "</div></span>" + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
       : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+    lkToolsMark();
   }
+  // ---------- Hilfsmittel beim Projizieren ----------
+  // Spotlight, Zoom und Stift wirken im jeweiligen Fenster (Hauptfenster, Folien oder Beamer-Fenster).
+  // Timer, Zufall, QR-Code und Umfrage erscheinen im Hauptfenster und – wenn offen – gleichzeitig im Beamer-Fenster.
+  const lkwDocs = () => (lkPresenting() ? [document, PR.win.document] : [document]);
+  const lkHostEl = (doc) => (doc === document ? document.querySelector(".lk-show:not(.aud)") || document.body : doc.body);
+  const lkZoomHost = (doc) => (doc !== document ? doc.getElementById("st") : document.querySelector(".lk-show:not(.aud) .lk-slide") || $("#lk-main"));
+  const lkSpots = new Map(), lkZooms = new Map(), lkPens = new Map();
+  function lkTool(doc, k) {
+    if (k === "spot") lkSpot(doc); else if (k === "zoom") lkZoom(doc); else if (k === "pen") lkPenDoc(doc); else if (LKW_DEF[k]) lkwToggle(k);
+    if (doc === document) lkPopsClose();
+  }
+  function lkToolsMark() {
+    const st = (d, k) => (k === "spot" ? lkSpots.has(d) : k === "zoom" ? lkZooms.has(d) : k === "pen" ? !!(lkPens.get(d) || {}).on : !!LKW[k]);
+    lkwDocs().forEach((d) => d.querySelectorAll("[data-lkt]").forEach((b) => { const on = st(d, b.dataset.lkt); b.classList.toggle("on", on); if (b.classList.contains("btn")) b.setAttribute("aria-pressed", String(on)); }));
+    if (lkPresenting()) document.querySelectorAll("[data-lkb]").forEach((b) => b.classList.toggle("on", st(PR.win.document, b.dataset.lkb)));
+  }
+  function lkToolsReset(doc) {
+    if (lkSpots.has(doc)) lkSpots.get(doc)();
+    if (lkZooms.has(doc)) lkZooms.get(doc).close();
+    const p = lkPens.get(doc); if (p) { p.cv.remove(); p.bar.remove(); lkPens.delete(doc); }
+    lkToolsMark();
+  }
+  // kleine Leiste oben mit Hinweis und Schliessen
+  function lkCtl(doc, html, onClick) {
+    const c = doc.createElement("div"); c.className = "lk-ctl"; c.innerHTML = html;
+    c.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) onClick(b); });
+    lkHostEl(doc).appendChild(c); return c;
+  }
+  const lkEscOnce = (doc, fn) => { const h = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); fn(); } }; doc.addEventListener("keydown", h, true); return () => doc.removeEventListener("keydown", h, true); };
+  // Spotlight: alles dunkel, ein Bereich hell (ziehen = verschieben, Ecke = Grösse, daneben = neu aufziehen)
+  function lkSpot(doc) {
+    if (lkSpots.has(doc)) { lkSpots.get(doc)(); return; }
+    const win = doc.defaultView, ov = doc.createElement("div"), hole = doc.createElement("div");
+    ov.className = "lk-spot"; hole.className = "lk-spot-hole"; hole.innerHTML = '<i class="lk-spot-rs"></i>'; ov.appendChild(hole);
+    let r = { x: win.innerWidth * 0.3, y: win.innerHeight * 0.32, w: win.innerWidth * 0.4, h: win.innerHeight * 0.3 }, drag = null;
+    const put = () => Object.assign(hole.style, { left: r.x + "px", top: r.y + "px", width: Math.max(8, r.w) + "px", height: Math.max(8, r.h) + "px" });
+    ov.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); try { ov.setPointerCapture(e.pointerId); } catch (er) {}
+      const mode = e.target.classList.contains("lk-spot-rs") ? "size" : e.target === hole ? "move" : "new";
+      drag = { mode, x0: e.clientX, y0: e.clientY, r0: { ...r } };
+      if (mode === "new") { r = { x: e.clientX, y: e.clientY, w: 0, h: 0 }; put(); }
+    });
+    ov.addEventListener("pointermove", (e) => {
+      if (!drag) return; const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0, o = drag.r0;
+      if (drag.mode === "move") r = { ...o, x: o.x + dx, y: o.y + dy };
+      else if (drag.mode === "size") r = { ...o, w: Math.max(40, o.w + dx), h: Math.max(40, o.h + dy) };
+      else r = { x: Math.min(drag.x0, e.clientX), y: Math.min(drag.y0, e.clientY), w: Math.abs(dx), h: Math.abs(dy) };
+      put();
+    });
+    const up = () => { if (drag && drag.mode === "new" && (r.w < 40 || r.h < 40)) { r = { x: drag.x0 - 170, y: drag.y0 - 100, w: 340, h: 200 }; put(); } drag = null; };
+    ov.addEventListener("pointerup", up); ov.addEventListener("pointercancel", up);
+    const ctl = lkCtl(doc, '<span>🔦 Hellen Bereich ziehen · Ecke = Grösse · daneben = neu</span><button type="button" class="lkw-x" data-sp="round" title="Rund oder eckig">◯</button><button type="button" class="lkw-x" data-sp="x" title="Spotlight aus (Esc)">✕</button>', (b) => {
+      if (b.dataset.sp === "round") { hole.classList.toggle("round"); b.textContent = hole.classList.contains("round") ? "▭" : "◯"; } else close();
+    });
+    const unkey = lkEscOnce(doc, () => close());
+    function close() { ov.remove(); ctl.remove(); unkey(); lkSpots.delete(doc); lkToolsMark(); }
+    lkHostEl(doc).appendChild(ov); put(); lkSpots.set(doc, close); lkToolsMark();
+  }
+  // Zoom: Bereich aufziehen (oder auf einen Absatz / ein Bild tippen) – die Seite wird dorthin vergrössert
+  const lkBlockAt = (host, t) => { const el = t && (t.nodeType === 1 ? t : t.parentElement), b = el && el.closest("figure, .lk-box, table, li, p, h1, h2, h3, blockquote"); return b && host.contains(b) ? b : null; };
+  function lkZoom(doc, rect) {
+    let z = lkZooms.get(doc);
+    if (!rect && z) { z.close(); return; }
+    if (!z) z = lkZoomStart(doc);
+    if (z && rect) z.to(rect);
+  }
+  function lkZoomStart(doc) {
+    const win = doc.defaultView, host = lkZoomHost(doc); if (!host) return null;
+    const clip = doc === document && host.id === "lk-main" ? $("#view-lektion") : host.parentElement, oldOv = clip.style.overflow;
+    const ov = doc.createElement("div"), sel = doc.createElement("div"); ov.className = "lk-zoomov"; sel.className = "lk-zoomsel"; sel.hidden = true; ov.appendChild(sel);
+    clip.style.overflow = "hidden"; host.classList.add("lk-zhost");
+    let zoomed = false, d = null;
+    const to = (r) => {
+      if (r.width < 4 || r.height < 4) return;
+      host.style.transition = "none"; host.style.transform = ""; const hr = host.getBoundingClientRect(); void host.offsetWidth; host.style.transition = "";
+      const vw = win.innerWidth, vh = win.innerHeight, sc = Math.max(1.1, Math.min(8, Math.min((vw * 0.94) / r.width, (vh * 0.9) / r.height)));
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      host.style.transform = "translate(" + (vw / 2 - hr.left - sc * (cx - hr.left)) + "px," + (vh / 2 - hr.top - sc * (cy - hr.top)) + "px) scale(" + sc + ")";
+      zoomed = true; ov.classList.add("zoomed"); hint();
+    };
+    const out = () => { host.style.transform = ""; zoomed = false; ov.classList.remove("zoomed"); hint(); };
+    const ctl = lkCtl(doc, '<span class="lk-zt"></span><button type="button" class="lkw-x" data-zm="x" title="Zoom aus (Esc)">✕</button>', () => close());
+    const hint = () => { ctl.querySelector(".lk-zt").textContent = zoomed ? "🔍 Tippen = wieder ganze Ansicht" : "🔍 Bereich aufziehen oder auf einen Absatz / ein Bild tippen"; };
+    ov.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); if (zoomed) { out(); return; }
+      try { ov.setPointerCapture(e.pointerId); } catch (er) {}
+      d = { x: e.clientX, y: e.clientY };
+    });
+    ov.addEventListener("pointermove", (e) => {
+      if (!d) return; const x = Math.min(d.x, e.clientX), y = Math.min(d.y, e.clientY), w = Math.abs(e.clientX - d.x), h = Math.abs(e.clientY - d.y);
+      if (w + h > 8) { sel.hidden = false; Object.assign(sel.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" }); }
+    });
+    ov.addEventListener("pointerup", (e) => {
+      if (!d) return; const w = Math.abs(e.clientX - d.x), h = Math.abs(e.clientY - d.y), x = Math.min(d.x, e.clientX), y = Math.min(d.y, e.clientY); d = null; sel.hidden = true;
+      if (w > 24 && h > 16) { to({ left: x, top: y, width: w, height: h }); return; }
+      ov.style.pointerEvents = "none"; const t = doc.elementFromPoint(e.clientX, e.clientY); ov.style.pointerEvents = "";
+      const b = lkBlockAt(host, t); if (b) to(b.getBoundingClientRect());
+    });
+    ov.addEventListener("pointercancel", () => { d = null; sel.hidden = true; });
+    const unkey = lkEscOnce(doc, () => (zoomed ? out() : close()));
+    function close() { out(); ov.remove(); ctl.remove(); unkey(); lkZooms.delete(doc); setTimeout(() => { if (!lkZooms.has(doc)) { host.classList.remove("lk-zhost"); clip.style.overflow = oldOv; } }, 400); lkToolsMark(); }
+    lkHostEl(doc).appendChild(ov); hint();
+    const z = { to, close, zoomed: () => zoomed }; lkZooms.set(doc, z); lkToolsMark(); return z;
+  }
+  // Doppelklick / doppeltes Tippen auf einen Absatz, ein Zitat oder ein Bild = heranzoomen (nicht beim Bearbeiten)
+  function lkDbl(doc, e) {
+    const host = lkZoomHost(doc); if (!host || !host.contains(e.target)) return;
+    if (doc === document && !document.querySelector(".lk-show:not(.aud)")) { const H = document.documentElement; if (!H.classList.contains("lk-proj") || H.classList.contains("lk-tools") || H.classList.contains("lk-pen")) return; }
+    const z = lkZooms.get(doc); if (z && z.zoomed()) return;
+    const b = lkBlockAt(host, e.target); if (!b) return;
+    try { doc.defaultView.getSelection().removeAllRanges(); } catch (er) {}
+    lkZoom(doc, b.getBoundingClientRect());
+  }
+  document.addEventListener("dblclick", (e) => lkDbl(document, e));
+  // Stift über Folien bzw. im Beamer-Fenster (wird beim nächsten Abschnitt weggewischt)
+  function lkPenDoc(doc) {
+    let p = lkPens.get(doc);
+    if (p && p.on) { p.bar.remove(); p.on = false; p.cv.classList.add("idle"); if (p.T.empty()) { p.cv.remove(); lkPens.delete(doc); } lkToolsMark(); return; }
+    if (p) { lkHostEl(doc).appendChild(p.bar); p.cv.classList.remove("idle"); p.on = true; lkToolsMark(); return; }
+    const win = doc.defaultView, dpr = Math.min(2, win.devicePixelRatio || 1);
+    const cv = doc.createElement("canvas"); cv.className = "lk-draw fix"; cv.width = Math.round(win.innerWidth * dpr); cv.height = Math.round(win.innerHeight * dpr);
+    const bar = doc.createElement("div"); bar.className = "lk-penbar fix"; bar.innerHTML = lkInkBar(null, { wipe: true, tail: '<button type="button" class="lk-tb" data-pnoff title="Stift aus, Geschriebenes bleibt stehen">Stift aus</button>' });
+    const host = lkHostEl(doc); host.appendChild(cv); host.appendChild(bar);
+    p = { cv, bar, on: true }; lkPens.set(doc, p);
+    p.T = lkInkSurface(cv, null, { unit: () => 2 * dpr, off: () => !p.on });
+    lkInkBarWire(bar, p.T, (b) => { if (b.dataset.pnoff != null) lkPenDoc(doc); });
+    lkToolsMark();
+  }
+  function lkPenWipe(doc) { const p = lkPens.get(doc); if (p) p.T.clear(); }
+  // Checkliste: Häkchen per Klick aufs Kästchen; in Folien und Beamer über die Reihenfolge der Punkte zugeordnet
+  const lkCheckHit = (li, e) => { const r = li.getBoundingClientRect(), fs = parseFloat(li.ownerDocument.defaultView.getComputedStyle(li).fontSize) || 16; return e.clientX < r.left + fs * 1.6; };
+  function lkCheckIdx(root, secs, s) {
+    const tmp = document.createElement("div"); tmp.innerHTML = secs.slice(0, s).map((sec) => sec.map((p) => p.join("")).join("")).join("");
+    let i = tmp.querySelectorAll("ul.lk-check > li").length; root.querySelectorAll("ul.lk-check > li").forEach((li) => (li.dataset.ci = i++));
+  }
+  function lkCheckToggleIdx(i) { const pg = $("#lk-page"), li = pg && pg.querySelectorAll("ul.lk-check > li")[i]; if (!li) return; li.classList.toggle("done"); lkSave(); }
+  // Tabelle: Zeilen und Spalten
+  function lkTableOp(cmd) {
+    const pg = $("#lk-page"), an = getSelection().anchorNode, el = an && (an.nodeType === 1 ? an : an.parentElement), cell = el && el.closest("td, th"), tb = cell && cell.closest("table");
+    if (!tb || !pg.contains(tb)) { lkStat("Bitte zuerst in eine Zelle der Tabelle klicken."); return; }
+    const tr = cell.parentElement, ci = [...tr.children].indexOf(cell), rows = [...tb.rows];
+    const mk = (tag) => { const c = document.createElement(tag); c.innerHTML = "<br>"; return c; };
+    let focus = null;
+    if (cmd === "trow") { const n = document.createElement("tr"); [...tr.children].forEach(() => n.appendChild(mk("td"))); tr.after(n); focus = n.children[Math.max(0, ci)]; }
+    else if (cmd === "tcol") rows.forEach((r) => { const ref = r.children[ci], c = mk(ref && ref.tagName === "TH" ? "th" : "td"); if (ref) ref.after(c); else r.appendChild(c); if (r === tr) focus = c; });
+    else if (cmd === "tdelrow") { if (rows.length <= 1) tb.remove(); else tr.remove(); }
+    else if (cmd === "tdelcol") { if (tr.children.length <= 1) tb.remove(); else rows.forEach((r) => r.children[ci] && r.children[ci].remove()); }
+    else if (cmd === "thead") { const r0 = rows[0], toTh = !(r0.children[0] && r0.children[0].tagName === "TH"); [...r0.children].forEach((c) => { const n = document.createElement(toTh ? "th" : "td"); while (c.firstChild) n.appendChild(c.firstChild); c.replaceWith(n); }); }
+    else if (cmd === "tdel") tb.remove();
+    if (focus) lkCaretIn(focus);
+  }
+  const lkCaretIn = (el) => { const r = document.createRange(); r.selectNodeContents(el); r.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(r); };
+  // ---------- Timer, Zufall, QR-Code, Umfrage: schwebende Karten, verschiebbar, gross/klein ----------
+  const LKW = {}; let lkwZ = 1;
+  const lkLS = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} } };
+  const lkFmtMs = (ms) => { const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(sec).padStart(2, "0"); };
+  const lkShuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  let lkAC = null;
+  const lkAudio = () => { try { lkAC = lkAC || new (window.AudioContext || window.webkitAudioContext)(); if (lkAC.state === "suspended") lkAC.resume(); } catch (e) { lkAC = null; } return lkAC; };
+  function lkBeep() {
+    const ac = lkAudio(); if (!ac) return; const t0 = ac.currentTime + 0.05;
+    [0, 0.3, 0.6, 1.3, 1.6, 1.9].forEach((dt) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = "sine"; o.frequency.value = 880; g.gain.setValueAtTime(0.0001, t0 + dt); g.gain.exponentialRampToValueAtTime(0.35, t0 + dt + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.25); o.connect(g); g.connect(ac.destination); o.start(t0 + dt); o.stop(t0 + dt + 0.28); });
+  }
+  const lkTimerMs = (st) => (st.mode === "down" ? Math.max(0, st.run ? st.end - Date.now() : st.left) : st.acc + (st.run ? Date.now() - st.t0 : 0));
+  let lkTick = 0;
+  function lkTimerTick() {
+    const st = LKW.timer; if (!st || !st.run) { clearInterval(lkTick); lkTick = 0; return; }
+    const ms = lkTimerMs(st);
+    if (st.mode === "down" && ms <= 0) { st.run = false; st.left = 0; st.done = true; clearInterval(lkTick); lkTick = 0; if (st.sound) lkBeep(); lkwDraw("timer"); return; }
+    lkwDocs().forEach((d) => { const w = d.querySelector('.lkw[data-w="timer"]'); if (!w) return; const t = w.querySelector(".lkw-time"), p = w.querySelector(".lkw-prog i"); if (t) t.textContent = lkFmtMs(ms); if (p) p.style.width = (100 * ms) / st.total + "%"; w.classList.toggle("warn", st.mode === "down" && ms <= Math.min(60000, st.total * 0.2)); });
+  }
+  const lkUrlsInPage = () => { const pg = $("#lk-page"); return [...new Set(((pg && pg.innerText) || "").match(/\bhttps?:\/\/[^\s<>"«»]+[^\s<>"«».,;:!?)]/g) || [])].slice(0, 6); };
+  const QR_URL = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";
+  async function lkQrSvg(text) { await loadScript(QR_URL); const q = window.qrcode; q.stringToBytes = q.stringToBytesFuncs["UTF-8"]; const qr = q(0, "M"); qr.addData(text); qr.make(); return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); }
+  const B = (a, label, title, extra) => '<button type="button" class="lkw-btn' + (extra || "") + '" data-wa="' + a + '"' + (title ? ' title="' + title + '"' : "") + ">" + label + "</button>";
+  const BV = (a, v, label, on, title) => '<button type="button" class="lkw-btn' + (on ? " on" : "") + '" data-wa="' + a + '" data-v="' + esc(String(v)) + '"' + (title ? ' title="' + esc(title) + '"' : "") + ">" + label + "</button>";
+  const LKW_DEF = {
+    timer: {
+      icon: "⏱", title: "Timer", x: 70, y: 9,
+      init: () => ({ mode: "down", total: 300000, left: 300000, end: 0, acc: 0, t0: 0, run: false, done: false, sound: true }),
+      body(st) {
+        const ms = lkTimerMs(st), dn = st.mode === "down";
+        return '<div class="lkw-row lkw-ctl">' + BV("mode", "down", "Timer", dn) + BV("mode", "up", "Stoppuhr", !dn) + "</div>" +
+          '<div class="lkw-time">' + lkFmtMs(ms) + "</div>" + (dn ? '<div class="lkw-prog"><i style="width:' + (100 * ms) / st.total + '%"></i></div>' : "") +
+          (dn ? '<div class="lkw-row lkw-ctl">' + [1, 2, 3, 5, 10, 15, 20].map((m) => BV("set", m, m + "′", !st.run && st.total === m * 60000, m + " Minuten")).join("") + "</div>" : "") +
+          '<div class="lkw-row lkw-ctl">' + (dn ? BV("plus", -1, "−1′", false, "Eine Minute weniger") + BV("plus", 1, "+1′", false, "Eine Minute mehr") : "") +
+          B("go", st.run ? "⏸ Pause" : st.acc || (dn && st.left < st.total && st.left > 0) ? "▶ Weiter" : "▶ Start", "", " pri") + B("reset", "↺", "Zurücksetzen") + B("sound", st.sound ? "🔔" : "🔕", st.sound ? "Alarm ist an" : "Alarm ist aus") + "</div>";
+      },
+      after(st, el) { el.classList.toggle("alarm", !!st.done); el.classList.toggle("warn", st.mode === "down" && (st.run || st.done) && lkTimerMs(st) <= Math.min(60000, st.total * 0.2)); },
+      act(st, a, b) {
+        const now = Date.now(), v = b.dataset.v;
+        if (a === "mode") { st.mode = v; st.run = false; st.acc = 0; st.left = st.total; st.done = false; }
+        else if (a === "set") { st.total = st.left = +v * 60000; st.run = false; st.done = false; }
+        else if (a === "plus") { const d = +v * 60000; if (st.run) { if (st.end + d - now < 1000) return false; st.end += d; st.total = Math.max(60000, st.total + d); } else { st.left = Math.max(60000, st.left + d); st.total = Math.max(st.left, st.total + d); } st.done = false; }
+        else if (a === "go") {
+          lkAudio();
+          if (st.run) { if (st.mode === "down") st.left = Math.max(0, st.end - now); else st.acc += now - st.t0; st.run = false; }
+          else { if (st.mode === "down") { if (st.left <= 0) st.left = st.total; st.end = now + st.left; } else st.t0 = now; st.run = true; st.done = false; clearInterval(lkTick); lkTick = setInterval(lkTimerTick, 250); }
+        }
+        else if (a === "reset") { st.run = false; st.left = st.total; st.acc = 0; st.done = false; }
+        else if (a === "sound") st.sound = !st.sound;
+      },
+      stop() { clearInterval(lkTick); lkTick = 0; },
+    },
+    zufall: {
+      icon: "🎲", title: "Zufall", x: 3, y: 10,
+      init() {
+        const kid = LK.kid || "-"; let names = []; try { names = JSON.parse(lkLS.get("semper-namen-" + kid) || "[]"); } catch (e) {}
+        return { kid, names, pool: lkShuffle(names), pick: "", groups: null, size: 0, norep: true, edit: !names.length, keep: true, draft: names.join("\n"), num: 24, note: "" };
+      },
+      body(st, where) {
+        if (st.edit) {
+          if (where !== "main") return '<p class="lkw-note">Die Liste wird vorbereitet …</p>';
+          return '<p class="lkw-note">Namen der Klasse, einer pro Zeile (z. B. aus einer Liste hineinkopieren). Sie bleiben nur auf diesem Gerät – nicht in OneDrive und nicht im Internet.</p>' +
+            '<textarea data-wi="draft" rows="8" placeholder="Anna&#10;Ben&#10;…">' + esc(st.draft) + "</textarea>" +
+            '<label><input type="checkbox" data-wi="keep"' + (st.keep ? " checked" : "") + "> Auf diesem Gerät für diese Klasse merken</label>" +
+            '<div class="lkw-row"><span class="lkw-note">oder nur Nummern 1 bis</span><input type="number" min="2" max="99" data-wi="num" value="' + st.num + '">' + B("nums", "Nummern") + "</div>" +
+            '<div class="lkw-row">' + (st.names.length ? B("cancel", "Abbrechen") : "") + B("save", "Übernehmen", "", " pri") + "</div>";
+        }
+        let h = '<div class="lkw-name' + (st.spin ? " spin" : "") + '">' + esc(st.pick || "?") + "</div>";
+        if (st.groups) h = '<div class="lkw-groups">' + st.groups.map((g, i) => "<div><b>Gruppe " + (i + 1) + "</b>" + g.map(esc).join("<br>") + "</div>").join("") + "</div>";
+        return h + (st.note ? '<p class="lkw-note" style="text-align:center">' + esc(st.note) + "</p>" : "") +
+          '<div class="lkw-row lkw-ctl">' + B("draw", "🎲 Ziehen", "Eine Person zufällig wählen", " pri") + BV("norep", 1, "ohne Wiederholung", st.norep, "Wer schon dran war, kommt erst wieder, wenn alle dran waren") + "</div>" +
+          '<div class="lkw-row lkw-ctl"><span class="lkw-note">Gruppen à</span>' + [2, 3, 4, 5].map((n) => BV("groups", n, n, st.groups && st.size === n, "Zufällige Gruppen mit je " + n + " Personen")).join("") + "</div>" +
+          '<div class="lkw-row lkw-ctl"><span class="lkw-note">' + (st.norep ? "noch " + st.pool.length + " von " + st.names.length : st.names.length + " Namen") + "</span>" + B("refill", "↺ Alle wieder", "Neue Runde: alle sind wieder im Topf") + (where === "main" ? B("list", "✎ Liste", "Namensliste ändern") : "") + "</div>";
+      },
+      input(st, el) { if (el.dataset.wi === "keep") st.keep = el.checked; else if (el.dataset.wi === "num") st.num = Math.max(2, Math.min(99, +el.value || 2)); else st.draft = el.value; },
+      act(st, a, b) {
+        const set = (names) => { st.names = names; st.pool = lkShuffle(names); st.pick = ""; st.groups = null; st.edit = false; st.note = ""; st.draft = names.join("\n"); lkLS.set("semper-namen-" + st.kid, st.keep ? JSON.stringify(names) : null); };
+        if (a === "save") { const n = [...new Set(st.draft.split(/[\n;\t]+/).map((x) => x.trim()).filter(Boolean))]; if (n.length < 2) { lkStat("Bitte mindestens zwei Namen eingeben."); return false; } set(n); }
+        else if (a === "nums") set(Array.from({ length: st.num }, (_, i) => String(i + 1)));
+        else if (a === "cancel") st.edit = false;
+        else if (a === "list") { st.edit = true; st.draft = st.names.join("\n"); }
+        else if (a === "norep") st.norep = !st.norep;
+        else if (a === "refill") { st.pool = lkShuffle(st.names); st.note = ""; }
+        else if (a === "groups") { const n = +b.dataset.v, all = lkShuffle(st.names), k = Math.max(1, Math.round(all.length / n)), g = Array.from({ length: k }, () => []); all.forEach((x, i) => g[i % k].push(x)); st.groups = g; st.size = n; st.pick = ""; st.note = ""; }
+        else if (a === "draw") {
+          if (st.spin || !st.names.length) return false;
+          st.groups = null; st.note = "";
+          if (st.norep && !st.pool.length) { st.pool = lkShuffle(st.names); st.note = "Alle waren dran – neue Runde."; }
+          const who = st.norep ? st.pool.pop() : st.names[Math.floor(Math.random() * st.names.length)];
+          st.spin = true; st.pick = "…"; lkwDraw("zufall"); let n = 0;
+          const iv = setInterval(() => {
+            n++;
+            if (n >= 14 || !LKW.zufall) { clearInterval(iv); st.spin = false; st.pick = who; if (LKW.zufall) lkwDraw("zufall"); return; }
+            const fake = st.names[Math.floor(Math.random() * st.names.length)];
+            lkwDocs().forEach((d) => { const el = d.querySelector('.lkw[data-w="zufall"] .lkw-name'); if (el) el.textContent = fake; });
+          }, 70);
+          return false;
+        }
+      },
+    },
+    qr: {
+      icon: "▦", title: "QR-Code", x: 58, y: 18,
+      init() { const url = lkLS.get("semper-qr-" + (LK.pid || "")) || ""; const st = { url, draft: url, svg: "", show: false, err: "" }; if (url) setTimeout(() => LKW.qr === st && LKW_DEF.qr.act(st, "show"), 0); return st; },
+      body(st, where) {
+        if (st.show && st.svg) return '<div class="lkw-qr">' + st.svg + '</div><div class="lkw-url">' + esc(st.url.replace(/^https?:\/\//, "")) + "</div>" + (where === "main" ? '<div class="lkw-row lkw-ctl">' + B("edit", "✎ Anderer Link") + "</div>" : "");
+        if (where !== "main") return '<p class="lkw-note">QR-Code wird vorbereitet …</p>';
+        const sug = lkUrlsInPage();
+        return '<p class="lkw-note">Für Links, die die Klasse ohne Anmeldung öffnen kann – z. B. eine Webseite, ein Lernvideo, ein Formular oder ein Dokument, das Sie selbst freigegeben haben. Ihre Semper-Seiten sind privat und lassen sich so nicht öffnen.</p>' +
+          '<input type="url" data-wi="draft" placeholder="https://…" value="' + esc(st.draft) + '">' +
+          (sug.length ? '<span class="lkw-note">Links auf dieser Seite:</span><div class="lkw-sug">' + sug.map((u) => BV("use", u, esc(u.replace(/^https?:\/\//, "")), false, u)).join("") + "</div>" : "") +
+          (st.err ? '<p class="lkw-note" style="color:var(--danger)">' + esc(st.err) + "</p>" : "") +
+          '<div class="lkw-row">' + B("show", "QR-Code zeigen", "", " pri") + "</div>";
+      },
+      input(st, el) { st.draft = el.value; },
+      act(st, a, b) {
+        if (a === "edit") { st.show = false; st.draft = st.url; return; }
+        if (a === "use") { st.draft = b.dataset.v; }
+        if (a === "show" || a === "use") {
+          let u = (st.draft || "").trim(); if (!u) { st.err = "Bitte zuerst einen Link eingeben."; return; }
+          if (!/^[a-z][a-z0-9+.-]*:/i.test(u) && /^[^\s]+\.[a-z]{2,}(\/|$)/i.test(u)) u = "https://" + u;
+          st.err = ""; lkQrSvg(u).then((svg) => { if (LKW.qr !== st) return; st.url = u; st.svg = svg; st.show = true; lkLS.set("semper-qr-" + (LK.pid || ""), u); lkwDraw("qr"); })
+            .catch(() => { st.err = "Der QR-Code konnte nicht erstellt werden – ist das Gerät mit dem Internet verbunden?"; if (LKW.qr === st) lkwDraw("qr"); });
+          return false;
+        }
+      },
+    },
+    umfrage: {
+      icon: "📊", title: "Umfrage", x: 22, y: 12,
+      init() { let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} return { live: false, q: sv.q || "", dq: sv.q || "", dopts: (sv.o || ["Ja", "Nein", "Weiss nicht"]).join("\n"), opts: [], show: true, pass: false, thanks: false, hist: [] }; },
+      body(st, where) {
+        if (!st.live) {
+          if (where !== "main") return '<p class="lkw-note">Die Umfrage wird vorbereitet …</p>';
+          return '<input type="text" data-wi="dq" placeholder="Frage, z. B. «Wie sicher fühlen Sie sich beim Thema?»" value="' + esc(st.dq) + '">' +
+            '<span class="lkw-note">Antworten, eine pro Zeile:</span><textarea data-wi="dopts" rows="4">' + esc(st.dopts) + "</textarea>" +
+            '<div class="lkw-row"><span class="lkw-note">Vorlagen:</span>' + [["Ja\nNein", "Ja / Nein"], ["Ja\nNein\nWeiss nicht", "Ja / Nein / ?"], ["A\nB\nC\nD", "A B C D"], ["😀 Sehr gut\n🙂 Gut\n😐 Geht so\n🙁 Schwierig", "😀 🙂 😐 🙁"]].map(([v, l]) => BV("preset", v, l)).join("") + "</div>" +
+            '<p class="lkw-note">Die Klasse stimmt durch Antippen ab – z. B. das Tablet herumgeben (Modus «Weitergeben») oder Handzeichen zählen. Es wird nichts verschickt und nichts gespeichert; niemand sieht, wer was gewählt hat.</p>' +
+            '<div class="lkw-row">' + B("start", "Umfrage starten", "", " pri") + "</div>";
+        }
+        const tot = st.opts.reduce((a, o) => a + o.n, 0);
+        let h = (st.q ? '<div class="lkw-q">' + esc(st.q) + "</div>" : "");
+        if (st.thanks) h += '<div class="lkw-thanks">✓ Danke!<br><span style="font-size:.6em">Bitte weitergeben.</span></div>';
+        else h += st.opts.map((o, i) => { const p = tot ? Math.round((100 * o.n) / tot) : 0; return '<button type="button" class="lkw-opt" data-wa="vote" data-v="' + i + '" title="Antippen = eine Stimme"><span>' + esc(o.t) + '</span><span class="lkw-barw"><i style="width:' + (st.show ? p : 0) + '%"></i></span><b>' + (st.show ? o.n : "·") + "</b></button>"; }).join("");
+        return h + '<div class="lkw-tot">' + tot + (tot === 1 ? " Stimme" : " Stimmen") + (st.show ? "" : " · Ergebnis verborgen") + "</div>" +
+          '<div class="lkw-row lkw-ctl">' + BV("show", 1, st.show ? "🙈 Ergebnis verbergen" : "👁 Ergebnis zeigen", false) + BV("pass", 1, "Weitergeben", st.pass, "Jede Person tippt einmal, danach erscheint kurz «Danke» – das Ergebnis bleibt verborgen") + B("undo", "↶", "Letzte Stimme zurücknehmen") + B("zero", "↺ Neu", "Alle Stimmen auf null") + (where === "main" ? B("edit", "✎", "Frage ändern") : "") + "</div>";
+      },
+      input(st, el) { st[el.dataset.wi] = el.value; },
+      act(st, a, b) {
+        if (a === "preset") st.dopts = b.dataset.v;
+        else if (a === "start") { const o = st.dopts.split("\n").map((x) => x.trim()).filter(Boolean); if (o.length < 2) { lkStat("Bitte mindestens zwei Antworten eingeben."); return false; } st.q = st.dq.trim(); st.opts = o.map((t) => ({ t, n: 0 })); st.hist = []; st.live = true; lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify({ q: st.q, o })); }
+        else if (a === "edit") st.live = false;
+        else if (a === "show") st.show = !st.show;
+        else if (a === "pass") { st.pass = !st.pass; if (st.pass) st.show = false; }
+        else if (a === "undo") { const i = st.hist.pop(); if (i != null && st.opts[i].n) st.opts[i].n--; }
+        else if (a === "zero") { st.opts.forEach((o) => (o.n = 0)); st.hist = []; }
+        else if (a === "vote") { if (st.thanks) return false; const i = +b.dataset.v; st.opts[i].n++; st.hist.push(i); if (st.pass) { st.thanks = true; setTimeout(() => { st.thanks = false; if (LKW.umfrage === st) lkwDraw("umfrage"); }, 1300); } }
+      },
+    },
+  };
+  function lkwToggle(id) {
+    if (LKW[id]) { lkwClose(id); return; }
+    const def = LKW_DEF[id]; LKW[id] = { ...def.init(), x: def.x, y: def.y, big: false, z: ++lkwZ }; lkwDraw(id); lkToolsMark();
+  }
+  function lkwClose(id) {
+    const def = LKW_DEF[id]; if (def.stop) def.stop(LKW[id]); delete LKW[id];
+    lkwDocs().forEach((d) => d.querySelectorAll('.lkw[data-w="' + id + '"]').forEach((el) => el.remove())); lkToolsMark();
+  }
+  function lkwLayer(doc) {
+    let L = doc.querySelector(".lkw-layer");
+    if (!L) { L = doc.createElement("div"); L.className = "lkw-layer"; lkwWire(doc, L); }
+    const parent = lkHostEl(doc); if (L.parentNode !== parent) parent.appendChild(L);
+    return L;
+  }
+  function lkwSync() { lkwDocs().forEach((doc) => { const L = lkwLayer(doc); L.querySelectorAll(".lkw").forEach((el) => { if (!LKW[el.dataset.w]) el.remove(); }); Object.keys(LKW).forEach((id) => lkwDraw(id, doc)); }); lkToolsMark(); }
+  function lkwDraw(id, onlyDoc) {
+    const st = LKW[id], def = LKW_DEF[id]; if (!st) return;
+    (onlyDoc ? [onlyDoc] : lkwDocs()).forEach((doc) => {
+      const L = lkwLayer(doc), where = doc === document ? "main" : "beam";
+      let el = L.querySelector('.lkw[data-w="' + id + '"]');
+      if (!el) { el = doc.createElement("div"); el.className = "lkw lkw-" + id; el.dataset.w = id; L.appendChild(el); }
+      el.classList.toggle("big", !!st.big); el.style.left = st.x + "%"; el.style.top = st.y + "%"; el.style.zIndex = st.big ? 1000 : st.z || 1;
+      el.innerHTML = '<div class="lkw-h" data-wdrag><span>' + def.icon + " " + def.title + '</span><span class="lkw-sp"></span><button type="button" class="lkw-x" data-wa="big" title="' + (st.big ? "Wieder klein" : "Gross in der Mitte") + '">' + (st.big ? "⤡" : "⤢") + '</button><button type="button" class="lkw-x" data-wa="close" title="Schliessen">✕</button></div><div class="lkw-b">' + def.body(st, where) + "</div>";
+      if (def.after) def.after(st, el, where);
+      if (!st.big) { const w = doc.defaultView, r = el.getBoundingClientRect(); if (r.right > w.innerWidth - 4) el.style.left = Math.max(0, w.innerWidth - r.width - 8) + "px"; if (r.bottom > w.innerHeight - 4) el.style.top = Math.max(0, w.innerHeight - r.height - 8) + "px"; }
+    });
+  }
+  function lkwWire(doc, L) {
+    L.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-wa]"); if (!b) return; const el = b.closest(".lkw"), id = el && el.dataset.w, st = LKW[id]; if (!st) return;
+      const a = b.dataset.wa;
+      if (a === "close") { lkwClose(id); return; }
+      if (a === "big") { st.big = !st.big; lkwDraw(id); return; }
+      if (LKW_DEF[id].act(st, a, b, doc) !== false) lkwDraw(id);
+    });
+    L.addEventListener("input", (e) => { const el = e.target.closest(".lkw"), st = el && LKW[el.dataset.w]; if (st && e.target.dataset.wi && LKW_DEF[el.dataset.w].input) LKW_DEF[el.dataset.w].input(st, e.target); });
+    L.addEventListener("change", (e) => { const el = e.target.closest(".lkw"), st = el && LKW[el.dataset.w]; if (st && e.target.type === "checkbox" && LKW_DEF[el.dataset.w].input) LKW_DEF[el.dataset.w].input(st, e.target); });
+    L.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter" && e.target.tagName === "INPUT") { const el = e.target.closest(".lkw"), pri = el && el.querySelector(".lkw-btn.pri"); if (pri) { e.preventDefault(); pri.click(); } } });
+    L.addEventListener("pointerdown", (e) => {
+      const w0 = e.target.closest(".lkw"), s0 = w0 && LKW[w0.dataset.w];
+      if (s0 && !s0.big && s0.z !== lkwZ) { s0.z = ++lkwZ; lkwDocs().forEach((d) => { const w = d.querySelector('.lkw[data-w="' + w0.dataset.w + '"]'); if (w) w.style.zIndex = s0.z; }); }
+      const h = e.target.closest("[data-wdrag]"); if (!h || e.target.closest("button")) return;
+      const el = h.closest(".lkw"), id = el.dataset.w, st = LKW[id]; if (!st || st.big) return;
+      e.preventDefault(); try { h.setPointerCapture(e.pointerId); } catch (er) {}
+      const win = doc.defaultView, r0 = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+      const mv = (ev) => {
+        st.x = Math.max(0, Math.min(Math.max(0, 100 - (r0.width / win.innerWidth) * 100), ((r0.left + ev.clientX - x0) / win.innerWidth) * 100)); st.y = Math.max(0, Math.min(Math.max(0, 100 - (r0.height / win.innerHeight) * 100), ((r0.top + ev.clientY - y0) / win.innerHeight) * 100));
+        lkwDocs().forEach((d) => { const w = d.querySelector('.lkw[data-w="' + id + '"]'); if (w) { w.style.left = st.x + "%"; w.style.top = st.y + "%"; } });
+      };
+      const up = () => { h.removeEventListener("pointermove", mv); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up); };
+      h.addEventListener("pointermove", mv); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
+    });
+  }
+  // Leiste unten beim Beamer (liegt über den Karten, darum direkt im Seitenkörper)
+  document.addEventListener("mousedown", (e) => { if (e.target.closest("#lk-prbar .lk-tb")) e.preventDefault(); });
+  document.addEventListener("click", (e) => { const b = e.target.closest("#lk-prbar [data-pr]"); if (!b) return; const v = b.dataset.pr; if (v === "stop") lkPrStop(); else if (v === "black") { PR.black = !PR.black; lkPrRender(false); } else lkPrGo(+v); });
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-lkt], [data-lkb]"); if (!b || (b.closest(".lkw-layer"))) return; if (b.dataset.lkt) lkTool(document, b.dataset.lkt); else if (lkPresenting()) lkTool(PR.win.document, b.dataset.lkb); });
   // ---------- Ausgeben: Word, PDF, Drucken; speichern auf dem Gerät oder in einem OneDrive-Ordner ----------
   const LK_BOXFILL = { gelb: ["FBF0A8", "B89A00"], apricot: ["FBD3B4", "C47A3C"], rost: ["EEBCAB", "B45A40"], rosa: ["F5D0DC", "B0607C"], lila: ["DDD6F0", "7A68B0"], blau: ["C9E3EF", "3F7F9C"], gruen: ["D4E8C4", "5F8A4A"], grau: ["DFE3E8", "7A8594"], weiss: ["FFFFFF", "888888"] };
   const LK_FS = { 1: 0.75, 2: 0.88, 4: 1.2, 5: 1.45, 6: 1.8, 7: 2.3 };
@@ -6702,8 +7205,18 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         let out = "", k = 0;
         for (const li of el.children) { if (li.tagName !== "LI") continue; k++; const sz = szOf(li, szOf(el, 22));
           const o = fromEl(li, box); o.indL += 720 + IND(el); o.hang = 360;
-          out += P(o, '<w:r><w:rPr><w:sz w:val="' + sz + '"/></w:rPr><w:t xml:space="preserve">' + (tg === "OL" ? k + ".\t" : "•\t") + "</w:t></w:r>" + (await runs(li, { sz }))); }
+          out += P(o, '<w:r><w:rPr><w:sz w:val="' + sz + '"/></w:rPr><w:t xml:space="preserve">' + (tg === "OL" ? k + ".\t" : el.classList.contains("lk-check") ? (li.classList.contains("done") ? "☑\t" : "☐\t") : "•\t") + "</w:t></w:r>" + (await runs(li, { sz }))); }
         return out;
+      }
+      if (tg === "TABLE") {
+        const rows = [...el.querySelectorAll("tr")], nc = Math.max(1, ...rows.map((r) => r.children.length)), cw = Math.floor(9638 / nc);
+        let out = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>' + ["top", "left", "bottom", "right", "insideH", "insideV"].map((b) => "<w:" + b + ' w:val="single" w:sz="4" w:space="0" w:color="8A949E"/>').join("") + '</w:tblBorders><w:tblCellMar><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' + Array.from({ length: nc }, () => '<w:gridCol w:w="' + cw + '"/>').join("") + "</w:tblGrid>";
+        for (const r of rows) {
+          out += "<w:tr>"; const cells = [...r.children];
+          for (let i = 0; i < nc; i++) { const c = cells[i], th = !!c && c.tagName === "TH"; out += '<w:tc><w:tcPr><w:tcW w:w="' + cw + '" w:type="dxa"/>' + (th ? '<w:shd w:val="clear" w:color="auto" w:fill="E4E9EF"/>' : "") + "</w:tcPr>" + P('<w:spacing w:before="40" w:after="40"/>', c ? await runs(c, { sz: 22, b: th }) : "") + "</w:tc>"; }
+          out += "</w:tr>";
+        }
+        return out + "</w:tbl>" + P("", "");
       }
       if (tg === "DIV" && el.classList.contains("lk-box")) {
         const c = LK_BOXFILL[(cls(el, /^c-/) || "c-gelb").slice(2)] || LK_BOXFILL.gelb;
@@ -6957,6 +7470,22 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     else if (cmd === "al") lkSetCls(lkBlocks(), /^al-[crj]$/, arg);
     else if (cmd === "dot") { const sel = getSelection(), n = sel.anchorNode, o = sel.anchorOffset; const before = n && n.nodeType === 3 ? n.nodeValue.slice(0, o) : ""; document.execCommand("insertText", false, (/\s$/.test(before) || !before ? "" : " ") + "· "); }
     else if (cmd === "hr") { document.execCommand("insertHTML", false, (arg ? '<hr class="' + arg + '">' : "<hr>") + "<p><br></p>"); lkPopsClose(); }
+    else if (cmd === "check") {
+      const an = getSelection().anchorNode, e0 = an && (an.nodeType === 1 ? an : an.parentElement), ul = e0 && e0.closest("ul, ol");
+      if (ul && pg.contains(ul) && ul.tagName === "UL") ul.classList.toggle("lk-check");
+      else { document.execCommand("insertUnorderedList"); const a2 = getSelection().anchorNode, e2 = a2 && (a2.nodeType === 1 ? a2 : a2.parentElement), u2 = e2 && e2.closest("ul"); if (u2 && pg.contains(u2)) u2.classList.add("lk-check"); }
+    }
+    else if (cmd === "uncheck") pg.querySelectorAll("ul.lk-check > li.done").forEach((li) => li.classList.remove("done"));
+    else if (cmd === "table") {
+      const [nr, nc] = arg.split("x").map(Number), row = (t) => "<tr>" + Array.from({ length: nc }, () => "<" + t + "><br></" + t + ">").join("") + "</tr>";
+      // immer als eigener Block nach dem aktuellen Absatz (nicht mitten in einer Liste oder einem Kasten)
+      const tpl = document.createElement("template"); tpl.innerHTML = '<table class="lk-tab"><tbody>' + row("th") + Array.from({ length: nr - 1 }, () => row("td")).join("") + "</tbody></table>";
+      const t = tpl.content.firstChild, an = getSelection().anchorNode; let top = an && an !== pg ? an : null; while (top && top.parentNode !== pg) top = top.parentNode;
+      if (top && top.nodeType === 1 && top.tagName === "P" && !top.textContent.trim() && !top.querySelector("img")) top.replaceWith(t); else if (top) top.after(t); else pg.appendChild(t);
+      if (!t.nextElementSibling) { const p2 = document.createElement("p"); p2.innerHTML = "<br>"; t.after(p2); }
+      lkCaretIn(t.querySelector("th, td"));
+    }
+    else if (/^t(row|col|delrow|delcol|head|del)$/.test(cmd)) lkTableOp(cmd);
     else if (cmd === "tc") document.execCommand("foreColor", false, LK_TC[arg]);
     else if (cmd === "hl") { if (getSelection().isCollapsed) return; document.execCommand("hiliteColor", false, LK_HL[arg]) || document.execCommand("backColor", false, LK_HL[arg]); }
     else if (cmd === "box" || cmd === "unbox") {
@@ -6977,6 +7506,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const b = e.target.closest("button"); const a = e.target.closest("a[data-doc]");
     if (a) { e.preventDefault(); const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); return; }
     if (lkPresenting() && e.target.tagName === "HR" && $("#lk-page").contains(e.target) && PR.deck) { const m = PR.deck.map.find((x) => x.el === e.target); if (m) { PR.s = m.s; PR.k = m.k; lkPrRender(true); } return; }
+    const ck = e.target.closest("#lk-page ul.lk-check > li"); if (ck && !b && lkCheckHit(ck, e)) { ck.classList.toggle("done"); lkSave(); return; }
     const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { if (lkFigNoClick) { lkFigNoClick = 0; return; } if (lkFP && lkFP.fig === fg) return; lkInk(fg); return; }
     if (!b) return;
     if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
@@ -7004,10 +7534,20 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.lkcmd && pg) { lkCmd(b.dataset.lkcmd, b.dataset.arg || ""); if (b.closest(".lk-pop") && b.dataset.lkcmd !== "lh") lkPopsClose(); else if (b.dataset.lkcmd === "lh") lkPopsClose(); }
   });
   document.getElementById("view-lektion").addEventListener("mousedown", (e) => { if (e.target.closest(".lk-tb, .lk-sw, .lk-ins, [data-lkpick]")) e.preventDefault(); });
+  document.getElementById("view-lektion").addEventListener("mouseover", (e) => {
+    const c = e.target.closest(".lk-tcell"); if (!c) return; const g = c.parentNode, r = +c.dataset.r, k = +c.dataset.c;
+    g.querySelectorAll(".lk-tcell").forEach((x) => x.classList.toggle("hov", +x.dataset.r <= r && +x.dataset.c <= k));
+    const lbl = g.parentNode.querySelector(".lk-tsize"); if (lbl) lbl.textContent = r + " Zeilen × " + k + " Spalten";
+  });
   document.getElementById("view-lektion").addEventListener("input", (e) => { if (e.target.id === "lk-page") lkSave(true); });
   document.getElementById("view-lektion").addEventListener("keydown", (e) => {
     if (e.target.id !== "lk-page" || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === "Tab") { e.preventDefault(); lkCmd("ind", e.shiftKey ? "-1" : "1"); return; }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const an = getSelection().anchorNode, cell = an && (an.nodeType === 1 ? an : an.parentElement).closest("td, th");
+      if (cell && e.target.contains(cell)) { const all = [...cell.closest("table").querySelectorAll("td, th")], i = all.indexOf(cell) + (e.shiftKey ? -1 : 1); if (i >= all.length) { lkTableOp("trow"); lkCaretIn(cell.closest("tr").nextElementSibling.firstElementChild); lkSave(); } else if (i >= 0) lkCaretIn(all[i]); return; }
+      lkCmd("ind", e.shiftKey ? "-1" : "1"); return;
+    }
     if (e.key !== "Enter" || e.shiftKey) return;
     // im Kasten: Enter = neue Zeile im Kasten; Enter in einer leeren letzten Zeile = aus dem Kasten heraus
     const n = getSelection().anchorNode, el = n && (n.nodeType === 1 ? n : n.parentElement), bx = el && el.closest(".lk-box"); if (!bx) return;
