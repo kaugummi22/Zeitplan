@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Abstimmen</title>
+<!-- Abstimmungsseite für die Klasse (Umfrage aus Semper).
+     Frage und Antworten stehen nur im Link hinter dem # und gehen an keinen Server.
+     Übermittelt wird nur «Runde:Nummer» an ntfy.sh; die Lehrperson sieht das Ergebnis live. Keine Namen, keine Anmeldung. -->
+<style>
+:root { --bg: #f5f0e8; --surface: #fffdf9; --ink: #2a241e; --muted: #73685c; --line: #e6ddd0; --accent: #a4502c; --accent-soft: #f6e6db; --danger: #b3261e; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1b1814; --surface: #25211c; --ink: #eee6db; --muted: #aa9d8c; --line: #3b342c; --accent: #e39a72; --accent-soft: #3d2b21; --danger: #f2a49e; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif; }
+main { max-width: 520px; margin: 0 auto; padding: 24px 16px 40px; display: grid; gap: 14px; }
+h1 { font-size: 1.45rem; line-height: 1.25; margin: 4px 0 6px; overflow-wrap: anywhere; }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 0; }
+button.opt { width: 100%; text-align: left; font: inherit; font-size: 1.15rem; padding: 16px 18px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+button.opt:active { transform: scale(0.98); }
+button.opt:disabled { opacity: 0.5; cursor: default; }
+button.opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+.done { text-align: center; padding: 30px 10px; background: var(--surface); border-radius: 16px; border: 2px solid var(--accent); }
+.done b { display: block; font-size: 2.6rem; color: var(--accent); }
+.err { color: var(--danger); text-align: center; margin: 0; }
+</style>
+</head>
+<body>
+<main id="m"><p class="hint">Lädt …</p></main>
+<script>
+(function () {
+  var NTFY = "https://ntfy.sh/", m = document.getElementById("m");
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var d = null;
+  try {
+    var h = location.hash.slice(1).replace(/-/g, "+").replace(/_/g, "/"), bin = atob(h), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    d = JSON.parse(new TextDecoder().decode(bytes));
+  } catch (e) { d = null; }
+  if (!d || !/^[\w-]{8,64}$/.test(d.t || "") || !/^\w{4,16}$/.test(d.p || "") || !Array.isArray(d.o) || d.o.length < 2) {
+    m.innerHTML = '<h1>Diese Umfrage ist nicht gültig.</h1><p class="hint">Bitte den QR-Code nochmals scannen.</p>'; return;
+  }
+  var key = "semper-vote-" + d.p;
+  function thanks(again) {
+    m.innerHTML = (d.q ? "<h1>" + esc(d.q) + "</h1>" : "") + '<div class="done"><b>✓</b>' + (again ? "Bereits abgestimmt." : "Danke – die Stimme ist angekommen.") + "</div>";
+  }
+  if (ls(key)) { thanks(true); return; }
+  m.innerHTML = (d.q ? "<h1>" + esc(d.q) + "</h1>" : "<h1>Umfrage</h1>") + '<p class="hint">Eine Antwort antippen. Die Abstimmung ist anonym.</p>' +
+    d.o.slice(0, 8).map(function (t, i) { return '<button type="button" class="opt" data-i="' + i + '">' + esc(t) + "</button>"; }).join("") + '<p class="err" id="err" hidden></p>';
+  m.addEventListener("click", function (e) {
+    var b = e.target.closest("button.opt"); if (!b || b.disabled) return;
+    var all = m.querySelectorAll("button.opt"), err = document.getElementById("err");
+    for (var k = 0; k < all.length; k++) all[k].disabled = true;
+    b.classList.add("sel"); err.hidden = true;
+    var body = d.p + ":" + b.getAttribute("data-i");
+    fetch(NTFY + d.t, { method: "POST", body: body })
+      .catch(function () { return fetch(NTFY + d.t, { method: "POST", body: body, mode: "no-cors" }); })
+      .then(function (r) { if (r && r.type !== "opaque" && !r.ok) throw new Error(r.status); ls(key, "1"); thanks(false); })
+      .catch(function () { for (var k = 0; k < all.length; k++) all[k].disabled = false; b.classList.remove("sel"); err.textContent = "Hat nicht geklappt – bitte nochmals tippen."; err.hidden = false; });
+  });
+})();
+</script>
+</body>
+</html>

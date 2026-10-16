@@ -927,6 +927,10 @@ body.beam .lkw-ctl { opacity: 0.35; transition: opacity 0.2s; } body.beam .lkw:h
 .lkw-opt b { text-align: right; font-variant-numeric: tabular-nums; }
 .lkw-tot { text-align: center; font-size: 0.85em; color: var(--muted); }
 .lk-acts .lkw-menu { left: auto; right: 0; }
+.lkw-poll { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.lkw-pqr { display: grid; gap: 4px; } .lkw-pqr .lkw-qr svg { width: min(30vh, 46vw); } .lkw.big .lkw-pqr .lkw-qr svg { width: min(56vh, 46vw); }
+.lkw-pres { display: grid; gap: 8px; min-width: min(18em, 80vw); flex: 1; }
+div.lkw-opt { cursor: default; } div.lkw-opt:active { transform: none; }
 .lkw-thanks { text-align: center; font: 700 1.6em/1.3 var(--font-body); color: var(--accent); padding: 0.8em 0; }
 
 .dpm-nav { display: flex; align-items: center; gap: 6px; } .dpm-nav span { font-weight: 600; }
@@ -7407,7 +7411,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   const lkUrlsInPage = () => { const pg = $("#lk-page"); return [...new Set(((pg && pg.innerText) || "").match(/\bhttps?:\/\/[^\s<>"«»]+[^\s<>"«».,;:!?)]/g) || [])].slice(0, 6); };
   const QR_URL = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";
-  async function lkQrSvg(text) { await loadScript(QR_URL); const q = window.qrcode; q.stringToBytes = q.stringToBytesFuncs["UTF-8"]; const qr = q(0, "M"); qr.addData(text); qr.make(); return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); }
+  async function lkQrSvg(text, level) { await loadScript(QR_URL); const q = window.qrcode; q.stringToBytes = q.stringToBytesFuncs["UTF-8"]; const qr = q(0, level || "M"); qr.addData(text); qr.make(); return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); }
   const B = (a, label, title, extra) => '<button type="button" class="lkw-btn' + (extra || "") + '" data-wa="' + a + '"' + (title ? ' title="' + title + '"' : "") + ">" + label + "</button>";
   const BV = (a, v, label, on, title) => '<button type="button" class="lkw-btn' + (on ? " on" : "") + '" data-wa="' + a + '" data-v="' + esc(String(v)) + '"' + (title ? ' title="' + esc(title) + '"' : "") + ">" + label + "</button>";
   // Zufall: Liste pro Klasse (nur auf diesem Gerät) oder eine eigene Liste
@@ -7425,6 +7429,31 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
   const lkCopy = async (t) => { try { await navigator.clipboard.writeText(t); lkStat("Kopiert."); return true; } catch (e) { return false; } };
+  // Umfrage mit den Handys (von Katharina erlaubt): Abstimmungsseite umfrage/ (Frage nur im Link-Teil nach #, geht an keinen Server),
+  // Stimmen über ntfy.sh – übermittelt wird nur «Runde:Nummer», dort nach höchstens 12 Stunden gelöscht
+  const NTFY = "https://ntfy.sh/";
+  const lkRnd = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (x) => "abcdefghijkmnopqrstuvwxyz23456789"[x % 33]).join("");
+  const lkB64 = (o) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  function lkPollRound(st) {
+    st.pid = lkRnd(8); st.opts.forEach((o) => (o.n = 0)); st.seen = {};
+    st.url = new URL("umfrage/", location.href).href + "#" + lkB64({ t: st.topic, p: st.pid, q: st.q, o: st.opts.map((o) => o.t) });
+    st.svg = ""; const pid = st.pid;
+    lkQrSvg(st.url, "L").then((svg) => { if (LKW.umfrage !== st || st.pid !== pid) return; st.svg = svg; lkwDraw("umfrage"); }).catch(() => { st.conn = "Der QR-Code konnte nicht erstellt werden – ist das Gerät mit dem Internet verbunden?"; if (LKW.umfrage === st) lkwDraw("umfrage"); });
+  }
+  function lkPollConnect(st) {
+    if (st.es) st.es.close();
+    const es = new EventSource(NTFY + st.topic + "/sse?since=" + (Math.floor(Date.now() / 1000) - 10)); st.es = es;
+    const setConn = (t) => { if (st.conn !== t) { st.conn = t; if (LKW.umfrage === st) lkwDraw("umfrage"); } };
+    let t = 0; // kurze Unterbrüche nicht melden, nur wenn die Verbindung länger weg ist
+    es.onopen = () => { clearTimeout(t); t = 0; setConn(""); };
+    es.onerror = () => { if (!t) t = setTimeout(() => { t = 0; if (st.es === es && es.readyState !== 1) setConn("Verbindung zur Abstimmung unterbrochen – wird neu versucht …"); }, 6000); };
+    es.onmessage = (ev) => {
+      let d = null; try { d = JSON.parse(ev.data); } catch (e) { return; }
+      if (!d || (d.event && d.event !== "message") || st.seen[d.id]) return; st.seen[d.id] = 1;
+      const m = /^(\w+):(\d+)$/.exec(String(d.message || "").trim()); if (!m || m[1] !== st.pid || !st.opts[+m[2]]) return;
+      st.opts[+m[2]].n++; setConn(""); if (LKW.umfrage === st) lkwDraw("umfrage");
+    };
+  }
   const LKW_DEF = {
     timer: {
       icon: "⏱", title: "Timer", x: 70, y: 9,
@@ -7528,48 +7557,37 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     },
     umfrage: {
       icon: "📊", title: "Umfrage", x: 22, y: 12,
-      init() { let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} return { live: false, online: false, link: "", dlink: sv.link || "", svg: "", err: "", q: sv.q || "", dq: sv.q || "", dopts: (sv.o || ["Ja", "Nein", "Weiss nicht"]).join("\n"), opts: [], show: true, pass: false, thanks: false, hist: [] }; },
+      init() { let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} return { live: false, q: sv.q || "", dq: sv.q || "", dopts: (sv.o || ["Ja", "Nein", "Weiss nicht"]).join("\n"), opts: [], show: true, topic: "", pid: "", svg: "", url: "", conn: "", seen: {}, es: null }; },
       body(st, where) {
         if (!st.live) {
           if (where !== "main") return '<p class="lkw-note">Die Umfrage wird vorbereitet …</p>';
-          return '<input type="text" data-wi="dq" placeholder="Frage, z. B. «Wie sicher fühlen Sie sich beim Thema?»" value="' + esc(st.dq) + '">' +
+          return '<input type="text" data-wi="dq" placeholder="Frage, z. B. «Welche Aufgabe war am schwierigsten?»" value="' + esc(st.dq) + '">' +
             '<span class="lkw-note">Antworten, eine pro Zeile:</span><textarea data-wi="dopts" rows="4">' + esc(st.dopts) + "</textarea>" +
             '<div class="lkw-row"><span class="lkw-note">Vorlagen:</span>' + [["Ja\nNein", "Ja / Nein"], ["Ja\nNein\nWeiss nicht", "Ja / Nein / ?"], ["A\nB\nC\nD", "A B C D"], ["😀 Sehr gut\n🙂 Gut\n😐 Geht so\n🙁 Schwierig", "😀 🙂 😐 🙁"]].map(([v, l]) => BV("preset", v, l)).join("") + "</div>" +
-            '<p class="lkw-note">Abstimmen hier am Gerät: Tablet herumgeben (Modus «Weitergeben») oder Handzeichen zählen. Es wird nichts verschickt und nichts gespeichert.</p>' +
-            '<div class="lkw-row">' + B("start", "Umfrage hier starten", "", " pri") + "</div>" +
-            '<span class="lkw-note"><b>Mit den eigenen Handys:</b> Link zu Ihrer Online-Umfrage einfügen (z. B. Microsoft Forms im Schulkonto) – Semper zeigt Link und QR-Code gross für die Klasse.</span>' +
-            '<input type="text" data-wi="dlink" placeholder="https://forms.office.com/…" value="' + esc(st.dlink) + '">' + (st.err ? '<p class="lkw-note" style="color:var(--danger)">' + esc(st.err) + "</p>" : "") +
-            '<div class="lkw-row">' + B("online", "Link + QR-Code zeigen") + "</div>";
+            '<p class="lkw-note">Die Klasse scannt den QR-Code und tippt auf dem Handy eine Antwort an – ohne Anmeldung, anonym. Übermittelt wird nur die Nummer der gewählten Antwort; die Frage bleibt auf den Geräten. Die Nummern laufen über den Gratisdienst ntfy.sh und werden dort nach höchstens 12 Stunden gelöscht.</p>' +
+            '<div class="lkw-row">' + B("start", "Umfrage starten", "", " pri") + "</div>";
         }
-        if (st.online) return (st.q ? '<div class="lkw-q">' + esc(st.q) + "</div>" : "") + '<div class="lkw-qr">' + st.svg + '</div><div class="lkw-url">' + esc(st.link.replace(/^https?:\/\//, "")) + "</div>" +
-          (where === "main" ? '<p class="lkw-note" style="text-align:center">Die Antworten sehen Sie live in Microsoft Forms (Reiter «Antworten»).</p><div class="lkw-row lkw-ctl">' + B("edit", "✎ Ändern") + B("copy", "📋 Link kopieren") + B("png", "⬇ QR als Bild") + "</div>" : "");
         const tot = st.opts.reduce((a, o) => a + o.n, 0);
-        let h = (st.q ? '<div class="lkw-q">' + esc(st.q) + "</div>" : "");
-        if (st.thanks) h += '<div class="lkw-thanks">✓ Danke!<br><span style="font-size:.6em">Bitte weitergeben.</span></div>';
-        else h += st.opts.map((o, i) => { const p = tot ? Math.round((100 * o.n) / tot) : 0; return '<button type="button" class="lkw-opt" data-wa="vote" data-v="' + i + '" title="Antippen = eine Stimme"><span>' + esc(o.t) + '</span><span class="lkw-barw"><i style="width:' + (st.show ? p : 0) + '%"></i></span><b>' + (st.show ? o.n : "·") + "</b></button>"; }).join("");
-        return h + '<div class="lkw-tot">' + tot + (tot === 1 ? " Stimme" : " Stimmen") + (st.show ? "" : " · Ergebnis verborgen") + "</div>" +
-          '<div class="lkw-row lkw-ctl">' + BV("show", 1, st.show ? "🙈 Ergebnis verbergen" : "👁 Ergebnis zeigen", false) + BV("pass", 1, "Weitergeben", st.pass, "Jede Person tippt einmal, danach erscheint kurz «Danke» – das Ergebnis bleibt verborgen") + B("undo", "↶", "Letzte Stimme zurücknehmen") + B("zero", "↺ Neu", "Alle Stimmen auf null") + (where === "main" ? B("edit", "✎", "Frage ändern") : "") + "</div>";
+        const bars = st.opts.map((o) => { const p = tot ? Math.round((100 * o.n) / tot) : 0; return '<div class="lkw-opt"><span>' + esc(o.t) + '</span><span class="lkw-barw"><i style="width:' + (st.show ? p : 0) + '%"></i></span><b>' + (st.show ? o.n : "·") + "</b></div>"; }).join("");
+        return (st.q ? '<div class="lkw-q">' + esc(st.q) + "</div>" : "") +
+          '<div class="lkw-poll"><div class="lkw-pqr"><div class="lkw-qr">' + (st.svg || '<p class="lkw-note">QR-Code wird erstellt …</p>') + '</div><div class="lkw-note" style="text-align:center">Mit dem Handy scannen und abstimmen</div></div>' +
+          '<div class="lkw-pres">' + bars + '<div class="lkw-tot">' + tot + (tot === 1 ? " Stimme" : " Stimmen") + (st.show ? "" : " · Ergebnis verborgen") + "</div>" + (st.conn ? '<div class="lkw-note" style="text-align:center;color:var(--danger)">' + esc(st.conn) + "</div>" : "") + "</div></div>" +
+          '<div class="lkw-row lkw-ctl">' + BV("show", 1, st.show ? "🙈 Ergebnis verbergen" : "👁 Ergebnis zeigen", false) + B("round", "↺ Neue Runde", "Stimmen auf null, neuer QR-Code – alle können nochmals abstimmen") + (where === "main" ? B("copy", "📋 Link kopieren") + B("edit", "✎ Frage ändern") : "") + "</div>";
       },
       input(st, el) { st[el.dataset.wi] = el.value; },
       act(st, a, b) {
         if (a === "preset") st.dopts = b.dataset.v;
-        else if (a === "start") { const o = st.dopts.split("\n").map((x) => x.trim()).filter(Boolean); if (o.length < 2) { lkStat("Bitte mindestens zwei Antworten eingeben."); return false; } st.q = st.dq.trim(); st.opts = o.map((t) => ({ t, n: 0 })); st.hist = []; st.live = true; lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify({ q: st.q, o, link: st.dlink })); }
-        else if (a === "edit") { st.live = false; st.online = false; }
-        else if (a === "copy") { lkCopy(st.link); return false; }
-        else if (a === "png") { lkQrPng(st.svg, "QR-Code Umfrage.png").catch(() => lkStat("Speichern hat nicht geklappt.")); return false; }
-        else if (a === "online") {
-          let u = (st.dlink || "").trim(); if (!/^[a-z][a-z0-9+.-]*:/i.test(u) && /^[^\s]+\.[a-z]{2,}(\/|$)/i.test(u)) u = "https://" + u;
-          if (!/^https?:\/\/\S+$/i.test(u)) { st.err = "Bitte einen Link einfügen, der mit https:// beginnt."; return; }
-          st.err = ""; lkQrSvg(u).then((svg) => { if (LKW.umfrage !== st) return; st.svg = svg; st.link = u; st.q = st.dq.trim(); st.online = true; st.live = true; let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} sv.link = u; sv.q = st.q; lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify(sv)); lkwDraw("umfrage"); })
-            .catch(() => { st.err = "Der QR-Code konnte nicht erstellt werden – ist das Gerät mit dem Internet verbunden?"; if (LKW.umfrage === st) lkwDraw("umfrage"); });
-          return false;
+        else if (a === "start") {
+          const o = st.dopts.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 8); if (o.length < 2) { lkStat("Bitte mindestens zwei Antworten eingeben."); return false; }
+          st.q = st.dq.trim(); st.opts = o.map((t) => ({ t, n: 0 })); st.live = true; if (!st.topic) st.topic = "semper-" + lkRnd(20);
+          lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify({ q: st.q, o })); lkPollRound(st); lkPollConnect(st);
         }
+        else if (a === "round") lkPollRound(st);
+        else if (a === "edit") { st.live = false; }
+        else if (a === "copy") { lkCopy(st.url); return false; }
         else if (a === "show") st.show = !st.show;
-        else if (a === "pass") { st.pass = !st.pass; if (st.pass) st.show = false; }
-        else if (a === "undo") { const i = st.hist.pop(); if (i != null && st.opts[i].n) st.opts[i].n--; }
-        else if (a === "zero") { st.opts.forEach((o) => (o.n = 0)); st.hist = []; }
-        else if (a === "vote") { if (st.thanks) return false; const i = +b.dataset.v; st.opts[i].n++; st.hist.push(i); if (st.pass) { st.thanks = true; setTimeout(() => { st.thanks = false; if (LKW.umfrage === st) lkwDraw("umfrage"); }, 1300); } }
       },
+      stop(st) { if (st.es) st.es.close(); st.es = null; },
     },
   };
   function lkwToggle(id) {

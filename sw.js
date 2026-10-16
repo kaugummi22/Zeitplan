@@ -12,7 +12,7 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET' || url.origin !== location.origin) return;
   var base = new URL('./', self.registration.scope).pathname;
   var rel = url.pathname.slice(base.length);
-  if (url.pathname.indexOf(base) !== 0 || rel.indexOf('pdf/') === 0) return; // PDF-App hat ihren eigenen Speicher
+  if (url.pathname.indexOf(base) !== 0 || rel.indexOf('pdf/') === 0 || rel.indexOf('umfrage/') === 0) return; // PDF-App und Abstimmungsseite nicht zwischenspeichern
   var key = req.mode === 'navigate' || rel === '' || rel === 'index.html' ? './' : req;
   e.respondWith(
     fetch(req, { cache: 'no-cache' }).then(function (res) {

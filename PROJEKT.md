@@ -28,6 +28,7 @@ Diese Notiz ist das Gedächtnis des Projekts. Eine neue Unterhaltung liest sie z
    - Eindeutige Dateinamen beim Bereitstellen verwenden.
    - Danach prüfen (erneut holen, md5 vergleichen, `expectedMtimeMs` nutzen).
 6. Keine fremden Dienste einbauen, die Daten aus OneDrive hinausschicken. Ausnahme: Bibliotheken von cdnjs/jsdelivr (pdf.js, mammoth, xlsx, JSZip) laufen im Browser.
+   - Ausnahme, von Katharina am 16.10.2026 erlaubt: **ntfy.sh** für die Handy-Umfrage. Übermittelt wird nur «Runde:Antwortnummer», keine Frage, keine Namen; ntfy.sh löscht nach höchstens 12 Stunden.
 7. Vorschläge für Fremd-Tools (z. B. OmniRoute, Ponytail, Graphify) wurden geprüft und **nicht** übernommen.
 
 ## Aufbau
@@ -41,6 +42,7 @@ config.js             ← Microsoft-Client-ID (ca7cda99-99cc-4526-b205-67126bf0a
 sw.js                 ← Service Worker (App offline, Netz zuerst, Cache "zeitplan-app-v1", lässt pdf/ aus)
 manifest.webmanifest  ← Name «Semper», Icons
 pdf/index.html        ← Weiterleitung zur eigenen PDF-App (Repo kaugummi22/PDF)
+umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenständig, ohne Anmeldung)
 ```
 
 **Bauen und veröffentlichen:**
@@ -121,8 +123,8 @@ pdf/index.html        ← Weiterleitung zur eigenen PDF-App (Repo kaugummi22/PDF
 - **Hilfsmittel beim Projizieren** (Kopfzeile «🔦 Spotlight», «🔍 Zoom», «🧰 Hilfsmittel», Folien-Leiste, Beamer-Leiste):
   - Spotlight (`lkSpot`), Zoom (`lkZoom`, auch Doppelklick auf Absatz/Bild), Stift über Folien/Beamer (`lkPenDoc`, «Wegwischen», beim nächsten Abschnitt weg). Wirken im jeweiligen Fenster.
   - Karten Timer/Stoppuhr, Zufall, QR-Code, Umfrage (`LKW_DEF`): erscheinen im Hauptfenster und gleichzeitig im Beamer-Fenster, verschiebbar, gross/klein.
-  - Auf der Unterrichtsseite auch ohne Projizieren über den Knopf «Werkzeuge ▾» (nur dort; beim Wechsel des Reiters schliessen sich die Karten). QR-Code mit «Als Bild speichern», Zufall mit Klassenwahl oder eigener Liste. Umfrage mit den eigenen Handys: Katharina hat Microsoft Forms (Schulkonto) gewählt; Semper zeigt dazu Link und QR-Code.
-  - Regeln: Namen für den Zufall nur im Browser des Geräts (`semper-namen-<klasse>`), nie in OneDrive. QR-Code wird im Browser erzeugt (qrcode-generator von jsdelivr), nur für öffentliche Links. Umfrage zählt durch Antippen am Gerät (kein fremder Dienst); echte Handy-Abstimmung erst mit Schulkonto (z. B. Forms + QR-Code).
+  - Auf der Unterrichtsseite auch ohne Projizieren über den Knopf «Werkzeuge ▾» (nur dort; beim Wechsel des Reiters schliessen sich die Karten). QR-Code mit «Als Bild speichern», Zufall mit Klassenwahl oder eigener Liste. Umfrage: QR-Code zur Abstimmungsseite `umfrage/` (Frage und Antworten nur im Link nach #), Stimmen über ntfy.sh (Thema `semper-<zufall>`, Nachricht `runde:nummer`), Live-Balken in Semper und im Beamer-Fenster; «Neue Runde» = neuer QR-Code. Ein Handy stimmt pro Runde einmal ab.
+  - Regeln: Namen für den Zufall nur im Browser des Geräts (`semper-namen-<klasse>`), nie in OneDrive. QR-Code wird im Browser erzeugt (qrcode-generator von jsdelivr), nur für öffentliche Links. Umfrage siehe Ausnahme in Regel 6.
 - **Ausgeben** (`lkOutput`):
   - Formate Word (eigener Generator `lkDocx` mit JSZip; Absatz-Eigenschaften in Schema-Reihenfolge über `PPR`) und PDF (Word → Microsoft-Umwandlung).
   - Speichern unter auf dem Gerät (`showSaveFilePicker`) oder in einen OneDrive-Ordner mit Ordnerwahl; ausserdem Drucken.
