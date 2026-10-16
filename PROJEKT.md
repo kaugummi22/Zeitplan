@@ -121,6 +121,7 @@ pdf/index.html        ← Weiterleitung zur eigenen PDF-App (Repo kaugummi22/PDF
 - **Hilfsmittel beim Projizieren** (Kopfzeile «🔦 Spotlight», «🔍 Zoom», «🧰 Hilfsmittel», Folien-Leiste, Beamer-Leiste):
   - Spotlight (`lkSpot`), Zoom (`lkZoom`, auch Doppelklick auf Absatz/Bild), Stift über Folien/Beamer (`lkPenDoc`, «Wegwischen», beim nächsten Abschnitt weg). Wirken im jeweiligen Fenster.
   - Karten Timer/Stoppuhr, Zufall, QR-Code, Umfrage (`LKW_DEF`): erscheinen im Hauptfenster und gleichzeitig im Beamer-Fenster, verschiebbar, gross/klein.
+  - Dieselben Karten auch überall über «🧰» oben in der Kopfzeile (QR-Code mit «Als Bild speichern», Zufall mit Klassenwahl oder eigener Liste). Umfrage mit den eigenen Handys: Katharina hat Microsoft Forms (Schulkonto) gewählt; Semper zeigt dazu Link und QR-Code.
   - Regeln: Namen für den Zufall nur im Browser des Geräts (`semper-namen-<klasse>`), nie in OneDrive. QR-Code wird im Browser erzeugt (qrcode-generator von jsdelivr), nur für öffentliche Links. Umfrage zählt durch Antippen am Gerät (kein fremder Dienst); echte Handy-Abstimmung erst mit Schulkonto (z. B. Forms + QR-Code).
 - **Ausgeben** (`lkOutput`):
   - Formate Word (eigener Generator `lkDocx` mit JSZip; Absatz-Eigenschaften in Schema-Reihenfolge über `PPR`) und PDF (Word → Microsoft-Umwandlung).

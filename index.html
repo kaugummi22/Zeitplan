@@ -1891,6 +1891,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 .hdr-size button + button { border-left: 1px solid var(--line); }
 .hdr-size button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 .hdr-size button:disabled { opacity: 0.35; cursor: default; }
+.hdr-tools { position: relative; display: inline-flex; }
+.tool-menu { position: fixed; z-index: 100010; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 26px rgba(0,0,0,0.18); padding: 6px; display: grid; gap: 4px; min-width: 230px; }
+.tool-menu[hidden] { display: none; }
+.tool-menu button { text-align: left; border: 0; background: none; color: var(--ink); font: inherit; font-size: 0.95rem; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.tool-menu button:hover, .tool-menu button.on { background: var(--accent-soft); }
+.lkw select { font: inherit; font-size: 0.9em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
 </style>
 
 <header class="top" id="hdr">
@@ -1904,6 +1910,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         <button role="tab" aria-selected="false" data-tab="lektion">Unterricht</button>
       </nav>
       <div class="hdr-size" role="group" aria-label="Grösse der Kopfzeile"><button type="button" id="hdrMinus" title="Kopfzeile verkleinern" aria-label="Kopfzeile verkleinern">−</button><button type="button" id="hdrPlus" title="Kopfzeile vergrössern" aria-label="Kopfzeile vergrössern">+</button></div>
+      <span class="hdr-tools"><button class="codebtn" id="toolBtn" type="button" title="Werkzeuge: QR-Code, Zufallsgenerator, Timer, Umfrage" aria-label="Werkzeuge" aria-haspopup="true">🧰</button><div class="tool-menu" id="toolMenu" hidden></div></span>
       <button class="codebtn savebtn" id="saveBtn" type="button" title="Speicherpunkte und Sicherungen – zu einem früheren Stand zurückkehren" aria-label="Speicherpunkte und Sicherungen">💾</button>
       <button class="codebtn" id="codeBtn" type="button" title="Code der Seite ansehen und ändern" aria-label="Code der Seite ansehen und ändern"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4 1.5 8l4 4M10.5 4l4 4-4 4"/></svg></button>
     </div>
@@ -7220,7 +7227,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     lkOpenHead();
   }
   function lkPenResume() { if (lkPen && lkPen.cv.isConnected) { lkPen.cv.classList.remove("idle"); document.getElementById("view-lektion").appendChild(lkPen.bar); document.documentElement.classList.add("lk-pen"); lkOpenHead(); } else { lkPen = null; lkPenOn(); } }
-  const LKW_MENU = [["timer", "⏱ Timer / Stoppuhr", "Gross sichtbar, mit Pause und Alarm"], ["zufall", "🎲 Zufallsgenerator", "Wer ist dran? Oder Gruppen bilden"], ["qr", "▦ QR-Code", "QR-Code zu einem Link, z. B. Lernvideo oder Formular"], ["umfrage", "📊 Umfrage", "Anonyme Umfrage mit Live-Ergebnis"]];
+  const LKW_MENU = [["qr", "▦ QR-Code", "QR-Code zu einem Link oder Text – anzeigen oder als Bild speichern"], ["zufall", "🎲 Zufallsgenerator", "Wer ist dran? Oder Gruppen bilden"], ["timer", "⏱ Timer / Stoppuhr", "Gross sichtbar, mit Pause und Alarm"], ["umfrage", "📊 Umfrage", "Umfrage mit Link und QR-Code für die Klasse oder zum Antippen"]];
   function lkOpenHead() {
     const acts = $("#lk-acts"); if (!acts) return;
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
@@ -7407,6 +7414,21 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   async function lkQrSvg(text) { await loadScript(QR_URL); const q = window.qrcode; q.stringToBytes = q.stringToBytesFuncs["UTF-8"]; const qr = q(0, "M"); qr.addData(text); qr.make(); return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); }
   const B = (a, label, title, extra) => '<button type="button" class="lkw-btn' + (extra || "") + '" data-wa="' + a + '"' + (title ? ' title="' + title + '"' : "") + ">" + label + "</button>";
   const BV = (a, v, label, on, title) => '<button type="button" class="lkw-btn' + (on ? " on" : "") + '" data-wa="' + a + '" data-v="' + esc(String(v)) + '"' + (title ? ' title="' + esc(title) + '"' : "") + ">" + label + "</button>";
+  // Zufall: Liste pro Klasse (nur auf diesem Gerät) oder eine eigene Liste
+  function lkZufallLoad(st, kid) {
+    let names = []; try { names = JSON.parse(lkLS.get("semper-namen-" + kid) || "[]"); } catch (e) {}
+    Object.assign(st, { kid, names, pool: lkShuffle(names), pick: "", groups: null, edit: !names.length, draft: names.join("\n"), note: "" });
+  }
+  const lkZufallSel = (st) => { const ks = typeof activeKids === "function" ? activeKids() : Object.keys(K.klassen); return '<select data-wi="kid" title="Welche Liste?">' + ks.map((id) => '<option value="' + esc(id) + '"' + (st.kid === id ? " selected" : "") + ">" + esc((K.klassen[id] || {}).name || "Klasse") + "</option>").join("") + '<option value="-"' + (st.kid === "-" ? " selected" : "") + ">Eigene Liste</option></select>"; };
+  // QR-Code als Bild (PNG) speichern
+  async function lkQrPng(svg, name) {
+    const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = url; });
+    const cv = document.createElement("canvas"); cv.width = cv.height = 1000; const c = cv.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0, 0, 1000, 1000); c.imageSmoothingEnabled = false; c.drawImage(img, 0, 0, 1000, 1000); URL.revokeObjectURL(url);
+    const blob = await new Promise((r) => cv.toBlob(r, "image/png")), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  const lkCopy = async (t) => { try { await navigator.clipboard.writeText(t); lkStat("Kopiert."); return true; } catch (e) { return false; } };
   const LKW_DEF = {
     timer: {
       icon: "⏱", title: "Timer", x: 70, y: 9,
@@ -7437,27 +7459,24 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     },
     zufall: {
       icon: "🎲", title: "Zufall", x: 3, y: 10,
-      init() {
-        const kid = LK.kid || "-"; let names = []; try { names = JSON.parse(lkLS.get("semper-namen-" + kid) || "[]"); } catch (e) {}
-        return { kid, names, pool: lkShuffle(names), pick: "", groups: null, size: 0, norep: true, edit: !names.length, keep: true, draft: names.join("\n"), num: 24, note: "" };
-      },
+      init() { const st = { kid: "", names: [], pool: [], pick: "", groups: null, size: 0, norep: true, edit: true, keep: true, draft: "", num: 24, note: "" }; lkZufallLoad(st, LK.kid && K.klassen[LK.kid] ? LK.kid : activeKids()[0] || "-"); return st; },
       body(st, where) {
         if (st.edit) {
           if (where !== "main") return '<p class="lkw-note">Die Liste wird vorbereitet …</p>';
-          return '<p class="lkw-note">Namen der Klasse, einer pro Zeile (z. B. aus einer Liste hineinkopieren). Sie bleiben nur auf diesem Gerät – nicht in OneDrive und nicht im Internet.</p>' +
+          return lkZufallSel(st) + '<p class="lkw-note">Namen der Klasse, einer pro Zeile (z. B. aus einer Liste hineinkopieren). Sie bleiben nur auf diesem Gerät – nicht in OneDrive und nicht im Internet.</p>' +
             '<textarea data-wi="draft" rows="8" placeholder="Anna&#10;Ben&#10;…">' + esc(st.draft) + "</textarea>" +
             '<label><input type="checkbox" data-wi="keep"' + (st.keep ? " checked" : "") + "> Auf diesem Gerät für diese Klasse merken</label>" +
             '<div class="lkw-row"><span class="lkw-note">oder nur Nummern 1 bis</span><input type="number" min="2" max="99" data-wi="num" value="' + st.num + '">' + B("nums", "Nummern") + "</div>" +
             '<div class="lkw-row">' + (st.names.length ? B("cancel", "Abbrechen") : "") + B("save", "Übernehmen", "", " pri") + "</div>";
         }
-        let h = '<div class="lkw-name' + (st.spin ? " spin" : "") + '">' + esc(st.pick || "?") + "</div>";
+        let h = (where === "main" ? '<div class="lkw-row lkw-ctl">' + lkZufallSel(st) + "</div>" : "") + '<div class="lkw-name' + (st.spin ? " spin" : "") + '">' + esc(st.pick || "?") + "</div>";
         if (st.groups) h = '<div class="lkw-groups">' + st.groups.map((g, i) => "<div><b>Gruppe " + (i + 1) + "</b>" + g.map(esc).join("<br>") + "</div>").join("") + "</div>";
         return h + (st.note ? '<p class="lkw-note" style="text-align:center">' + esc(st.note) + "</p>" : "") +
           '<div class="lkw-row lkw-ctl">' + B("draw", "🎲 Ziehen", "Eine Person zufällig wählen", " pri") + BV("norep", 1, "ohne Wiederholung", st.norep, "Wer schon dran war, kommt erst wieder, wenn alle dran waren") + "</div>" +
           '<div class="lkw-row lkw-ctl"><span class="lkw-note">Gruppen à</span>' + [2, 3, 4, 5].map((n) => BV("groups", n, n, st.groups && st.size === n, "Zufällige Gruppen mit je " + n + " Personen")).join("") + "</div>" +
           '<div class="lkw-row lkw-ctl"><span class="lkw-note">' + (st.norep ? "noch " + st.pool.length + " von " + st.names.length : st.names.length + " Namen") + "</span>" + B("refill", "↺ Alle wieder", "Neue Runde: alle sind wieder im Topf") + (where === "main" ? B("list", "✎ Liste", "Namensliste ändern") : "") + "</div>";
       },
-      input(st, el) { if (el.dataset.wi === "keep") st.keep = el.checked; else if (el.dataset.wi === "num") st.num = Math.max(2, Math.min(99, +el.value || 2)); else st.draft = el.value; },
+      input(st, el) { if (el.dataset.wi === "kid") { lkZufallLoad(st, el.value); return true; } if (el.dataset.wi === "keep") st.keep = el.checked; else if (el.dataset.wi === "num") st.num = Math.max(2, Math.min(99, +el.value || 2)); else st.draft = el.value; },
       act(st, a, b) {
         const set = (names) => { st.names = names; st.pool = lkShuffle(names); st.pick = ""; st.groups = null; st.edit = false; st.note = ""; st.draft = names.join("\n"); lkLS.set("semper-namen-" + st.kid, st.keep ? JSON.stringify(names) : null); };
         if (a === "save") { const n = [...new Set(st.draft.split(/[\n;\t]+/).map((x) => x.trim()).filter(Boolean))]; if (n.length < 2) { lkStat("Bitte mindestens zwei Namen eingeben."); return false; } set(n); }
@@ -7487,11 +7506,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       icon: "▦", title: "QR-Code", x: 58, y: 18,
       init() { const url = lkLS.get("semper-qr-" + (LK.pid || "")) || ""; const st = { url, draft: url, svg: "", show: false, err: "" }; if (url) setTimeout(() => LKW.qr === st && LKW_DEF.qr.act(st, "show"), 0); return st; },
       body(st, where) {
-        if (st.show && st.svg) return '<div class="lkw-qr">' + st.svg + '</div><div class="lkw-url">' + esc(st.url.replace(/^https?:\/\//, "")) + "</div>" + (where === "main" ? '<div class="lkw-row lkw-ctl">' + B("edit", "✎ Anderer Link") + "</div>" : "");
+        if (st.show && st.svg) return '<div class="lkw-qr">' + st.svg + '</div><div class="lkw-url">' + esc(st.url.replace(/^https?:\/\//, "")) + "</div>" + (where === "main" ? '<div class="lkw-row lkw-ctl">' + B("edit", "✎ Ändern") + B("png", "⬇ Als Bild speichern", "QR-Code als PNG-Bild speichern, z. B. für ein Arbeitsblatt") + B("copy", "📋 Link kopieren") + "</div>" : "");
         if (where !== "main") return '<p class="lkw-note">QR-Code wird vorbereitet …</p>';
         const sug = lkUrlsInPage();
-        return '<p class="lkw-note">Für Links, die die Klasse ohne Anmeldung öffnen kann – z. B. eine Webseite, ein Lernvideo, ein Formular oder ein Dokument, das Sie selbst freigegeben haben. Ihre Semper-Seiten sind privat und lassen sich so nicht öffnen.</p>' +
-          '<input type="url" data-wi="draft" placeholder="https://…" value="' + esc(st.draft) + '">' +
+        return '<p class="lkw-note">Link oder kurzer Text. Für Links, die die Klasse ohne Anmeldung öffnen kann – z. B. eine Webseite, ein Lernvideo, ein Formular oder ein Dokument, das Sie selbst freigegeben haben. Ihre Semper-Seiten sind privat.</p>' +
+          '<input type="text" data-wi="draft" placeholder="https://… oder Text" value="' + esc(st.draft) + '">' +
           (sug.length ? '<span class="lkw-note">Links auf dieser Seite:</span><div class="lkw-sug">' + sug.map((u) => BV("use", u, esc(u.replace(/^https?:\/\//, "")), false, u)).join("") + "</div>" : "") +
           (st.err ? '<p class="lkw-note" style="color:var(--danger)">' + esc(st.err) + "</p>" : "") +
           '<div class="lkw-row">' + B("show", "QR-Code zeigen", "", " pri") + "</div>";
@@ -7499,6 +7518,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       input(st, el) { st.draft = el.value; },
       act(st, a, b) {
         if (a === "edit") { st.show = false; st.draft = st.url; return; }
+        if (a === "png") { lkQrPng(st.svg, "QR-Code " + st.url.replace(/^https?:\/\//, "").replace(/[^\w.-]+/g, "_").slice(0, 40) + ".png").catch(() => lkStat("Speichern hat nicht geklappt.")); return false; }
+        if (a === "copy") { lkCopy(st.url); return false; }
         if (a === "use") { st.draft = b.dataset.v; }
         if (a === "show" || a === "use") {
           let u = (st.draft || "").trim(); if (!u) { st.err = "Bitte zuerst einen Link eingeben."; return; }
@@ -7511,16 +7532,21 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     },
     umfrage: {
       icon: "📊", title: "Umfrage", x: 22, y: 12,
-      init() { let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} return { live: false, q: sv.q || "", dq: sv.q || "", dopts: (sv.o || ["Ja", "Nein", "Weiss nicht"]).join("\n"), opts: [], show: true, pass: false, thanks: false, hist: [] }; },
+      init() { let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} return { live: false, online: false, link: "", dlink: sv.link || "", svg: "", err: "", q: sv.q || "", dq: sv.q || "", dopts: (sv.o || ["Ja", "Nein", "Weiss nicht"]).join("\n"), opts: [], show: true, pass: false, thanks: false, hist: [] }; },
       body(st, where) {
         if (!st.live) {
           if (where !== "main") return '<p class="lkw-note">Die Umfrage wird vorbereitet …</p>';
           return '<input type="text" data-wi="dq" placeholder="Frage, z. B. «Wie sicher fühlen Sie sich beim Thema?»" value="' + esc(st.dq) + '">' +
             '<span class="lkw-note">Antworten, eine pro Zeile:</span><textarea data-wi="dopts" rows="4">' + esc(st.dopts) + "</textarea>" +
             '<div class="lkw-row"><span class="lkw-note">Vorlagen:</span>' + [["Ja\nNein", "Ja / Nein"], ["Ja\nNein\nWeiss nicht", "Ja / Nein / ?"], ["A\nB\nC\nD", "A B C D"], ["😀 Sehr gut\n🙂 Gut\n😐 Geht so\n🙁 Schwierig", "😀 🙂 😐 🙁"]].map(([v, l]) => BV("preset", v, l)).join("") + "</div>" +
-            '<p class="lkw-note">Die Klasse stimmt durch Antippen ab – z. B. das Tablet herumgeben (Modus «Weitergeben») oder Handzeichen zählen. Es wird nichts verschickt und nichts gespeichert; niemand sieht, wer was gewählt hat.</p>' +
-            '<div class="lkw-row">' + B("start", "Umfrage starten", "", " pri") + "</div>";
+            '<p class="lkw-note">Abstimmen hier am Gerät: Tablet herumgeben (Modus «Weitergeben») oder Handzeichen zählen. Es wird nichts verschickt und nichts gespeichert.</p>' +
+            '<div class="lkw-row">' + B("start", "Umfrage hier starten", "", " pri") + "</div>" +
+            '<span class="lkw-note"><b>Mit den eigenen Handys:</b> Link zu Ihrer Online-Umfrage einfügen (z. B. Microsoft Forms im Schulkonto) – Semper zeigt Link und QR-Code gross für die Klasse.</span>' +
+            '<input type="text" data-wi="dlink" placeholder="https://forms.office.com/…" value="' + esc(st.dlink) + '">' + (st.err ? '<p class="lkw-note" style="color:var(--danger)">' + esc(st.err) + "</p>" : "") +
+            '<div class="lkw-row">' + B("online", "Link + QR-Code zeigen") + "</div>";
         }
+        if (st.online) return (st.q ? '<div class="lkw-q">' + esc(st.q) + "</div>" : "") + '<div class="lkw-qr">' + st.svg + '</div><div class="lkw-url">' + esc(st.link.replace(/^https?:\/\//, "")) + "</div>" +
+          (where === "main" ? '<p class="lkw-note" style="text-align:center">Die Antworten sehen Sie live in Microsoft Forms (Reiter «Antworten»).</p><div class="lkw-row lkw-ctl">' + B("edit", "✎ Ändern") + B("copy", "📋 Link kopieren") + B("png", "⬇ QR als Bild") + "</div>" : "");
         const tot = st.opts.reduce((a, o) => a + o.n, 0);
         let h = (st.q ? '<div class="lkw-q">' + esc(st.q) + "</div>" : "");
         if (st.thanks) h += '<div class="lkw-thanks">✓ Danke!<br><span style="font-size:.6em">Bitte weitergeben.</span></div>';
@@ -7531,8 +7557,17 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       input(st, el) { st[el.dataset.wi] = el.value; },
       act(st, a, b) {
         if (a === "preset") st.dopts = b.dataset.v;
-        else if (a === "start") { const o = st.dopts.split("\n").map((x) => x.trim()).filter(Boolean); if (o.length < 2) { lkStat("Bitte mindestens zwei Antworten eingeben."); return false; } st.q = st.dq.trim(); st.opts = o.map((t) => ({ t, n: 0 })); st.hist = []; st.live = true; lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify({ q: st.q, o })); }
-        else if (a === "edit") st.live = false;
+        else if (a === "start") { const o = st.dopts.split("\n").map((x) => x.trim()).filter(Boolean); if (o.length < 2) { lkStat("Bitte mindestens zwei Antworten eingeben."); return false; } st.q = st.dq.trim(); st.opts = o.map((t) => ({ t, n: 0 })); st.hist = []; st.live = true; lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify({ q: st.q, o, link: st.dlink })); }
+        else if (a === "edit") { st.live = false; st.online = false; }
+        else if (a === "copy") { lkCopy(st.link); return false; }
+        else if (a === "png") { lkQrPng(st.svg, "QR-Code Umfrage.png").catch(() => lkStat("Speichern hat nicht geklappt.")); return false; }
+        else if (a === "online") {
+          let u = (st.dlink || "").trim(); if (!/^[a-z][a-z0-9+.-]*:/i.test(u) && /^[^\s]+\.[a-z]{2,}(\/|$)/i.test(u)) u = "https://" + u;
+          if (!/^https?:\/\/\S+$/i.test(u)) { st.err = "Bitte einen Link einfügen, der mit https:// beginnt."; return; }
+          st.err = ""; lkQrSvg(u).then((svg) => { if (LKW.umfrage !== st) return; st.svg = svg; st.link = u; st.q = st.dq.trim(); st.online = true; st.live = true; let sv = {}; try { sv = JSON.parse(lkLS.get("semper-umfrage-" + (LK.pid || "")) || "{}"); } catch (e) {} sv.link = u; sv.q = st.q; lkLS.set("semper-umfrage-" + (LK.pid || ""), JSON.stringify(sv)); lkwDraw("umfrage"); })
+            .catch(() => { st.err = "Der QR-Code konnte nicht erstellt werden – ist das Gerät mit dem Internet verbunden?"; if (LKW.umfrage === st) lkwDraw("umfrage"); });
+          return false;
+        }
         else if (a === "show") st.show = !st.show;
         else if (a === "pass") { st.pass = !st.pass; if (st.pass) st.show = false; }
         else if (a === "undo") { const i = st.hist.pop(); if (i != null && st.opts[i].n) st.opts[i].n--; }
@@ -7576,8 +7611,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (a === "big") { st.big = !st.big; lkwDraw(id); return; }
       if (LKW_DEF[id].act(st, a, b, doc) !== false) lkwDraw(id);
     });
-    L.addEventListener("input", (e) => { const el = e.target.closest(".lkw"), st = el && LKW[el.dataset.w]; if (st && e.target.dataset.wi && LKW_DEF[el.dataset.w].input) LKW_DEF[el.dataset.w].input(st, e.target); });
-    L.addEventListener("change", (e) => { const el = e.target.closest(".lkw"), st = el && LKW[el.dataset.w]; if (st && e.target.type === "checkbox" && LKW_DEF[el.dataset.w].input) LKW_DEF[el.dataset.w].input(st, e.target); });
+    L.addEventListener("input", (e) => { if (e.target.tagName === "SELECT") return; const el = e.target.closest(".lkw"), st = el && LKW[el.dataset.w]; if (st && e.target.dataset.wi && LKW_DEF[el.dataset.w].input) LKW_DEF[el.dataset.w].input(st, e.target); });
+    L.addEventListener("change", (e) => { const el = e.target.closest(".lkw"), st = el && LKW[el.dataset.w]; if (st && (e.target.type === "checkbox" || e.target.tagName === "SELECT") && LKW_DEF[el.dataset.w].input && LKW_DEF[el.dataset.w].input(st, e.target) === true) lkwDraw(el.dataset.w); });
     L.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter" && e.target.tagName === "INPUT") { const el = e.target.closest(".lkw"), pri = el && el.querySelector(".lkw-btn.pri"); if (pri) { e.preventDefault(); pri.click(); } } });
     L.addEventListener("pointerdown", (e) => {
       const w0 = e.target.closest(".lkw"), s0 = w0 && LKW[w0.dataset.w];
@@ -7594,6 +7629,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       h.addEventListener("pointermove", mv); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
     });
   }
+  // Werkzeuge oben in der Kopfzeile: überall nutzbar, nicht nur beim Projizieren
+  (function toolMenu() {
+    const btn = document.getElementById("toolBtn"), menu = document.getElementById("toolMenu"); if (!btn || !menu) return;
+    menu.innerHTML = LKW_MENU.map(([k, l, t]) => '<button type="button" data-lkt="' + k + '" title="' + t + '">' + l + "</button>").join("");
+    document.body.appendChild(menu); // über den schwebenden Karten
+    btn.addEventListener("click", () => { const r = btn.getBoundingClientRect(); menu.style.top = r.bottom + 6 + "px"; menu.style.right = Math.max(8, innerWidth - r.right) + "px"; menu.hidden = !menu.hidden; lkToolsMark(); });
+    menu.addEventListener("click", (e) => { if (e.target.closest("[data-lkt]")) setTimeout(() => (menu.hidden = true), 0); });
+    document.addEventListener("mousedown", (e) => { if (!menu.hidden && !e.target.closest(".hdr-tools, #toolMenu")) menu.hidden = true; });
+  })();
   // Leiste unten beim Beamer (liegt über den Karten, darum direkt im Seitenkörper)
   document.addEventListener("mousedown", (e) => { if (e.target.closest("#lk-prbar .lk-tb")) e.preventDefault(); });
   document.addEventListener("click", (e) => { const b = e.target.closest("#lk-prbar [data-pr]"); if (!b) return; const v = b.dataset.pr; if (v === "stop") lkPrStop(); else if (v === "black") { PR.black = !PR.black; lkPrRender(false); } else lkPrGo(+v); });
