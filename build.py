@@ -13,7 +13,7 @@ out = '''<!doctype html>
 <meta name="referrer" content="no-referrer">
 <link rel="icon" href="favicon.ico">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#edf2f8">
+<meta name="theme-color" content="#1f5f8b">
 <meta name="apple-mobile-web-app-title" content="Semper">
 <meta name="application-name" content="Semper">
 <script src="config.js"></script>

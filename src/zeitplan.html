@@ -2,20 +2,19 @@
 <script>try { document.documentElement.spellcheck = false; document.documentElement.setAttribute("writingsuggestions", "false"); document.documentElement.setAttribute("autocorrect", "off"); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /* Layout: kompakte Kopfzeile mit Reitern, darunter Tagesliste zum direkten Hineinschreiben (wie Excel) und rechts eine Notizspalte. */
 :root { --imp-hoch: #7c3aed; --imp-mittel: #0ea5e9; --imp-tief: #9ca3af; --todo: #d97706; --todo-bg: #fff4dc;
-  --bg: #edf2f8;
-  --surface: #fbfdff;
-  --ink: #16263a;
-  --muted: #586b80;
-  --line: #d8e2ee;
-  --accent: #1d64b0;
-  --accent-soft: #e1edf9;
-  --navy: #173a5e;
-  --weekend: #e3e9f1;
-  --weekend-ink: #66778b;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --ink: #1d2733;
+  --muted: #5d6b7a;
+  --line: #dde3ea;
+  --accent: #1f5f8b;
+  --accent-soft: #e3eef6;
+  --weekend: #e6e9ed;
+  --weekend-ink: #6a7584;
   --morgen: #dcebd0;
   --nachmittag: #fbd9bf;
   --abend: #fdf6c8;
@@ -29,22 +28,21 @@
   --c-rost: #eebcab;
   --danger: #b3261e;
   --overlay: rgba(10, 16, 22, 0.45);
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
-  --radius: 12px;
-  --shadow: 0 1px 2px rgba(20, 50, 90, 0.05), 0 6px 18px -10px rgba(20, 50, 90, 0.2);
+  --radius: 8px;
   --hs: 1;
-  --hdr: 72px;
+  --hdr: 52px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --todo-bg: #3b2a0e;
-  --bg: #111a25; --surface: #18232f; --ink: #e5edf6; --muted: #9aabbd; --line: #2a3747;
-  --accent: #7db8ee; --accent-soft: #1d3550; --navy: #d6e6f6; --weekend: #1f2a37; --weekend-ink: #8a9bb0;
+  --bg: #12171d; --surface: #1a2129; --ink: #e6ebf0; --muted: #9aa7b4; --line: #2c3540;
+  --accent: #7fb6dc; --accent-soft: #1f3344; --weekend: #232a33; --weekend-ink: #8d99a6;
   --morgen: #2d3d27; --nachmittag: #47331f; --abend: #423d1d;
   --c-gruen: #2f4428; --c-apricot: #4d3421; --c-gelb: #4a4420; --c-blau: #213f4d; --c-rosa: #4a2734; --c-lila: #352f4a; --c-grau: #2f3741; --c-rost: #5c2c20;
   --danger: #f2a49e; --overlay: rgba(0, 0, 0, 0.6); color-scheme: dark; } }
 :root[data-theme="dark"] { --todo-bg: #3b2a0e;
-  --bg: #111a25; --surface: #18232f; --ink: #e5edf6; --muted: #9aabbd; --line: #2a3747;
-  --accent: #7db8ee; --accent-soft: #1d3550; --navy: #d6e6f6; --weekend: #1f2a37; --weekend-ink: #8a9bb0;
+  --bg: #12171d; --surface: #1a2129; --ink: #e6ebf0; --muted: #9aa7b4; --line: #2c3540;
+  --accent: #7fb6dc; --accent-soft: #1f3344; --weekend: #232a33; --weekend-ink: #8d99a6;
   --morgen: #2d3d27; --nachmittag: #47331f; --abend: #423d1d;
   --c-gruen: #2f4428; --c-apricot: #4d3421; --c-gelb: #4a4420; --c-blau: #213f4d; --c-rosa: #4a2734; --c-lila: #352f4a; --c-grau: #2f3741; --c-rost: #5c2c20;
   --danger: #f2a49e; --overlay: rgba(0, 0, 0, 0.6); color-scheme: dark; }
@@ -1325,55 +1323,23 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .actions .right { display: flex; gap: 8px; margin-left: auto; }
 @media (prefers-reduced-motion: no-preference) { .panel { animation: pop 0.12s ease-out; } @keyframes pop { from { transform: translateY(6px); opacity: 0.6; } } }
-/* ---------- Gestaltung: warme Farben, Karten, grössere Kopfzeile (Grösse mit − / + in Stufen, --hs) ---------- */
-header.top { background: linear-gradient(100deg, color-mix(in srgb, var(--surface) 80%, var(--bg)) 30%, color-mix(in srgb, var(--accent) 26%, var(--surface)) 72%, color-mix(in srgb, #3fa7d6 34%, var(--surface))); border-bottom: 1px solid var(--line); box-shadow: 0 8px 22px -18px rgba(20, 50, 90, 0.4); }
-body { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--bg)), var(--bg) 520px) var(--bg) no-repeat; }
-.top-inner { padding-block: calc(14px * var(--hs)); gap: calc(6px * var(--hs)) 20px; }
-.brand { gap: calc(14px * var(--hs)); }
-.brand h1 { font-size: calc(1.8rem * var(--hs)); font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
-.brand h1 .dot { color: var(--accent); }
-.brand .today { font-size: calc(0.92rem * var(--hs)); letter-spacing: 0.03em; }
-.top-right { gap: calc(10px * var(--hs)); }
-nav.tabs { padding: calc(4px * var(--hs)); background: color-mix(in srgb, var(--line) 45%, var(--surface)); }
-nav.tabs button { font-size: calc(1rem * var(--hs)); padding: calc(7px * var(--hs)) calc(18px * var(--hs)); font-weight: 600; color: var(--muted); transition: background 0.15s, color 0.15s; }
-nav.tabs button:hover { color: var(--ink); }
-nav.tabs button[aria-selected="true"] { background: linear-gradient(135deg, var(--navy), var(--accent)); color: var(--surface); box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.35); }
-header.top .codebtn { width: calc(34px * var(--hs)); height: calc(34px * var(--hs)); font-size: calc(0.95rem * var(--hs)); }
+/* Grösse der Kopfzeile (− / +): Stufen über --hs, 1 = normale Grösse */
+.top-inner { padding-block: calc(8px * var(--hs)) 0; }
+.brand h1 { font-size: calc(1.2rem * var(--hs)); }
+.brand .today { font-size: calc(14px * var(--hs)); }
+nav.tabs button { font-size: calc(14px * var(--hs)); padding: calc(4px * var(--hs)) calc(12px * var(--hs)); }
+header.top .codebtn { width: calc(30px * var(--hs)); height: calc(30px * var(--hs)); font-size: calc(14px * var(--hs)); }
 header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var(--hs)); }
 .hdr-size { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
-.hdr-size button { border: 0; background: none; color: var(--muted); font-weight: 700; font-size: calc(0.95rem * var(--hs)); width: calc(28px * var(--hs)); height: calc(32px * var(--hs)); padding: 0; line-height: 1; }
+.hdr-size button { border: 0; background: none; color: var(--muted); font-weight: 700; font-size: calc(14px * var(--hs)); width: calc(26px * var(--hs)); height: calc(28px * var(--hs)); padding: 0; line-height: 1; }
 .hdr-size button + button { border-left: 1px solid var(--line); }
 .hdr-size button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 .hdr-size button:disabled { opacity: 0.35; cursor: default; }
-html.phone .brand h1 { font-size: calc(1.4rem * var(--hs)); }
-html.phone .top-inner { padding-block: calc(8px * var(--hs)); }
-body { margin: 0; }
-.wrap { padding-top: 14px; }
-/* Karten */
-.list, .cal, .lk-side, .lk-docs, .lk-main, .lk-rail, .jp-col, .r-list, .r-detail, .v-group, .sp-card, .dp-wrap, .note, .jp-note, .dpm-day { box-shadow: var(--shadow); }
-.btn { border-radius: 8px; }
-.btn.primary { box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--accent) 60%, transparent); }
-.seg button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
-/* Unterricht */
-.lk-main { padding: 18px 22px; gap: 12px; background: linear-gradient(90deg, #173a5e, #1d64b0 45%, #3fa7d6 80%, #8fd3e8) top / 100% 3px no-repeat, var(--surface); }
-.lk-head h2 { font-size: 1.9rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
-.lk-tbar { background: color-mix(in srgb, var(--bg) 60%, var(--surface)); border: 1px solid var(--line); border-radius: 12px; padding: 7px 8px; }
-.lk-tb { background: var(--surface); border-color: color-mix(in srgb, var(--line) 80%, transparent); border-radius: 8px; }
-.lk-tb:hover { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
-.lk-side, .lk-docs { padding: 10px; }
-.lk-it { padding: 7px 10px; border-radius: 10px; }
-.lk-it .lk-t { font-family: var(--font-display); font-size: 1.02rem; }
-.lk-it.on { background: linear-gradient(135deg, var(--navy), var(--accent)); color: var(--surface); }
-.lk-k { border-radius: 10px; }
-.lk-k[aria-pressed="true"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
-/* Planung, Klassen */
-.jp-head .yr { font-size: 1.2rem; font-weight: 600; }
-.r-title { font-weight: 600; }
 </style>
 
 <header class="top" id="hdr">
   <div class="top-inner">
-    <div class="brand"><h1>Semper<span class="dot">.</span></h1><span class="today" id="todayLabel"></span></div>
+    <div class="brand"><h1>Semper</h1><span class="today" id="todayLabel"></span></div>
     <div class="top-right">
       <nav class="tabs" role="tablist">
         <button role="tab" aria-selected="true" data-tab="termine">Termine</button>
@@ -6382,7 +6348,7 @@ body { margin: 0; }
     if (!w) { lkStat("Das Beamer-Fenster wurde blockiert – bitte Pop-ups für diese Seite erlauben."); return; }
     const css = [...document.querySelectorAll("style")].map((x) => x.textContent).join("\n");
     w.document.open();
-    w.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Semper – Beamer</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap"><style>' + css.replace(/<\/style/gi, "<\\/style") +
+    w.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Semper – Beamer</title><style>' + css.replace(/<\/style/gi, "<\\/style") +
       '\nhtml,body{margin:0;height:100%;background:#fff;color:#111;overflow:hidden} .lk-show.aud{grid-template-rows:1fr} .lk-show.aud .lk-slide{height:100vh;box-sizing:border-box;overflow:hidden} body.black .lk-show{background:#000} body.black #st{visibility:hidden} #fs{position:fixed;right:14px;bottom:14px;z-index:100001;font:600 15px system-ui,sans-serif;padding:10px 16px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;opacity:.9} :fullscreen #fs{display:none} #hint{position:fixed;left:14px;bottom:14px;z-index:100001;font:13px system-ui,sans-serif;color:#666} :fullscreen #hint{display:none}</style></head>' +
       '<body><div class="lk-show aud"><div class="lk-slide" id="st"></div></div><span id="hint">Dieses Fenster auf den Beamer ziehen und «Vollbild» wählen. Weiterschalten im Hauptfenster.</span><button id="fs" type="button">⛶ Vollbild</button></body></html>');
     w.document.close();
@@ -7081,13 +7047,13 @@ body { margin: 0; }
   try { new ResizeObserver(() => document.documentElement.style.setProperty("--hdr", $("#hdr").offsetHeight + "px")).observe($("#hdr")); } catch (e) {}
   // Grösse der Kopfzeile in Stufen (− / +), auf diesem Gerät gemerkt
   (function hdrSize() {
-    const ST = [0.8, 0.9, 1, 1.15, 1.3, 1.5];
-    let i = 2; try { const v = localStorage.getItem("zeitplan-hdrsize"); if (v != null && ST[+v] != null) i = +v; } catch (e) {}
+    const ST = [0.85, 1, 1.15, 1.3, 1.5, 1.75];
+    let i = 1; try { const v = localStorage.getItem("zeitplan-hdrsize2"); if (v != null && ST[+v] != null) i = +v; } catch (e) {}
     const set = (n) => {
       i = Math.max(0, Math.min(ST.length - 1, n));
       document.documentElement.style.setProperty("--hs", String(ST[i]));
       $("#hdrMinus").disabled = i === 0; $("#hdrPlus").disabled = i === ST.length - 1;
-      try { localStorage.setItem("zeitplan-hdrsize", String(i)); } catch (e) {}
+      try { localStorage.setItem("zeitplan-hdrsize2", String(i)); } catch (e) {}
     };
     $("#hdrMinus").onclick = () => set(i - 1); $("#hdrPlus").onclick = () => set(i + 1); set(i);
   })();
