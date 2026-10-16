@@ -6,15 +6,16 @@
 <style>
 /* Layout: kompakte Kopfzeile mit Reitern, darunter Tagesliste zum direkten Hineinschreiben (wie Excel) und rechts eine Notizspalte. */
 :root { --imp-hoch: #7c3aed; --imp-mittel: #0ea5e9; --imp-tief: #9ca3af; --todo: #d97706; --todo-bg: #fff4dc;
-  --bg: #f5f0e8;
-  --surface: #fffdf9;
-  --ink: #2a241e;
-  --muted: #73685c;
-  --line: #e6ddd0;
-  --accent: #a4502c;
-  --accent-soft: #f6e6db;
-  --weekend: #eee7dc;
-  --weekend-ink: #7d7264;
+  --bg: #edf2f8;
+  --surface: #fbfdff;
+  --ink: #16263a;
+  --muted: #586b80;
+  --line: #d8e2ee;
+  --accent: #1d64b0;
+  --accent-soft: #e1edf9;
+  --navy: #173a5e;
+  --weekend: #e3e9f1;
+  --weekend-ink: #66778b;
   --morgen: #dcebd0;
   --nachmittag: #fbd9bf;
   --abend: #fdf6c8;
@@ -31,19 +32,19 @@
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --radius: 12px;
-  --shadow: 0 1px 2px rgba(70, 48, 25, 0.05), 0 6px 18px -10px rgba(70, 48, 25, 0.18);
+  --shadow: 0 1px 2px rgba(20, 50, 90, 0.05), 0 6px 18px -10px rgba(20, 50, 90, 0.2);
   --hs: 1;
   --hdr: 72px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --todo-bg: #3b2a0e;
-  --bg: #1b1814; --surface: #25211c; --ink: #eee6db; --muted: #aa9d8c; --line: #3b342c;
-  --accent: #e39a72; --accent-soft: #3d2b21; --weekend: #2b2620; --weekend-ink: #978a7a;
+  --bg: #111a25; --surface: #18232f; --ink: #e5edf6; --muted: #9aabbd; --line: #2a3747;
+  --accent: #7db8ee; --accent-soft: #1d3550; --navy: #d6e6f6; --weekend: #1f2a37; --weekend-ink: #8a9bb0;
   --morgen: #2d3d27; --nachmittag: #47331f; --abend: #423d1d;
   --c-gruen: #2f4428; --c-apricot: #4d3421; --c-gelb: #4a4420; --c-blau: #213f4d; --c-rosa: #4a2734; --c-lila: #352f4a; --c-grau: #2f3741; --c-rost: #5c2c20;
   --danger: #f2a49e; --overlay: rgba(0, 0, 0, 0.6); color-scheme: dark; } }
 :root[data-theme="dark"] { --todo-bg: #3b2a0e;
-  --bg: #1b1814; --surface: #25211c; --ink: #eee6db; --muted: #aa9d8c; --line: #3b342c;
-  --accent: #e39a72; --accent-soft: #3d2b21; --weekend: #2b2620; --weekend-ink: #978a7a;
+  --bg: #111a25; --surface: #18232f; --ink: #e5edf6; --muted: #9aabbd; --line: #2a3747;
+  --accent: #7db8ee; --accent-soft: #1d3550; --navy: #d6e6f6; --weekend: #1f2a37; --weekend-ink: #8a9bb0;
   --morgen: #2d3d27; --nachmittag: #47331f; --abend: #423d1d;
   --c-gruen: #2f4428; --c-apricot: #4d3421; --c-gelb: #4a4420; --c-blau: #213f4d; --c-rosa: #4a2734; --c-lila: #352f4a; --c-grau: #2f3741; --c-rost: #5c2c20;
   --danger: #f2a49e; --overlay: rgba(0, 0, 0, 0.6); color-scheme: dark; }
@@ -1325,7 +1326,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .actions .right { display: flex; gap: 8px; margin-left: auto; }
 @media (prefers-reduced-motion: no-preference) { .panel { animation: pop 0.12s ease-out; } @keyframes pop { from { transform: translateY(6px); opacity: 0.6; } } }
 /* ---------- Gestaltung: warme Farben, Karten, grössere Kopfzeile (Grösse mit − / + in Stufen, --hs) ---------- */
-header.top { background: color-mix(in srgb, var(--surface) 55%, var(--bg)); border-bottom: 1px solid var(--line); box-shadow: 0 8px 22px -18px rgba(70, 48, 25, 0.35); }
+header.top { background: linear-gradient(100deg, color-mix(in srgb, var(--surface) 80%, var(--bg)) 30%, color-mix(in srgb, var(--accent) 26%, var(--surface)) 72%, color-mix(in srgb, #3fa7d6 34%, var(--surface))); border-bottom: 1px solid var(--line); box-shadow: 0 8px 22px -18px rgba(20, 50, 90, 0.4); }
+body { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 13%, var(--bg)), var(--bg) 520px) var(--bg) no-repeat; }
 .top-inner { padding-block: calc(14px * var(--hs)); gap: calc(6px * var(--hs)) 20px; }
 .brand { gap: calc(14px * var(--hs)); }
 .brand h1 { font-size: calc(1.8rem * var(--hs)); font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; }
@@ -1335,7 +1337,7 @@ header.top { background: color-mix(in srgb, var(--surface) 55%, var(--bg)); bord
 nav.tabs { padding: calc(4px * var(--hs)); background: color-mix(in srgb, var(--line) 45%, var(--surface)); }
 nav.tabs button { font-size: calc(1rem * var(--hs)); padding: calc(7px * var(--hs)) calc(18px * var(--hs)); font-weight: 600; color: var(--muted); transition: background 0.15s, color 0.15s; }
 nav.tabs button:hover { color: var(--ink); }
-nav.tabs button[aria-selected="true"] { background: var(--ink); color: var(--surface); box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.35); }
+nav.tabs button[aria-selected="true"] { background: linear-gradient(135deg, var(--navy), var(--accent)); color: var(--surface); box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.35); }
 header.top .codebtn { width: calc(34px * var(--hs)); height: calc(34px * var(--hs)); font-size: calc(0.95rem * var(--hs)); }
 header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var(--hs)); }
 .hdr-size { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
@@ -1353,7 +1355,7 @@ body { margin: 0; }
 .btn.primary { box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--accent) 60%, transparent); }
 .seg button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
 /* Unterricht */
-.lk-main { padding: 18px 22px; gap: 12px; background: linear-gradient(90deg, #c8643c, #e3b25a 50%, #8fae8b) top / 100% 3px no-repeat, var(--surface); }
+.lk-main { padding: 18px 22px; gap: 12px; background: linear-gradient(90deg, #173a5e, #1d64b0 45%, #3fa7d6 80%, #8fd3e8) top / 100% 3px no-repeat, var(--surface); }
 .lk-head h2 { font-size: 1.9rem; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
 .lk-tbar { background: color-mix(in srgb, var(--bg) 60%, var(--surface)); border: 1px solid var(--line); border-radius: 12px; padding: 7px 8px; }
 .lk-tb { background: var(--surface); border-color: color-mix(in srgb, var(--line) 80%, transparent); border-radius: 8px; }
@@ -1361,9 +1363,9 @@ body { margin: 0; }
 .lk-side, .lk-docs { padding: 10px; }
 .lk-it { padding: 7px 10px; border-radius: 10px; }
 .lk-it .lk-t { font-family: var(--font-display); font-size: 1.02rem; }
-.lk-it.on { background: var(--ink); color: var(--surface); }
+.lk-it.on { background: linear-gradient(135deg, var(--navy), var(--accent)); color: var(--surface); }
 .lk-k { border-radius: 10px; }
-.lk-k[aria-pressed="true"] { border-color: color-mix(in srgb, #6f9a6a 55%, var(--line)); background: color-mix(in srgb, #6f9a6a 14%, var(--surface)); }
+.lk-k[aria-pressed="true"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); }
 /* Planung, Klassen */
 .jp-head .yr { font-size: 1.2rem; font-weight: 600; }
 .r-title { font-weight: 600; }
