@@ -403,10 +403,6 @@ html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; ma
 .lk-nav button.on { background: var(--accent-soft); border-color: var(--accent); }
 .lk-draw.fix { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 100001; }
 .lk-penbar.fix { z-index: 100004; }
-.lk-bstrip { position: fixed; left: 14px; top: 14px; z-index: 100004; display: flex; gap: 6px; opacity: 0.3; transition: opacity 0.2s; }
-.lk-bstrip:hover, .lk-bstrip:focus-within { opacity: 1; }
-.lk-bstrip button { font: 600 18px system-ui, sans-serif; padding: 8px 12px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
-.lk-bstrip button.on { background: var(--accent-soft); border-color: var(--accent); opacity: 1; }
 #lk-prbar .lk-prsep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
 .lkw-menu { min-width: 220px; }
 .lkw-layer { position: fixed; inset: 0; z-index: 100005; pointer-events: none; }
@@ -426,7 +422,7 @@ html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; ma
 .lkw textarea, .lkw input[type="text"], .lkw input[type="url"], .lkw input[type="number"] { font: inherit; font-size: 0.95em; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
 .lkw input[type="number"] { width: 5em; }
 .lkw label { font-size: 0.85em; display: flex; gap: 6px; align-items: center; }
-body.beam .lkw-ctl { opacity: 0.35; transition: opacity 0.2s; } body.beam .lkw:hover .lkw-ctl { opacity: 1; }
+body.beam .lkw button, body.beam .lkw-ctl, body.beam .lkw input, body.beam .lkw select, body.beam .lkw textarea { display: none; } /* Beamer zeigt nur, bedient wird im Hauptfenster */
 .lkw-time { font: 700 3.4em/1 var(--font-body); font-variant-numeric: tabular-nums; text-align: center; letter-spacing: 0.02em; }
 .lkw.warn .lkw-time { color: var(--danger); }
 .lkw-timer.big .lkw-time { font-size: 5.5em; }
@@ -6482,9 +6478,6 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     w.document.close();
     PR.win = w; PR.s = 0; PR.k = 0; PR.black = false; PR.lastS = null;
     w.document.body.classList.add("beam");
-    const strip = w.document.createElement("div"); strip.className = "lk-bstrip";
-    strip.innerHTML = '<button type="button" data-lkt="pen" title="Stift, Marker, Radierer">🖊</button><button type="button" data-lkt="spot" title="Spotlight">🔦</button><button type="button" data-lkt="zoom" title="Zoom: Bereich aufziehen oder doppelt tippen">🔍</button>';
-    w.document.body.appendChild(strip);
     w.document.addEventListener("click", (e) => {
       const b = e.target.closest("[data-lkt]"); if (b) { lkTool(w.document, b.dataset.lkt); return; }
       const li = e.target.closest("#st ul.lk-check > li"); if (li && lkCheckHit(li, e)) { li.classList.toggle("done"); lkCheckToggleIdx(+li.dataset.ci); }
@@ -6500,7 +6493,6 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       }
     } catch (e) {}
     clearInterval(PR.poll); PR.poll = setInterval(() => { if (!lkPresenting()) lkPrStop(); }, 1000);
-    if (!document.documentElement.classList.contains("lk-proj")) lkProj(true);
     lkPrRender(true); lkOpenHead(); lkwSync(); window.focus();
   }
   function lkPrStop() {
@@ -6764,7 +6756,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Bearbeiten</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") +
         '<button type="button" class="btn ghost" data-lkt="spot" title="Spotlight: alles abdunkeln, nur ein Bereich bleibt hell">🔦 Spotlight</button><button type="button" class="btn ghost" data-lkt="zoom" title="Vergrössern: Bereich aufziehen oder doppelt auf einen Absatz / ein Bild tippen">🔍 Zoom</button>' +
         lkToolsPop() + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
-      : lkToolsPop() + '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+      : lkToolsPop() + '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
     lkToolsMark();
   }
   // ---------- Hilfsmittel beim Projizieren ----------

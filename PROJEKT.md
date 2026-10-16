@@ -117,10 +117,10 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
 - **Projizieren:**
   - `lkProj`: dieselbe Seite ohne Kopfzeile, Leisten und Werkzeuge bei Bedarf, Stift über der Seite (vorübergehend).
   - **Folien** (`lkPresent`): Abschnitte und Schritte in einem Fenster.
-  - **🖥 Beamer** (`lkPrStart`): zweites Fenster mit Abschnitt für Abschnitt; Moderatoransicht mit Leiste, Bild↑/↓, Leer (B).
+  - **🖥 Beamer** (`lkPrStart`): zweites Fenster mit Abschnitt für Abschnitt. Das Hauptfenster bleibt die normale Lehreransicht (kein Wechsel zu Projizieren) plus Leiste unten: ◀ ▶, Leer (B), Beamer schliessen, Stift/Spotlight/Zoom für den Beamer. Das Beamer-Fenster selbst zeigt nur – keine Knöpfe, Karten ohne Bedienelemente (Katharina, 16.10.2026).
   - Die Aufteilung macht `lkDeck`. Gibt es keine Abschnittslinien, trennen Titel H1/H2.
 - **Checkliste und Tabelle** (Werkzeugleiste): `ul.lk-check` mit `li.done` (Klick aufs Kästchen, auch in Folien/Beamer; Zuordnung über die Reihenfolge `lkCheckIdx`), `table.lk-tab` mit Zeilen/Spalten-Befehlen (`lkTableOp`), Tab springt in die nächste Zelle. Word-Export kennt beides.
-- **Hilfsmittel beim Projizieren** (Kopfzeile «🔦 Spotlight», «🔍 Zoom», «🧰 Hilfsmittel», Folien-Leiste, Beamer-Leiste):
+- **Hilfsmittel beim Projizieren** (Kopfzeile beim Projizieren «🔦 Spotlight», «🔍 Zoom», «Werkzeuge ▾»; Folien-Leiste; Beamer-Leiste im Hauptfenster):
   - Spotlight (`lkSpot`), Zoom (`lkZoom`, auch Doppelklick auf Absatz/Bild), Stift über Folien/Beamer (`lkPenDoc`, «Wegwischen», beim nächsten Abschnitt weg). Wirken im jeweiligen Fenster.
   - Karten Timer/Stoppuhr, Zufall, QR-Code, Umfrage (`LKW_DEF`): erscheinen im Hauptfenster und gleichzeitig im Beamer-Fenster, verschiebbar, gross/klein.
   - Auf der Unterrichtsseite auch ohne Projizieren über den Knopf «Werkzeuge ▾» (nur dort; beim Wechsel des Reiters schliessen sich die Karten). QR-Code mit «Als Bild speichern», Zufall mit Klassenwahl oder eigener Liste. Umfrage: QR-Code zur Abstimmungsseite `umfrage/` (Frage und Antworten nur im Link nach #), Stimmen über ntfy.sh (Thema `semper-<zufall>`, Nachricht `runde:nummer`), Live-Balken in Semper und im Beamer-Fenster; «Neue Runde» = neuer QR-Code. Ein Handy stimmt pro Runde einmal ab.
