@@ -1410,14 +1410,14 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .actions .right { display: flex; gap: 8px; margin-left: auto; }
 @media (prefers-reduced-motion: no-preference) { .panel { animation: pop 0.12s ease-out; } @keyframes pop { from { transform: translateY(6px); opacity: 0.6; } } }
 /* Grösse der Kopfzeile (− / +): Stufen über --hs, 1 = normale Grösse */
-.top-inner { padding-block: calc(8px * var(--hs)) 0; }
-.brand h1 { font-size: calc(1.2rem * var(--hs)); }
-.brand .today { font-size: calc(14px * var(--hs)); }
-nav.tabs button { font-size: calc(14px * var(--hs)); padding: calc(4px * var(--hs)) calc(12px * var(--hs)); }
-header.top .codebtn { width: calc(30px * var(--hs)); height: calc(30px * var(--hs)); font-size: calc(14px * var(--hs)); }
+.top-inner { padding-block: calc(14px * var(--hs)) calc(8px * var(--hs)); }
+.brand h1 { font-size: calc(1.5rem * var(--hs)); }
+.brand .today { font-size: calc(15px * var(--hs)); }
+nav.tabs button { font-size: calc(15px * var(--hs)); padding: calc(6px * var(--hs)) calc(15px * var(--hs)); }
+header.top .codebtn { width: calc(34px * var(--hs)); height: calc(34px * var(--hs)); font-size: calc(15px * var(--hs)); }
 header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var(--hs)); }
 .hdr-size { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
-.hdr-size button { border: 0; background: none; color: var(--muted); font-weight: 700; font-size: calc(14px * var(--hs)); width: calc(26px * var(--hs)); height: calc(28px * var(--hs)); padding: 0; line-height: 1; }
+.hdr-size button { border: 0; background: none; color: var(--muted); font-weight: 700; font-size: calc(14px * var(--hs)); width: calc(28px * var(--hs)); height: calc(32px * var(--hs)); padding: 0; line-height: 1; }
 .hdr-size button + button { border-left: 1px solid var(--line); }
 .hdr-size button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 .hdr-size button:disabled { opacity: 0.35; cursor: default; }
