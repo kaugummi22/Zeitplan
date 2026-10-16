@@ -926,6 +926,7 @@ body.beam .lkw-ctl { opacity: 0.35; transition: opacity 0.2s; } body.beam .lkw:h
 .lkw-barw i { display: block; height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.3s ease; }
 .lkw-opt b { text-align: right; font-variant-numeric: tabular-nums; }
 .lkw-tot { text-align: center; font-size: 0.85em; color: var(--muted); }
+.lk-acts .lkw-menu { left: auto; right: 0; }
 .lkw-thanks { text-align: center; font: 700 1.6em/1.3 var(--font-body); color: var(--accent); padding: 0.8em 0; }
 
 .dpm-nav { display: flex; align-items: center; gap: 6px; } .dpm-nav span { font-weight: 600; }
@@ -1891,11 +1892,6 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 .hdr-size button + button { border-left: 1px solid var(--line); }
 .hdr-size button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 .hdr-size button:disabled { opacity: 0.35; cursor: default; }
-.hdr-tools { position: relative; display: inline-flex; }
-.tool-menu { position: fixed; z-index: 100010; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 26px rgba(0,0,0,0.18); padding: 6px; display: grid; gap: 4px; min-width: 230px; }
-.tool-menu[hidden] { display: none; }
-.tool-menu button { text-align: left; border: 0; background: none; color: var(--ink); font: inherit; font-size: 0.95rem; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
-.tool-menu button:hover, .tool-menu button.on { background: var(--accent-soft); }
 .lkw select { font: inherit; font-size: 0.9em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
 </style>
 
@@ -1910,7 +1906,6 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         <button role="tab" aria-selected="false" data-tab="lektion">Unterricht</button>
       </nav>
       <div class="hdr-size" role="group" aria-label="Grösse der Kopfzeile"><button type="button" id="hdrMinus" title="Kopfzeile verkleinern" aria-label="Kopfzeile verkleinern">−</button><button type="button" id="hdrPlus" title="Kopfzeile vergrössern" aria-label="Kopfzeile vergrössern">+</button></div>
-      <span class="hdr-tools"><button class="codebtn" id="toolBtn" type="button" title="Werkzeuge: QR-Code, Zufallsgenerator, Timer, Umfrage" aria-label="Werkzeuge" aria-haspopup="true">🧰</button><div class="tool-menu" id="toolMenu" hidden></div></span>
       <button class="codebtn savebtn" id="saveBtn" type="button" title="Speicherpunkte und Sicherungen – zu einem früheren Stand zurückkehren" aria-label="Speicherpunkte und Sicherungen">💾</button>
       <button class="codebtn" id="codeBtn" type="button" title="Code der Seite ansehen und ändern" aria-label="Code der Seite ansehen und ändern"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4 1.5 8l4 4M10.5 4l4 4-4 4"/></svg></button>
     </div>
@@ -7227,15 +7222,16 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     lkOpenHead();
   }
   function lkPenResume() { if (lkPen && lkPen.cv.isConnected) { lkPen.cv.classList.remove("idle"); document.getElementById("view-lektion").appendChild(lkPen.bar); document.documentElement.classList.add("lk-pen"); lkOpenHead(); } else { lkPen = null; lkPenOn(); } }
-  const LKW_MENU = [["qr", "▦ QR-Code", "QR-Code zu einem Link oder Text – anzeigen oder als Bild speichern"], ["zufall", "🎲 Zufallsgenerator", "Wer ist dran? Oder Gruppen bilden"], ["timer", "⏱ Timer / Stoppuhr", "Gross sichtbar, mit Pause und Alarm"], ["umfrage", "📊 Umfrage", "Umfrage mit Link und QR-Code für die Klasse oder zum Antippen"]];
+  const LKW_MENU = [["qr", "▦ QR-Code", "QR-Code zu einem Link oder Text – anzeigen oder als Bild speichern"], ["zufall", "🎲 Zufallsgenerator", "Wer ist dran? Oder Gruppen bilden"], ["timer", "⏱ Timer / Stoppuhr", "Gross sichtbar, mit Pause und Alarm"], ["umfrage", "📊 Umfrage", "Die Klasse stimmt mit dem Handy über einen QR-Code ab – anonym, Ergebnis live"]];
+  const lkToolsPop = () => '<span class="lk-tbw"><button type="button" class="btn ghost" data-lkpop="hm" title="QR-Code, Zufallsgenerator, Timer, Umfrage">Werkzeuge ▾</button><div class="lk-pop lkw-menu" data-pop="hm" hidden>' + LKW_MENU.map(([k, l, t]) => '<button type="button" class="lk-tb" data-lkt="' + k + '" title="' + t + '">' + l + "</button>").join("") + "</div></span>";
   function lkOpenHead() {
     const acts = $("#lk-acts"); if (!acts) return;
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
     acts.innerHTML = '<span class="status" id="lk-status"></span>' + (P
-      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Werkzeuge</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") +
+      ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Bearbeiten</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") +
         '<button type="button" class="btn ghost" data-lkt="spot" title="Spotlight: alles abdunkeln, nur ein Bereich bleibt hell">🔦 Spotlight</button><button type="button" class="btn ghost" data-lkt="zoom" title="Vergrössern: Bereich aufziehen oder doppelt auf einen Absatz / ein Bild tippen">🔍 Zoom</button>' +
-        '<span class="lk-tbw"><button type="button" class="btn ghost" data-lkpop="hm" title="Timer, Zufallsgenerator, QR-Code, Umfrage">🧰 Hilfsmittel ▾</button><div class="lk-pop lkw-menu" data-pop="hm" hidden>' + LKW_MENU.map(([k, l, t]) => '<button type="button" class="lk-tb" data-lkt="' + k + '" title="' + t + '">' + l + "</button>").join("") + "</div></span>" + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
-      : '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+        lkToolsPop() + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
+      : lkToolsPop() + '<button type="button" class="btn primary" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">Folien</button><button type="button" class="btn ghost" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
     lkToolsMark();
   }
   // ---------- Hilfsmittel beim Projizieren ----------
@@ -7629,15 +7625,6 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       h.addEventListener("pointermove", mv); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
     });
   }
-  // Werkzeuge oben in der Kopfzeile: überall nutzbar, nicht nur beim Projizieren
-  (function toolMenu() {
-    const btn = document.getElementById("toolBtn"), menu = document.getElementById("toolMenu"); if (!btn || !menu) return;
-    menu.innerHTML = LKW_MENU.map(([k, l, t]) => '<button type="button" data-lkt="' + k + '" title="' + t + '">' + l + "</button>").join("");
-    document.body.appendChild(menu); // über den schwebenden Karten
-    btn.addEventListener("click", () => { const r = btn.getBoundingClientRect(); menu.style.top = r.bottom + 6 + "px"; menu.style.right = Math.max(8, innerWidth - r.right) + "px"; menu.hidden = !menu.hidden; lkToolsMark(); });
-    menu.addEventListener("click", (e) => { if (e.target.closest("[data-lkt]")) setTimeout(() => (menu.hidden = true), 0); });
-    document.addEventListener("mousedown", (e) => { if (!menu.hidden && !e.target.closest(".hdr-tools, #toolMenu")) menu.hidden = true; });
-  })();
   // Leiste unten beim Beamer (liegt über den Karten, darum direkt im Seitenkörper)
   document.addEventListener("mousedown", (e) => { if (e.target.closest("#lk-prbar .lk-tb")) e.preventDefault(); });
   document.addEventListener("click", (e) => { const b = e.target.closest("#lk-prbar [data-pr]"); if (!b) return; const v = b.dataset.pr; if (v === "stop") lkPrStop(); else if (v === "black") { PR.black = !PR.black; lkPrRender(false); } else lkPrGo(+v); });
@@ -8086,6 +8073,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     e.target.value = "";
   });
   function setTab(tab) {
+    if (tab !== "lektion") Object.keys(LKW).forEach(lkwClose);
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
     $("#view-termine").hidden = tab !== "termine"; $("#view-unterricht").hidden = tab !== "unterricht"; $("#view-klassen").hidden = tab !== "klassen"; $("#view-lektion").hidden = tab !== "lektion";
     try { localStorage.setItem("zeitplan-tab", tab); } catch (e) {}
