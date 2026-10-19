@@ -622,6 +622,23 @@ html.phone .k-vbar { flex-wrap: wrap; gap: 8px; }
 .lk-it .lk-t { font-weight: 600; }
 .lk-it small { font-size: 0.74rem; opacity: 0.7; }
 .lk-past { justify-self: start; margin: 4px 6px; font-size: 0.82rem; }
+.lk-main.split { grid-template-columns: minmax(0, 1fr) minmax(260px, 42%); column-gap: 14px; }
+.lk-main.split > * { grid-column: 1 / -1; }
+.lk-main.split > .lk-page { grid-column: 1; }
+.lk-main.split > .lk-planbox { grid-column: 2; grid-row: 3; align-self: start; position: sticky; top: calc(var(--hdr) + 8px); max-height: calc(100vh - var(--hdr) - 24px); overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 4%, var(--surface)); padding: 8px 12px; display: grid; gap: 6px; align-content: start; font-size: 0.92rem; }
+.lk-planbox .lbl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.lk-plantext h2 { font-size: 1.05rem; margin: 2px 0 6px; } .lk-plantext h3 { font-size: 0.9rem; margin: 10px 0 4px; color: var(--muted); }
+.lk-plantext .phase { color: var(--muted); font-weight: 500; } .lk-plantext .box { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.lk-plantext table { width: 100%; border-collapse: collapse; font-size: 0.85rem; } .lk-plantext th, .lk-plantext td { border: 1px solid var(--line); padding: 4px 6px; vertical-align: top; text-align: left; }
+.lk-plantext .pre { white-space: pre-wrap; }
+html.lk-proj .lk-planbox { display: none !important; }
+html.lk-proj .lk-main.split > .lk-page { grid-column: 1 / -1; }
+html.mob .lk-main.split > .lk-page { grid-column: 1 / -1; grid-row: 4; }
+html.mob .lk-main.split > .lk-planbox { grid-column: 1 / -1; position: static; max-height: 40vh; }
+.lk-page .lk-note { background: color-mix(in srgb, #e0b000 14%, transparent); border-left: 3px dashed #c99a00; padding-left: 8px; font-style: italic; color: color-mix(in srgb, var(--ink) 75%, transparent); }
+.lk-page :not(li).lk-note::before { content: "🔒 "; font-style: normal; font-size: 0.8em; }
+html.lk-proj .lk-page .lk-note { display: none !important; }
+@media print { .lk-note { display: none !important; } }
 .lk-main { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
 .lk-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: start; }
 .lk-head h2 { margin: 2px 0; font-family: var(--font-display); font-size: 1.35rem; }
@@ -1998,7 +2015,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       <button type="button" class="btn ghost toggle" id="u-prio" aria-pressed="true">Wichtigkeiten</button>
       <button type="button" class="btn ghost toggle u-moved" id="u-cross" aria-pressed="true" title="Reihen, die auch in anderen Schuljahren vorkommen, dort zusätzlich als eigenen Abschnitt zeigen. Im Schuljahr, in dem die Reihe erstellt wurde, ist sie immer sichtbar.">Mehrfach-Reihen</button>
       <button type="button" class="btn ghost toggle u-moved" id="u-bars" aria-pressed="true" title="Fortschrittsbalken unter den Reihen ein- oder ausblenden (wie viele Lektionen ausgearbeitet sind)">Fortschritt</button>
-      <button type="button" class="btn ghost" id="u-stmenu" aria-haspopup="menu" title="Welche Reihen sichtbar sind und ob der Status angezeigt wird">Status ▾</button>
+      <button type="button" class="btn ghost" id="u-stmenu" aria-haspopup="menu" title="Welche Reihen sichtbar sind">Reihen ▾</button>
       <button type="button" class="btn ghost" id="u-legend" aria-haspopup="menu" title="Welche Wichtigkeiten angezeigt werden">Filter ▾</button>
       <span class="status" id="u-status"></span>
       <span class="u-search"><input type="search" id="u-search" placeholder="Thema suchen …" aria-label="Thema in allen Reihen suchen" autocomplete="off"><span class="u-sres" id="u-sres" hidden role="listbox"></span></span>
@@ -2334,7 +2351,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const x = state.days[key] && state.days[key][slot];
     const more = x && (x.details || (x.files && x.files.length));
     const i = SPAN_SLOTS.indexOf(slot), w = i >= 0 ? effW(key)[i] : 1;
-    const cls = "cell cell-" + slot + (x && x.color ? " f-" + x.color : "") + (more ? " has-more" : "") + (w <= 0 ? " covered" : "") + (w > DEFAULT_W[i] + 0.01 ? " wide" : "");
+    const ccol = x && (!x.split || !x.pcolors) ? x.color : ""; // geteilte Zelle: jeder Eintrag hat seine eigene Farbe
+    const cls = "cell cell-" + slot + (ccol ? " f-" + ccol : "") + (more ? " has-more" : "") + (w <= 0 ? " covered" : "") + (w > DEFAULT_W[i] + 0.01 ? " wide" : "");
     const style = i >= 0 ? ' style="width:' + pct(w) + '"' : "";
     const rz = i >= 0 && i < 2 && w > 0 ? '<span class="rz" title="Ziehen, um das Feld breiter oder schmaler zu machen" aria-hidden="true"></span>' : "";
     const tip = more ? "Gross öffnen (enthält Details" + (x.files && x.files.length ? " und " + x.files.length + " Dokument" + (x.files.length > 1 ? "e" : "") : "") + ")" : "Gross öffnen";
@@ -2750,10 +2768,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     confirmJoin([parts[keep], parts[part - 1]].filter(partFilled).length, () => { const [gone] = parts.splice(part - 1, 1); mergeInto(parts[keep], gone); if (parts.length < 2) delete x.split; putParts(x, parts); afterSplit(key, slot, keep + 1); });
   }
   function setPartColor(key, slot, part, color) {
-    const x = slotOf(key, slot), pc = (x.pcolors || []).slice(); while (pc.length < (x.nparts || 2)) pc.push("");
+    const x = slotOf(key, slot), pc = (x.pcolors || []).slice(), old = x.pcolors ? "" : x.color || ""; while (pc.length < (x.nparts || 2)) pc.push(old);
     pc[part - 1] = color; x.pcolors = pc; scheduleSave(key, 300);
+    if (old) { render(); return; }
     const el = document.getElementById("t-" + key + "-" + slot + (part > 1 ? "-" + part : ""));
     if (el) el.className = el.className.replace(/\s?f-\w+/g, "") + (color ? " f-" + color : "");
+    const cl = el && el.closest(".cell"); if (cl) cl.className = cl.className.replace(/\s?f-\w+/g, "");
   }
   list.addEventListener("contextmenu", (e) => {
     const t = e.target.closest(".inp"); if (!t || !t.closest(".cell") || !t.closest(".day")) return;
@@ -3708,13 +3728,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
 
   // Wichtigkeit einer Reihe (Anzeige im Jahresplan, per Rechtsklick änderbar)
-  const PRIOS = [["essentiell", "Essentiell", "rost"], ["wichtig", "Wichtig", "gelb"], ["wenig", "Wenig wichtig", "gruen"], ["offen", "Unentschieden", "blau"], ["keine", "Ohne Angabe", ""]];
+  const PRIOS = [["essentiell", "Essentiell", "rost"], ["wichtig", "Wichtig", "gelb"], ["wenig", "Nicht wichtig", "gruen"], ["offen", "Unentschieden", "blau"], ["keine", "Ohne Angabe", ""]];
   const prioOf = (r) => r.prio || "essentiell";
   const STATI = [["none", "Kein Status"], ["todo", "To do"], ["progress", "In progress"], ["done", "Done"]];
   const statusOf = (r) => r.status || "progress";
   // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
-  const stVisible = (r) => !(UP.stHide || {})[statusOf(r)] && (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true);
+  const stVisible = (r) => (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true);
   // Lektionsreihe: hat Lektionen (auch wenn sie zusätzlich Materialsammlungen enthält) oder ist keine reine Sammlung
   const isLekt = (r) => lessonCount(r) > 0 || !isSamml(r);
   function showMenu(btn) {
@@ -3740,9 +3760,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const draw = () => {
       const hide = UP.stHide || {};
-      m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("") + "<hr>" +
-        '<div class="cm-title">Sichtbar</div>' + STATI.map(([v, l]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !hide[v] + '" data-stv="' + v + '"><span class="ck">' + (hide[v] ? "" : "✓") + "</span>" + l + "</button>").join("") +
-        "<hr>" + '<button type="button" role="menuitemcheckbox" aria-checked="' + !!UP.stLabels + '" data-stl><span class="ck">' + (UP.stLabels ? "✓" : "") + "</span>Label anzeigen</button>";
+      m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("");
     };
     draw();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
@@ -3758,7 +3776,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
     m.style.left = Math.max(8, Math.min(br.left, innerWidth - mr.width - 8)) + "px"; m.style.top = (br.bottom + 4) + "px";
   }
-  const statusBadge = (r) => { const st = statusOf(r); return st === "progress" || st === "none" || !UP.stLabels ? "" : '<span class="st st-' + st + '">' + (st === "done" ? "✓ Done" : "To do") + "</span>"; };
+  const statusBadge = () => ""; // Status wird nicht mehr angezeigt (gespeicherte Werte bleiben erhalten)
   let UP = { prio: true, cross: true, bars: true, hide: {} };
   try { UP = { ...UP, ...JSON.parse(localStorage.getItem("zeitplan-uprefs") || "{}") }; } catch (e) {}
   delete UP.parkOpen; // ausgeblendete Reihen sind beim Öffnen der Seite immer eingeklappt
@@ -3884,8 +3902,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const list = year != null ? byYear(year).map(([rid]) => rid) : [], k = list.indexOf(id);
-    m.innerHTML = '<div class="cm-title">Status</div>' + STATI.map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + (statusOf(r) === v) + '" data-status="' + v + '"><span class="sq st-sq-' + v + '"></span>' + l + "</button>").join("") +
-      '<div class="cm-title">Wichtigkeit</div>' + PRIOS.map(([v, l, c]) => '<button type="button" role="menuitemradio" aria-checked="' + (prioOf(r) === v) + '" data-prio="' + v + '"><span class="sq' + (c ? " f-" + c : "") + '"></span>' + l + "</button>").join("") +
+    m.innerHTML = '<div class="cm-title">Wichtigkeit</div>' + PRIOS.map(([v, l, c]) => '<button type="button" role="menuitemradio" aria-checked="' + (prioOf(r) === v) + '" data-prio="' + v + '"><span class="sq' + (c ? " f-" + c : "") + '"></span>' + l + "</button>").join("") +
       (k >= 0 ? '<div class="cm-title">Verschieben</div>' + [["top", "Ganz nach oben", k > 0], ["up", "Eins nach oben", k > 0], ["down", "Eins nach unten", k < list.length - 1], ["end", "Ganz nach unten", k < list.length - 1]].filter((a) => a[2]).map(([a, l]) => '<button type="button" role="menuitem" data-mv="' + a + '"><span class="sq"></span>' + l + "</button>").join("") : "") +
       (colYear != null ? '<div class="cm-title">Anzeige</div><button type="button" role="menuitem" data-park="' + (isParked(r, colYear) ? "0" : "1") + '"><span class="sq"></span>' + (isParked(r, colYear) ? "Wieder oben anzeigen" : "Ausblenden (nach unten)") + "</button>" : "");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
@@ -3915,7 +3932,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#u-view-vorlagen").hidden = U.view !== "vorlagen";
     ["#u-prio", "#u-show", "#u-stmenu"].forEach((x) => { $(x).hidden = U.view === "vorlagen"; });
     { const eb = $("#u-eye"); if (eb) eb.hidden = U.view !== "jahresplan"; }
-    $("#u-stmenu").textContent = "Status" + (UP.kind === "samml" ? " · Sammlungen" : UP.kind === "lekt" ? " · Lektionsreihen" : "") + " ▾";
+    $("#u-stmenu").textContent = (UP.kind === "samml" ? "Nur Sammlungen" : UP.kind === "lekt" ? "Nur Lektionsreihen" : "Reihen") + " ▾";
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
     if (!U.loaded) { $("#jp-main").innerHTML = '<div class="empty">Lädt …</div>'; return; }
@@ -4003,7 +4020,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (UP.stLabels ? " stat-" + statusOf(r) : "") + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Status und Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="jp-rt"><span class="n">' +
+          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + "" + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="jp-rt"><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
@@ -4546,7 +4563,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     rSnapBase(U.sel); setTimeout(rUndoBtn, 0);
     box.innerHTML =
       '<div class="r-top">' + (mastersOf(U.sel).length ? '<button type="button" class="ms-up-btn" data-goto="' + mastersOf(U.sel)[0][0] + '" title="Unterreihe von: ' + esc(mastersOf(U.sel).map(([, m]) => m.title || "Reihe").join(", ")) + ' – klicken öffnet die Masterreihe">↳</button>' : "") + '<input class="r-title" id="r-title" data-rf="title" value="' + esc(r.title || "") + '" aria-label="Titel der Reihe" placeholder="Titel der Reihe">' +
-      '<div class="r-tools"><button class="btn ghost" type="button" id="r-undo" disabled title="Noch nichts rückgängig zu machen">↶ Rückgängig</button>' + (r.klasse ? "" : '<select id="r-status" class="st-sel st-' + statusOf(r) + '" aria-label="Status der Reihe">' + STATI.map(([v, l]) => '<option value="' + v + '"' + (statusOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select>") + '<button class="btn ghost' + (r.folder ? " has-folder" : "") + '" type="button" id="r-folder" title="' + (r.folder ? "Ordnerpfad kopieren: " + esc(r.folder) : "Ordner auf dem Computer hinterlegen") + '">📁 Ordner</button>' + (window.ZLOCAL ? '<button class="btn ghost" type="button" id="r-folder-ed" title="Ordner wählen oder ändern" aria-label="Ordner wählen">✎</button>' : "") + '' + (r.klasse ? "" : r.master ? '<button class="btn ghost ms-btn" type="button" id="r-mlist" aria-haspopup="menu" title="Unterreihen dieser Masterreihe">◆ Unterreihen (' + childrenOf(r).length + ') ▾</button>' : '<button class="btn ghost" type="button" id="r-master" title="Diese Reihe zur Masterreihe machen, um Unterreihen hinzuzufügen">◆ Masterreihe</button>') + '<button class="btn ghost" type="button" id="r-print" title="Ganze Reihe als Lektionsplanung drucken">Drucken</button><button class="btn ghost" type="button" data-move="-1" title="Reihe in der Liste nach oben schieben" aria-label="Reihe nach oben">↑</button><button class="btn ghost" type="button" data-move="1" title="Reihe in der Liste nach unten schieben" aria-label="Reihe nach unten">↓</button></div></div>' +
+      '<div class="r-tools"><button class="btn ghost" type="button" id="r-undo" disabled title="Noch nichts rückgängig zu machen">↶ Rückgängig</button>' + '<button class="btn ghost' + (r.folder ? " has-folder" : "") + '" type="button" id="r-folder" title="' + (r.folder ? "Ordnerpfad kopieren: " + esc(r.folder) : "Ordner auf dem Computer hinterlegen") + '">📁 Ordner</button>' + (window.ZLOCAL ? '<button class="btn ghost" type="button" id="r-folder-ed" title="Ordner wählen oder ändern" aria-label="Ordner wählen">✎</button>' : "") + '' + (r.klasse ? "" : r.master ? '<button class="btn ghost ms-btn" type="button" id="r-mlist" aria-haspopup="menu" title="Unterreihen dieser Masterreihe">◆ Unterreihen (' + childrenOf(r).length + ') ▾</button>' : '<button class="btn ghost" type="button" id="r-master" title="Diese Reihe zur Masterreihe machen, um Unterreihen hinzuzufügen">◆ Masterreihe</button>') + '<button class="btn ghost" type="button" id="r-print" title="Ganze Reihe als Lektionsplanung drucken">Drucken</button><button class="btn ghost" type="button" data-move="-1" title="Reihe in der Liste nach oben schieben" aria-label="Reihe nach oben">↑</button><button class="btn ghost" type="button" data-move="1" title="Reihe in der Liste nach unten schieben" aria-label="Reihe nach unten">↓</button></div></div>' +
       '<div class="r-meta"><label>Lektionen <input type="number" min="0" max="60" id="r-lekt" data-rf="lektionen" value="' + (r.lektionen ?? "") + '"></label>' + '<span class="ln-sum" id="r-lnsum">' + lnSumText(r) + "</span>" +
       '<label>Leistungsnachweis <input type="text" id="r-ln" data-rf="ln" list="ln-list" value="' + esc(r.ln || "") + '" placeholder="z. B. Prüfung, Abgabe"></label>' +
       '<datalist id="ln-list">' + LN_SUGGEST.map((s) => '<option value="' + esc(s) + '"></option>').join("") + "</datalist>" +
@@ -4639,15 +4656,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const plan = hasPlan(x.plan) ? clone(x.plan) : null;
     if (x.color || x.details || filled(x.notesHtml) || (x.files && x.files.length) || plan) { r.meta[i] = { color: x.color || "", details: x.details || "", files: x.files || [] }; if (filled(x.notesHtml) || /<img/.test(x.notesHtml || "")) r.meta[i].notesHtml = x.notesHtml; if (x.notesLh) r.meta[i].notesLh = x.notesLh; if (plan) r.meta[i].plan = plan; } else delete r.meta[i];
   }
-  function openLessonDetail(i) {
-    const id = U.sel, r = U.reihen[id]; if (!r) return;
+  function openLessonDetail(i, rid, after) {
+    const id = rid || U.sel, r = U.reihen[id]; if (!r) return;
     if (isLN(i)) {
       const x = lessonX(r, i); dirtyU.add(id);
       const isMat = !!lnItemOf(r, i).mat;
       openDetailBox({ editDocs: true, title: r.title || "Reihe", sub: lnLabel(r, i), x, textLabel: isMat ? "Kurzzusammenfassung" : "Kurzeintrag in der Tabelle", plan: isMat ? undefined : x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
         onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
         changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
-        onClose: () => { uFlush("r:" + id); renderU(); } });
+        onClose: () => { uFlush("r:" + id); renderU(); if (after) after(); } });
       return;
     }
     const s = Number((r.spans || {})[i]) || 1;
@@ -4658,7 +4675,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       title: r.title || "Reihe", sub: lname(r, i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : ""), x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
       onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
       changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
-      onClose: () => { uFlush("r:" + id); renderU(); },
+      onClose: () => { uFlush("r:" + id); renderU(); if (after) after(); },
     });
   }
 
@@ -6693,9 +6710,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   // ================= Unterricht: eine Seite pro Lektion (zum Zeigen, Projizieren und Weitergeben) =================
   // Gespeichert in «seiten», Schlüssel: Klasse ~ Reihen-Kopie ~ Lektion. Die Unterrichtsplanung selbst kommt hier nicht hinein.
   const LK = { kid: null, sel: null, page: null, pid: null, t: 0, showPast: false, side: true, docs: true, undo: [], redo: [], cur: null };
-  try { const o = JSON.parse(localStorage.getItem("zeitplan-lk") || "null"); if (o) { LK.kid = o.kid; LK.sel = o.sel; if (o.side === false) LK.side = false; if (o.docs === false) LK.docs = false; } } catch (e) {}
+  try { const o = JSON.parse(localStorage.getItem("zeitplan-lk") || "null"); if (o) { LK.kid = o.kid; LK.sel = o.sel; if (o.plan) LK.plan = true; if (o.side === false) LK.side = false; if (o.docs === false) LK.docs = false; } } catch (e) {}
   try { LK.pz = +localStorage.getItem("zeitplan-lkpz") || 1.35; } catch (e) { LK.pz = 1.35; }
-  const lkSaveSel = () => { try { localStorage.setItem("zeitplan-lk", JSON.stringify({ kid: LK.kid, sel: LK.sel, side: LK.side, docs: LK.docs })); } catch (e) {} };
+  const lkSaveSel = () => { try { localStorage.setItem("zeitplan-lk", JSON.stringify({ kid: LK.kid, sel: LK.sel, side: LK.side, docs: LK.docs, plan: !!LK.plan })); } catch (e) {} };
   const lkStat = (t) => { const el = $("#lk-status"); if (el) el.textContent = t; };
   const LK_EMO = [["💡", "Idee"], ["✏️", "Schreiben"], ["📝", "Notizen"], ["📖", "Lesen"], ["👀", "Anschauen"], ["👂", "Zuhören"], ["🗣️", "Sprechen"], ["💬", "Diskussion"], ["👤", "Einzelarbeit"], ["👥", "Partnerarbeit"], ["👨‍👩‍👧", "Gruppenarbeit"], ["🙋", "Melden"], ["❓", "Frage"], ["❗", "Wichtig"], ["⚠️", "Achtung"], ["✅", "Erledigt"], ["⭐", "Stern"], ["🎯", "Ziel"], ["🔍", "Untersuchen"], ["🧠", "Nachdenken"], ["🤔", "Überlegen"], ["⏱️", "Zeit"], ["🏠", "Hausaufgabe"], ["📚", "Bücher"], ["✂️", "Basteln"], ["🎧", "Hören"], ["🎬", "Film"], ["💻", "Computer"], ["📌", "Merken"], ["➡️", "Weiter"], ["👍", "Gut"], ["🎉", "Super"]];
   const LK_BOX = ["gelb", "apricot", "rost", "rosa", "lila", "blau", "gruen", "grau", "weiss"];
@@ -6717,7 +6734,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const ok = { H1: "h1", H2: "h2", H3: "h3", P: "p", DIV: "div", UL: "ul", OL: "ol", LI: "li", B: "b", STRONG: "b", I: "i", EM: "i", U: "u", BLOCKQUOTE: "blockquote" };
     const blockCls = (n) => {
       const c = [];
-      (n.className && typeof n.className === "string" ? n.className.split(/\s+/) : []).forEach((x) => { if (/^(lk-box|al-[crj]|lh-[134]|fs-[124567]|ind-[1-8])$/.test(x) || (/^c-/.test(x) && LK_BOX.includes(x.slice(2))) || (x === "lk-check" && n.tagName === "UL") || (x === "done" && n.tagName === "LI")) c.push(x); });
+      (n.className && typeof n.className === "string" ? n.className.split(/\s+/) : []).forEach((x) => { if (/^(lk-box|lk-note|al-[crj]|lh-[134]|fs-[124567]|ind-[1-8])$/.test(x) || (/^c-/.test(x) && LK_BOX.includes(x.slice(2))) || (x === "lk-check" && n.tagName === "UL") || (x === "done" && n.tagName === "LI")) c.push(x); });
       const ta = n.style && n.style.textAlign; if (ta && !c.some((x) => /^al-/.test(x))) { if (ta === "center") c.push("al-c"); else if (ta === "right") c.push("al-r"); else if (ta === "justify") c.push("al-j"); }
       if (n.tagName !== "DIV") { const i = c.indexOf("lk-box"); if (i >= 0) c.splice(i, 1); }
       if (!c.includes("lk-box")) for (let i = c.length - 1; i >= 0; i--) if (/^c-/.test(c[i])) c.splice(i, 1);
@@ -6776,6 +6793,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       p.appendChild(n);
     });
     if (!root.firstChild) root.innerHTML = "<p><br></p>";
+  }
+  // Notizen (nur für die Lehrperson): verschwinden beim Projizieren, in Folien, im Beamer-Fenster und beim Ausgeben
+  function lkStripNotes(html) {
+    if (!/lk-note/.test(html || "")) return html || "";
+    const t = document.createElement("template"); t.innerHTML = html; t.content.querySelectorAll(".lk-note").forEach((n) => n.remove());
+    t.content.querySelectorAll("ul, ol").forEach((l) => { if (!l.children.length) l.remove(); });
+    return t.innerHTML;
   }
   const lkBlank = () => { const pg = $("#lk-page"); if (!pg) return; pg.classList.toggle("blank", !pg.textContent.trim() && !pg.querySelector("img,hr,a,li,table,.lk-box")); pg.querySelectorAll(".lk-box").forEach((b) => b.classList.toggle("blank", !b.textContent.trim() && !b.querySelector("img,figure,li"))); };
   // Kasten mit Schreibmarke: Platzhalter «…» ausblenden
@@ -6875,6 +6899,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       TB("al", "", "⯇≡", "Linksbündig") + TB("al", "al-c", "≡", "Zentriert") + TB("al", "al-r", "≡⯈", "Rechtsbündig") + TB("ind", "-1", "⇤", "Ausrücken (Umschalt+Tab)") + TB("ind", "1", "⇥", "Einrücken – jedes Mal eine Stufe weiter (Tab)") + SEP +
       TB("bold", "", "<b>F</b>", "Fett") + TB("italic", "", "<i>K</i>", "Kursiv") + TB("underline", "", "<u>U</u>", "Unterstrichen") + POP("col", '<span class="tc-rot">A</span>', "Schriftfarbe und Marker", colPop) + SEP +
       TB("insertUnorderedList", "", "• Liste", "Aufzählung") + TB("insertOrderedList", "", "1. Liste", "Nummerierte Liste") + POP("check", "☑ Checkliste", "Checkliste zum Abhaken während des Unterrichts", checkPop) + POP("tab", "▦ Tabelle", "Einfache Tabelle", tabPop) + POP("box", "▭ Kasten", "Farbiger Kasten, z. B. für einen Auftrag", boxPop) +
+      TB("note", "", "🔒 Notiz", "Notiz nur für Sie: markierte Zeilen werden grau-gelb und sind beim Projizieren, in Folien, im Beamer-Fenster und beim Ausgeben unsichtbar. Nochmals klicken macht wieder normalen Text") +
       TB("dot", "", "·", "Mittelpunkt einfügen, z. B. «L6 · Die Prozesse»") + POP("emo", "💡", "Symbol einfügen", '<div class="lk-emo">' + LK_EMO.map((x) => '<button type="button" class="lk-sw lk-em" data-lkcmd="emo" data-arg="' + x[0] + '" title="' + x[1] + '">' + x[0] + "</button>").join("") + "</div>") + SEP + TB("hr", "", "<b style=\"color:var(--accent)\">━━</b> Abschnitt", "Abschnittslinie: beim Projizieren beginnt hier eine neue Folie (wird nicht gedruckt)") + TB("hr", "lk-step", "<span style=\"color:var(--muted);letter-spacing:-1px\">┅┅</span> Schritt", "Schrittlinie: beim Projizieren erscheint der Teil darunter erst beim Weiterschalten (wird nicht gedruckt)") + TB("hr", "lk-vis", "<span style=\"opacity:.7\">—</span> Visual", "Visual Line: kurze Linie in der Mitte, um die Seite zu gliedern (wird gedruckt)") + SEP +
       '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
       '<div class="lk-page" id="lk-page" contenteditable="true" data-ph="Schreiben Sie hier die Seite für diese Lektion: Ablauf für die Klasse, Aufträge, Bilder, Links zu Dokumenten …"></div>';
@@ -6882,8 +6907,23 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (LK.histPid !== pid) { LK.histPid = pid; LK.undo = []; LK.redo = []; if (lkPresenting()) { PR.s = 0; PR.k = 0; setTimeout(() => lkPrRender(true), 50); } } LK.cur = lkSanitize(pg.innerHTML); LK.lastType = 0;
     if (lkPen) { lkPen.bar.remove(); lkPen = null; document.documentElement.classList.remove("lk-pen"); }
     if (lkZooms.has(document)) lkZooms.get(document).close();
-    lkOpenHead(); lkUndoBtns();
+    lkOpenHead(); lkUndoBtns(); lkPlanRender();
     try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
+  }
+  // Geteilter Bildschirm: rechts neben der Seite die Lektionsplanung aus der Reihe (Kurzeintrag, Lernziele, Ablauf, Notizen)
+  function lkPlanRender() {
+    const main = $("#lk-main"); if (!main) return;
+    const old = $("#lk-planbox"); if (old) old.remove();
+    const x = LK.sel && lkLessons(LK.kid).find((y) => y.key === LK.sel), r = x && U.reihen[x.u.rid];
+    const on = !!(LK.plan && x && r && $("#lk-page"));
+    main.classList.toggle("split", on);
+    const b = $("#lk-plan"); if (b) b.setAttribute("aria-pressed", String(on));
+    if (!on) return;
+    const body = lessonPrintHtml(r, x.u.i, x.u.ln ? 1 : x.u.s || 1).replace(/^<section>|<\/section>$/g, "");
+    const box = document.createElement("aside"); box.className = "lk-planbox"; box.id = "lk-planbox";
+    box.innerHTML = '<div class="lk-shead"><span class="lbl">Lektionsplanung</span><span><button type="button" class="btn ghost" id="lk-planedit" title="Lernziele, Ablauf und Notizen dieser Lektion bearbeiten">✎ Bearbeiten</button><button type="button" class="lk-fold" id="lk-planx" title="Planung schliessen">✕</button></span></div>' +
+      '<div class="lk-plantext">' + (/<(table|h3|div)/.test(body.replace(/^<h2>[\s\S]*?<\/h2>/, "")) ? body : body + '<p class="help">Für diese Lektion ist noch keine Planung erfasst. Mit «✎ Bearbeiten» können Sie Lernziele und Ablauf eintragen.</p>') + "</div>";
+    main.appendChild(box);
   }
   function lkSave(typing) {
     const pg = $("#lk-page"); if (!pg || !LK.pid) return;
@@ -6916,12 +6956,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const hasAny = () => cur.some((p) => p.length);
     for (const n of nodes) {
       const tag = n.nodeType === 1 ? n.tagName : "#t";
+      if (n.nodeType === 1 && n.classList.contains("lk-note")) { map.push({ el: n, s: secs.length, k: cur.length - 1 }); continue; }
       if (isSec(n)) { push(); map.push({ el: n, s: secs.length, k: 0, line: true }); continue; }
       if (tag === "HR" && n.classList.contains("lk-step")) { if (hasAny()) cur.push([]); map.push({ el: n, s: secs.length, k: cur.length - 1, line: true }); continue; }
       if (!hasSec && ((/^H[12]$/.test(tag) && hasAny()) || (tag === "FIGURE" && curFig))) push();
       if (tag === "P" && !n.textContent.trim() && !n.querySelector("img") && !hasAny()) { map.push({ el: n, s: secs.length, k: 0 }); continue; }
       if (tag === "FIGURE") curFig = true;
-      const html = n.nodeType === 1 ? (live ? lkSanitize(n.outerHTML) : n.outerHTML) : esc(n.nodeValue);
+      const html = n.nodeType === 1 ? lkStripNotes(live ? lkSanitize(n.outerHTML) : n.outerHTML) : esc(n.nodeValue);
       cur[cur.length - 1].push(html); map.push({ el: n, s: secs.length, k: cur.length - 1 });
     }
     push();
@@ -7056,7 +7097,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function lkPrint() {
     const pg = $("#lk-page"); if (!pg) return; lkSave();
     const head = $("#lk-main .lk-head h2"), box = document.createElement("div"); box.id = "lk-printbox";
-    box.innerHTML = "<h1>" + esc(head ? head.textContent : "Lektion") + "</h1>" + lkSanitize(pg.innerHTML);
+    box.innerHTML = "<h1>" + esc(head ? head.textContent : "Lektion") + "</h1>" + lkStripNotes(lkSanitize(pg.innerHTML));
     document.body.appendChild(box); document.documentElement.classList.add("lk-printing");
     const done = () => { box.remove(); document.documentElement.classList.remove("lk-printing"); removeEventListener("afterprint", done); };
     addEventListener("afterprint", done); setTimeout(() => window.print(), 300);
@@ -7311,7 +7352,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       ? '<button type="button" class="btn ghost" id="lk-tools" aria-pressed="' + tools + '" title="Werkzeugleiste zum Bearbeiten ein-/ausblenden">✎ Bearbeiten</button><button type="button" class="btn ghost" id="lk-pen" aria-pressed="' + pen + '" title="Mit Stift oder Finger auf die Seite schreiben (wird nicht gespeichert)">🖊 Stift</button>' + (lkPen && !pen ? '<button type="button" class="btn ghost" id="lk-penclr" title="Geschriebenes wegwischen">Wegwischen</button>' : "") +
         '<button type="button" class="btn ghost" data-lkt="spot" title="Spotlight: alles abdunkeln, nur ein Bereich bleibt hell">🔦 Spotlight</button><button type="button" class="btn ghost" data-lkt="zoom" title="Vergrössern: Bereich aufziehen oder doppelt auf einen Absatz / ein Bild tippen">🔍 Zoom</button>' +
         lkToolsPop() + '<button type="button" class="btn ghost" id="lk-zm" data-z="-1" title="Kleiner">A−</button><button type="button" class="btn ghost" id="lk-zp" data-z="1" title="Grösser">A+</button><button type="button" class="btn ghost" id="lk-slides" title="Folie für Folie zeigen">Folien</button><button type="button" class="btn ghost" id="lk-beamer" aria-pressed="' + lkPresenting() + '" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 Beamer</button><button type="button" class="btn primary" id="lk-projx" title="Projizieren beenden (Esc)">✕ Beenden</button>'
-      : lkToolsPop() + lkShowPop() + '<button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
+      : '<button type="button" class="btn ghost" id="lk-plan" aria-pressed="' + !!LK.plan + '" title="Bildschirm teilen: rechts die Lektionsplanung aus der Reihe anzeigen">◫ Planung</button>' + lkToolsPop() + lkShowPop() + '<button type="button" class="btn ghost" id="lk-out" title="Als Word-Datei oder PDF speichern, oder drucken – zum Weitergeben an die Klasse">⇩ Ausgeben</button>');
     lkToolsMark();
   }
   // ---------- Hilfsmittel beim Projizieren ----------
@@ -7445,11 +7486,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function lkPenWipe(doc) { const p = lkPens.get(doc); if (p) p.T.clear(); }
   // Checkliste: Häkchen per Klick aufs Kästchen; in Folien und Beamer über die Reihenfolge der Punkte zugeordnet
   const lkCheckHit = (li, e) => { const r = li.getBoundingClientRect(), fs = parseFloat(li.ownerDocument.defaultView.getComputedStyle(li).fontSize) || 16; return e.clientX < r.left + fs * 1.6; };
+  const LK_CHK = "ul.lk-check:not(.lk-note) > li:not(.lk-note)";
   function lkCheckIdx(root, secs, s) {
     const tmp = document.createElement("div"); tmp.innerHTML = secs.slice(0, s).map((sec) => sec.map((p) => p.join("")).join("")).join("");
-    let i = tmp.querySelectorAll("ul.lk-check > li").length; root.querySelectorAll("ul.lk-check > li").forEach((li) => (li.dataset.ci = i++));
+    let i = tmp.querySelectorAll(LK_CHK).length; root.querySelectorAll(LK_CHK).forEach((li) => (li.dataset.ci = i++));
   }
-  function lkCheckToggleIdx(i) { const pg = $("#lk-page"), li = pg && pg.querySelectorAll("ul.lk-check > li")[i]; if (!li) return; li.classList.toggle("done"); lkSave(); }
+  function lkCheckToggleIdx(i) { const pg = $("#lk-page"), li = pg && pg.querySelectorAll(LK_CHK)[i]; if (!li) return; li.classList.toggle("done"); lkSave(); }
   // Tabelle: Zeilen und Spalten
   function lkTableOp(cmd) {
     const pg = $("#lk-page"), an = getSelection().anchorNode, el = an && (an.nodeType === 1 ? an : an.parentElement), cell = el && el.closest("td, th"), tb = cell && cell.closest("table");
@@ -7841,7 +7883,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const LK_MIME = { docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", pdf: "application/pdf" };
   async function lkMakeFile(fmt, title, say) {
     const pg = $("#lk-page"); say("Erstellt die Word-Datei …");
-    const docx = await lkDocx(pg ? pg.innerHTML : "", title);
+    const docx = await lkDocx(pg ? lkStripNotes(pg.innerHTML) : "", title);
     if (fmt === "docx") return docx;
     if (!window.ZLOCAL || !window.ZLOCAL.toPdf) throw new Error("PDF-Datei geht nur mit OneDrive. Bitte «Drucken» und dort «Als PDF speichern» wählen.");
     say("Microsoft wandelt in ein PDF um …");
@@ -8080,6 +8122,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     else if (cmd === "emo") { document.execCommand("insertText", false, arg + " "); lkPopsClose(); }
     else if (cmd === "fs") { const bl = lkBlocks(); bl.forEach((el) => { const n = Math.max(1, Math.min(7, lkSize(el) + +arg)); lkSetCls([el], /^fs-\d$/, n === 3 ? "" : "fs-" + n); }); }
     else if (cmd === "lh") lkSetCls(lkBlocks(), /^lh-\d$/, arg ? "lh-" + arg : "");
+    else if (cmd === "note") { const bl = lkBlocks(), on = !bl.every((el) => el.classList.contains("lk-note")); bl.forEach((el) => { el.classList.toggle("lk-note", on); if (!el.className) el.removeAttribute("class"); }); }
     else if (cmd === "al") lkSetCls(lkBlocks(), /^al-[crj]$/, arg);
     else if (cmd === "dot") { const sel = getSelection(), n = sel.anchorNode, o = sel.anchorOffset; const before = n && n.nodeType === 3 ? n.nodeValue.slice(0, o) : ""; document.execCommand("insertText", false, (/\s$/.test(before) || !before ? "" : " ") + "· "); }
     else if (cmd === "hr") { document.execCommand("insertHTML", false, (arg ? '<hr class="' + arg + '">' : "<hr>") + "<p><br></p>"); lkPopsClose(); }
@@ -8123,6 +8166,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { if (lkFigNoClick) { lkFigNoClick = 0; return; } if (lkFP && lkFP.fig === fg) return; lkInk(fg); return; }
     if (!b) return;
     if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
+    if (b.id === "lk-plan" || b.id === "lk-planx") { LK.plan = b.id === "lk-plan" ? !LK.plan : false; lkSaveSel(); lkPlanRender(); return; }
+    if (b.id === "lk-planedit") { const x = lkLessons(LK.kid).find((y) => y.key === LK.sel); if (x) openLessonDetail(x.u.i, x.u.rid, lkPlanRender); return; }
     if (b.id === "lk-docsfold" || b.id === "lk-docsopen") { if (lkIsProj()) LK.pdocs = b.id === "lk-docsopen"; else { LK.docs = b.id === "lk-docsopen"; lkSaveSel(); } lkLayout(); return; }
     if (b.closest(".lk-showmenu")) lkPopsClose();
     if (b.id === "lk-proj") { lkSave(); lkProj(true); return; }
