@@ -78,7 +78,7 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
   - Ausblenden mit dem Auge.
   - Spaltenhöhen einzeln einstellbar.
   - Reihen zwischen Jahren ziehen.
-  - Aussehen (20.10.2026): weisse Karten, Wichtigkeit nur als Farbstreifen links (`--p-*`: Koralle, Bernstein, Salbei, Blau, Grau), Lektionen als graue Pille, Spaltenkopf «1. SJ · 111 L», Bahnen `--jp-lane`. «Wichtigkeiten ▾» (`prioFilterMenu`) = Farbstreifen an/aus, Legende mit Anzahl, Filter. Notizspalte über «Notizen» bzw. › ausblendbar (`UP.notes`).
+  - Aussehen (20.10.2026): weisse Karten, Wichtigkeit nur als Farbstreifen links (`--p-*`: Koralle, Bernstein, Salbei, Blau, Grau), Lektionen «10 L» rechts neben dem Titel, kompakte Karten, Spaltenkopf «1. SJ · 111 L», Bahnen `--jp-lane`. «Wichtigkeiten ▾» (`prioFilterMenu`) = Farbstreifen an/aus, Legende mit Anzahl, Filter. Notizspalte über «Notizen» bzw. › ausblendbar (`UP.notes`).
 
 **Kopfzeile am Handy** (unter 700 px): Semper und Datum in einer Zeile, Reiter darunter, − + 💾 ‹› hinter ⋯ (`hdrMore`). Am Handy springen Termine (Kalender) und Klassen (Tagesplan) beim Öffnen zu heute (`jumpTodayNow`). Lange Hilfetexte stehen hinter «ⓘ Hilfe» (`details.hint`).
 
