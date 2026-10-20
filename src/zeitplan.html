@@ -31,17 +31,23 @@
   --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --radius: 8px;
+  --p-ess: #e07a5f; --p-wich: #d4a03a; --p-wenig: #84a98c; --p-offen: #7f9cc0; --p-keine: #cbd5e1;
+  --jp-lane: #f8fafc; --jp-card: #ffffff; --jp-cline: #e2e8f0; --jp-title: #1e293b; --jp-meta: #64748b; --jp-pill: #f1f5f9; --jp-head: #e8edf3; --jp-hline: #cbd5e1;
   --hs: 1;
   --hdr: 52px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --todo-bg: #3b2a0e;
   --bg: #12171d; --surface: #1a2129; --ink: #e6ebf0; --muted: #9aa7b4; --line: #2c3540;
+  --p-ess: #d9826b; --p-wich: #c9a04a; --p-wenig: #8fb398; --p-offen: #86a3c6; --p-keine: #3a4553;
+  --jp-lane: #151b22; --jp-card: #1f2731; --jp-cline: #2c3540; --jp-title: #e6ebf0; --jp-meta: #9aa7b4; --jp-pill: #2a333e; --jp-head: #232c37; --jp-hline: #3a4553;
   --accent: #7fb6dc; --accent-soft: #1f3344; --weekend: #232a33; --weekend-ink: #8d99a6;
   --morgen: #2d3d27; --nachmittag: #47331f; --abend: #423d1d;
   --c-gruen: #2f4428; --c-apricot: #4d3421; --c-gelb: #4a4420; --c-blau: #213f4d; --c-rosa: #4a2734; --c-lila: #352f4a; --c-grau: #2f3741; --c-rost: #5c2c20;
   --danger: #f2a49e; --overlay: rgba(0, 0, 0, 0.6); color-scheme: dark; } }
 :root[data-theme="dark"] { --todo-bg: #3b2a0e;
   --bg: #12171d; --surface: #1a2129; --ink: #e6ebf0; --muted: #9aa7b4; --line: #2c3540;
+  --p-ess: #d9826b; --p-wich: #c9a04a; --p-wenig: #8fb398; --p-offen: #86a3c6; --p-keine: #3a4553;
+  --jp-lane: #151b22; --jp-card: #1f2731; --jp-cline: #2c3540; --jp-title: #e6ebf0; --jp-meta: #9aa7b4; --jp-pill: #2a333e; --jp-head: #232c37; --jp-hline: #3a4553;
   --accent: #7fb6dc; --accent-soft: #1f3344; --weekend: #232a33; --weekend-ink: #8d99a6;
   --morgen: #2d3d27; --nachmittag: #47331f; --abend: #423d1d;
   --c-gruen: #2f4428; --c-apricot: #4d3421; --c-gelb: #4a4420; --c-blau: #213f4d; --c-rosa: #4a2734; --c-lila: #352f4a; --c-grau: #2f3741; --c-rost: #5c2c20;
@@ -799,6 +805,9 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px; margin-bottom: 12px; color: var(--muted); }
 .jp-scroll { overflow-x: auto; padding-bottom: 4px; }
 .jp-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+.jp-layout.no-notes { grid-template-columns: minmax(0, 1fr) !important; }
+.jp-layout.no-notes > aside.side { display: none; }
+.notes-head .notes-fold { margin-left: 4px; padding: 2px 8px; }
 @media (max-width: 0px) and (max-width: 1000px) { .jp-layout { grid-template-columns: minmax(0, 1fr); } }
 .jp-grid { display: grid; grid-template-columns: repeat(6, minmax(150px, 1fr)); gap: 8px; align-items: start; }
 @media (max-width: 0px) and (max-width: 760px) { .jp-grid { grid-template-columns: minmax(0, 1fr); } }
@@ -830,12 +839,12 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .sr-flash { box-shadow: 0 0 0 3px var(--accent) !important; transition: box-shadow 0.3s; }
 .jp-item .home-yr { display: block; font-size: 0.7rem; color: var(--muted); font-weight: 400; }
 .jp-item .also { display: block; font-size: 0.72rem; color: var(--muted); }
-.jp-col { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: grid; min-width: 0; }
-.jp-head { padding: 10px 12px 8px; border-bottom: 1px solid var(--line); display: grid; gap: 2px; }
-.jp-head .yr { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+.jp-col { background: var(--jp-lane); border: 1px solid var(--jp-cline); border-radius: 10px; display: grid; min-width: 0; overflow: hidden; }
+.jp-head { padding: 9px 12px; background: var(--jp-head); border-bottom: 2px solid var(--jp-hline); display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.jp-head .yr { font-family: var(--font-display); font-weight: 700; font-size: 1.08rem; color: var(--jp-title); }
 .jp-head .sub { color: var(--muted); font-size: 0.78rem; }
-.jp-head .sum { font-variant-numeric: tabular-nums; font-size: 0.82rem; color: var(--accent); font-weight: 700; }
-.jp-items { display: grid; padding: 4px; }
+.jp-head .sum { font-variant-numeric: tabular-nums; font-size: 0.8rem; color: var(--jp-meta); font-weight: 600; white-space: nowrap; }
+.jp-items { display: grid; grid-template-columns: minmax(0, 1fr); padding: 8px; gap: 6px; }
 .jp-multi { margin: 6px 8px 2px; padding-top: 6px; border-top: 1px dashed var(--line); }
 .jp-multi .lbl { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0 0 4px 2px; }
 .jp-multi .jp-items { padding: 0; }
@@ -843,11 +852,14 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-item.drop-before { box-shadow: inset 0 3px 0 var(--accent); }
 .jp-item.drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
 .jp-item[draggable="true"] { cursor: grab; }
-.jp-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px; border: 0; background: none; text-align: left; padding: 5px 8px; border-radius: 5px; }
-.jp-item:hover { background: var(--accent-soft); }
-.jp-item .t { overflow-wrap: break-word; hyphens: auto; min-width: 0; }
-.jp-item .n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.85rem; }
-.jp-item .bar-mini { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+/* Karte: weiss, feiner Rahmen; Wichtigkeit nur als Streifen links */
+.jp-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t t" "bar rt"; align-items: center; gap: 6px 10px; border: 1px solid var(--jp-cline); border-left: 4px solid var(--jp-cline); background: var(--jp-card); text-align: left; padding: 8px 10px 7px; border-radius: 6px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); color: var(--jp-title); transition: box-shadow 0.15s, border-color 0.15s; }
+.jp-item:hover { border-color: var(--jp-hline); box-shadow: 0 3px 8px rgba(15, 23, 42, 0.09); }
+.jp-item .t { grid-area: t; overflow-wrap: anywhere; hyphens: auto; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--jp-title); }
+.jp-item .jp-rt { grid-area: rt; }
+.jp-item .n { font-variant-numeric: tabular-nums; color: var(--jp-meta); font-size: 12px; font-weight: 600; background: var(--jp-pill); border-radius: 999px; padding: 1px 8px; white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.jp-item .n:empty { display: none; }
+.jp-item .bar-mini { grid-area: bar; align-self: center; height: 3px; border-radius: 2px; background: var(--jp-pill); overflow: hidden; }
 .jp-item .bar-mini > i { display: block; height: 100%; background: var(--c-gruen); background: color-mix(in srgb, var(--accent) 55%, var(--c-gruen)); }
 .jp-add { margin: 0 4px 6px; justify-self: start; }
 .jp-box { display: grid; align-content: start; min-height: 0; }
@@ -1151,10 +1163,16 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .prio-legend button i { margin-left: 0; }
 .prio-legend button[aria-pressed="false"] { color: var(--muted); background: none; border-style: dashed; text-decoration: line-through; }
 .prio-legend button[aria-pressed="false"] i { opacity: 0.25; }
-.jp-grid.show-prio .jp-item.prio-essentiell { background: color-mix(in srgb, var(--c-rost) 50%, transparent); }
-.jp-grid.show-prio .jp-item.prio-wichtig { background: color-mix(in srgb, var(--c-gelb) 85%, transparent); }
-.jp-grid.show-prio .jp-item.prio-wenig { background: color-mix(in srgb, var(--c-gruen) 75%, transparent); }
-.jp-grid.show-prio .jp-items { gap: 2px; }
+.jp-grid.show-prio .jp-item.prio-essentiell { border-left-color: var(--p-ess); }
+.jp-grid.show-prio .jp-item.prio-wichtig { border-left-color: var(--p-wich); }
+.jp-grid.show-prio .jp-item.prio-wenig { border-left-color: var(--p-wenig); }
+.jp-grid.show-prio .jp-item.prio-offen { border-left-color: var(--p-offen); }
+.jp-grid.show-prio .jp-item.prio-keine { border-left-color: var(--p-keine); }
+.sq.pc-essentiell, .lg-sw.pc-essentiell { background: var(--p-ess); } .sq.pc-wichtig, .lg-sw.pc-wichtig { background: var(--p-wich); } .sq.pc-wenig, .lg-sw.pc-wenig { background: var(--p-wenig); } .sq.pc-offen, .lg-sw.pc-offen { background: var(--p-offen); } .sq.pc-keine, .lg-sw.pc-keine { background: var(--p-keine); }
+.cmenu .sq[class*="pc-"] { width: 5px; height: 18px; border: 0; border-radius: 3px; margin: 0 5px 0 5px; }
+.cmenu .pf-n { color: var(--muted); font-size: 0.8rem; font-weight: 400; font-variant-numeric: tabular-nums; margin-left: auto; padding-left: 14px; }
+.cmenu .pf-n + .pf-ck { margin-left: 0; width: 22px; text-align: right; }
+.cmenu .cm-sep { border-top: 1px solid var(--line); margin: 4px 0; }
 .jp-park-tog { display: flex; align-items: center; gap: 8px; width: calc(100% - 16px); margin: 4px 8px; padding: 2px 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.72rem; cursor: pointer; }
 .jp-park-tog::before, .jp-park-tog::after { content: ""; flex: 1; border-top: 1px dotted color-mix(in srgb, var(--line) 60%, var(--muted)); }
 .jp-park-tog .pk-in { white-space: nowrap; color: color-mix(in srgb, var(--accent) 45%, var(--muted)); }
@@ -1167,14 +1185,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .jp-items.jp-parked .jp-item:hover { opacity: 1; }
 .jp-items[data-zone="act"]:empty { min-height: 26px; }
 .jp-items.drop-into { outline: 2px dashed var(--accent); outline-offset: -3px; border-radius: 6px; }
-.jp-grid:not(.show-prio) .jp-items { gap: 3px; }
-.jp-grid.show-prio .jp-item.prio-keine { border: 1px solid var(--line); background: var(--surface); }
-.jp-grid.show-prio .jp-item.prio-keine:hover { background: var(--accent-soft); }
 .sq.sq-white { background: var(--surface); border: 1px solid var(--line); }
 .prio-sel { font: inherit; font-size: 0.82rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-.prio-sel.pr-essentiell { background: var(--c-rost); } .prio-sel.pr-wichtig { background: var(--c-gelb); } .prio-sel.pr-wenig { background: var(--c-gruen); } .prio-sel.pr-offen { background: color-mix(in srgb, var(--c-blau) 70%, var(--surface)); }
-.jp-grid:not(.show-prio) .jp-item, .jp-grid.show-prio .jp-item.prio-offen { border: 1px solid color-mix(in srgb, var(--c-blau) 70%, var(--accent)); background: color-mix(in srgb, var(--c-blau) 45%, var(--surface)); }
-.jp-grid:not(.show-prio) .jp-item:hover, .jp-grid.show-prio .jp-item.prio-offen:hover { background: color-mix(in srgb, var(--c-blau) 80%, var(--surface)); }
+.prio-sel { box-shadow: inset 4px 0 0 var(--p-keine); padding-left: 12px; }
+.prio-sel.pr-essentiell { box-shadow: inset 4px 0 0 var(--p-ess); } .prio-sel.pr-wichtig { box-shadow: inset 4px 0 0 var(--p-wich); } .prio-sel.pr-wenig { box-shadow: inset 4px 0 0 var(--p-wenig); } .prio-sel.pr-offen { box-shadow: inset 4px 0 0 var(--p-offen); }
 .prio-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .chip.prio-chip { font-size: 0.78rem; padding: 2px 9px; color: var(--ink); }
 .chip.prio-chip[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; background-color: var(--surface); color: var(--ink); border-color: var(--line); }
@@ -1541,11 +1555,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       <button type="button" class="btn ghost toggle" id="u-eye" aria-pressed="false" title="Ausblenden: bei jeder Reihe erscheint ein Symbol, mit dem Sie sie nach unten zu «ausgeblendet» schieben">⊘ Ausblenden</button>
       <button type="button" class="btn ghost" id="u-show" aria-haspopup="menu" title="Unterpunkte, Mehrfach-Reihen, Fortschritt">Anzeigen ▾</button>
       <button type="button" class="btn ghost toggle u-moved" id="u-subs" aria-pressed="false" title="Unterpunkte aller Reihen aus- oder einklappen">Unterpunkte</button>
-      <button type="button" class="btn ghost toggle" id="u-prio" aria-pressed="true">Wichtigkeiten</button>
+      <button type="button" class="btn ghost toggle u-moved" id="u-prio" aria-pressed="true">Wichtigkeiten</button>
       <button type="button" class="btn ghost toggle u-moved" id="u-cross" aria-pressed="true" title="Reihen, die auch in anderen Schuljahren vorkommen, dort zusätzlich als eigenen Abschnitt zeigen. Im Schuljahr, in dem die Reihe erstellt wurde, ist sie immer sichtbar.">Mehrfach-Reihen</button>
       <button type="button" class="btn ghost toggle u-moved" id="u-bars" aria-pressed="true" title="Fortschrittsbalken unter den Reihen ein- oder ausblenden (wie viele Lektionen ausgearbeitet sind)">Fortschritt</button>
       <button type="button" class="btn ghost" id="u-stmenu" aria-haspopup="menu" title="Welche Reihen sichtbar sind">Reihen ▾</button>
-      <button type="button" class="btn ghost" id="u-legend" aria-haspopup="menu" title="Welche Wichtigkeiten angezeigt werden">Filter ▾</button>
+      <button type="button" class="btn ghost" id="u-legend" aria-haspopup="menu" title="Farben der Wichtigkeiten und welche angezeigt werden">Wichtigkeiten ▾</button>
+      <button type="button" class="btn ghost toggle" id="u-notes" aria-pressed="true" title="Notizspalte rechts zeigen oder ausblenden">Notizen</button>
       <span class="status" id="u-status"></span>
       <span class="u-search"><input type="search" id="u-search" placeholder="Thema suchen …" aria-label="Thema in allen Reihen suchen" autocomplete="off"><span class="u-sres" id="u-sres" hidden role="listbox"></span></span>
     </div>
@@ -1554,7 +1569,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         <div id="jp-main" style="min-width:0"></div>
         <aside class="side">
           <div class="side-rz" data-side="jp" title="Ziehen, um die Spalte breiter oder schmaler zu machen" aria-hidden="true"></div>
-          <div class="notes-head"><h2>Notizen</h2><button class="btn ghost add-note" data-board="unterricht" type="button">+ Notiz</button></div>
+          <div class="notes-head"><h2>Notizen</h2><button class="btn ghost add-note" data-board="unterricht" type="button">+ Notiz</button><button class="btn ghost notes-fold" id="u-notes-fold" type="button" title="Notizspalte ausblenden (oben mit «Notizen» wieder zeigen)" aria-label="Notizspalte ausblenden">›</button></div>
           <div class="seg note-filter" role="group" aria-label="Notizen filtern"><button type="button" data-nfilter="alle" aria-pressed="true">Alle</button><button type="button" data-nfilter="todo" aria-pressed="false">To do</button></div>
           <div class="notes notes-box" data-board="unterricht" id="u-notes"></div>
         </aside>
@@ -3431,7 +3446,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const list = year != null ? byYear(year).map(([rid]) => rid) : [], k = list.indexOf(id);
-    m.innerHTML = '<div class="cm-title">Wichtigkeit</div>' + PRIOS.map(([v, l, c]) => '<button type="button" role="menuitemradio" aria-checked="' + (prioOf(r) === v) + '" data-prio="' + v + '"><span class="sq' + (c ? " f-" + c : "") + '"></span>' + l + "</button>").join("") +
+    m.innerHTML = '<div class="cm-title">Wichtigkeit</div>' + PRIOS.map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + (prioOf(r) === v) + '" data-prio="' + v + '"><span class="sq pc-' + v + '"></span>' + l + "</button>").join("") +
       (k >= 0 ? '<div class="cm-title">Verschieben</div>' + [["top", "Ganz nach oben", k > 0], ["up", "Eins nach oben", k > 0], ["down", "Eins nach unten", k < list.length - 1], ["end", "Ganz nach unten", k < list.length - 1]].filter((a) => a[2]).map(([a, l]) => '<button type="button" role="menuitem" data-mv="' + a + '"><span class="sq"></span>' + l + "</button>").join("") : "") +
       (colYear != null ? '<div class="cm-title">Anzeige</div><button type="button" role="menuitem" data-park="' + (isParked(r, colYear) ? "0" : "1") + '"><span class="sq"></span>' + (isParked(r, colYear) ? "Wieder oben anzeigen" : "Ausblenden (nach unten)") + "</button>" : "");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
@@ -3464,6 +3479,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#u-stmenu").textContent = (UP.kind === "samml" ? "Nur Sammlungen" : UP.kind === "lekt" ? "Nur Lektionsreihen" : "Reihen") + " ▾";
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
+    $("#u-legend").hidden = $("#u-notes").hidden = U.view !== "jahresplan";
     if (!U.loaded) { $("#jp-main").innerHTML = '<div class="empty">Lädt …</div>'; return; }
     if (U.view === "vorlagen") { $("#u-legend").hidden = true; renderV(); return; }
     if (U.view === "jahresplan") renderJP(); else { renderRSide(); renderRDetail(); }
@@ -3519,10 +3535,18 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     closeMenu();
     const m = document.createElement("div");
     m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
-    const draw = () => { const h = UP.hide || {}; m.innerHTML = '<div class="cm-title">Anzeigen</div>' + PRIOS.map(([v, l, c]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !h[v] + '" data-pf="' + v + '"><span class="sq' + (c ? " f-" + c : " sq-white") + '"></span>' + l + '<span class="pf-ck">' + (h[v] ? "" : "✓") + "</span></button>").join(""); };
+    const cnt = {}; Object.values(U.reihen).forEach((r) => { if (!r.klasse) cnt[prioOf(r)] = (cnt[prioOf(r)] || 0) + 1; });
+    const draw = () => {
+      const h = UP.hide || {};
+      m.innerHTML = '<div class="cm-title">Wichtigkeiten</div><button type="button" role="menuitemcheckbox" aria-checked="' + !!UP.prio + '" data-pfon="1"><span class="ck">' + (UP.prio ? "✓" : "") + "</span>Farbstreifen zeigen</button>" +
+        (UP.prio ? '<div class="cm-sep"></div><div class="cm-title">Anzeigen</div>' + PRIOS.map(([v, l]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + !h[v] + '" data-pf="' + v + '"><span class="sq pc-' + v + '"></span>' + l + '<span class="pf-n">' + (cnt[v] || 0) + '</span><span class="pf-ck">' + (h[v] ? "" : "✓") + "</span></button>").join("") : "");
+    };
     draw();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
-    m.addEventListener("click", (ev) => { const b = ev.target.closest("[data-pf]"); if (!b) return; UP.hide = { ...(UP.hide || {}) }; UP.hide[b.dataset.pf] = !UP.hide[b.dataset.pf]; saveUP(); draw(); renderU(); });
+    m.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-pfon]")) { UP.prio = !UP.prio; saveUP(); draw(); renderU(); return; }
+      const b = ev.target.closest("[data-pf]"); if (!b) return; UP.hide = { ...(UP.hide || {}) }; UP.hide[b.dataset.pf] = !UP.hide[b.dataset.pf]; saveUP(); draw(); renderU();
+    });
     document.body.appendChild(m);
     const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
     m.style.left = Math.max(8, Math.min(br.left, innerWidth - mr.width - 8)) + "px";
@@ -3530,9 +3554,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   function renderJP() {
     const p = U.plan || {};
-    $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false)); $("#u-legend").hidden = !UP.prio;
+    $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false));
     const hideP = UP.hide || {};
-    { const nOff = PRIOS.filter(([v]) => hideP[v]).length; $("#u-legend").textContent = nOff ? "Filter (" + (PRIOS.length - nOff) + " von " + PRIOS.length + ") ▾" : "Filter ▾"; }
+    { const nOff = UP.prio ? PRIOS.filter(([v]) => hideP[v]).length : 0; $("#u-legend").textContent = nOff ? "Wichtigkeiten (" + (PRIOS.length - nOff) + " von " + PRIOS.length + ") ▾" : "Wichtigkeiten ▾"; }
+    { const nb = $("#u-notes"), lay = $("#u-view-jahresplan .jp-layout"), nn = (state.nb && state.nb.unterricht || []).length; nb.setAttribute("aria-pressed", String(UP.notes !== false)); nb.textContent = UP.notes === false && nn ? "Notizen (" + nn + ")" : "Notizen"; lay.classList.toggle("no-notes", UP.notes === false); }
     let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + (UP.eqh !== false ? " eqh" : "") + (UP.eye ? " eye-on" : "") + '">';
     const stack = [];
     for (const y of YEARS) {
@@ -3550,11 +3575,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
           return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + "" + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="jp-rt"><span class="n">' +
-            (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
+            (effL(r) ? effL(r) + " Lekt." : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
-      let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum">' + sum + " Lektionen</span></div><div class=\"jp-box\" data-box=\"" + y + "\" style=\"height:" + jphOf(y) + "px\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
+      let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum" title="' + sum + ' Lektionen">· ' + sum + " L</span></div><div class=\"jp-box\" data-box=\"" + y + "\" style=\"height:" + jphOf(y) + "px\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
         (UP.prio || !UP.groups ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
@@ -4786,6 +4811,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.sel) { U.sel = b.dataset.sel; renderU(); return; }
     if (b.dataset.move) { moveReihe(+b.dataset.move); return; }
     if (b.id === "u-prio") { UP.prio = !UP.prio; saveUP(); renderU(); return; }
+    if (b.id === "u-notes" || b.id === "u-notes-fold") { UP.notes = b.id === "u-notes" ? UP.notes === false : false; saveUP(); renderU(); return; }
     if (b.id === "u-cross") { UP.cross = !UP.cross; saveUP(); renderU(); return; }
     if (b.dataset.parktog != null) { const y = b.dataset.parktog; PARK_OPEN[y] = !PARK_OPEN[y]; renderU(); return; }
     if (b.id === "u-bars") { UP.bars = UP.bars === false; saveUP(); renderU(); return; }
