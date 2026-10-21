@@ -861,6 +861,30 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-item.drop-before { box-shadow: inset 0 3px 0 var(--accent); }
 .jp-item.drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
 .jp-item[draggable="true"] { cursor: grab; }
+.jp-item, .lesson .l-drag { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.jp-item.drop-in, .r-list button.drop-in { outline: 2px dashed var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+.jp-item.jp-loose { border-style: dashed; border-left-style: solid; background: color-mix(in srgb, var(--jp-card) 85%, var(--accent-soft)); }
+.jp-item .lo-mark { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-right: 5px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 700; vertical-align: 1px; }
+.jp-item .lo-from { display: block; font-size: 0.7rem; color: var(--muted); font-weight: 400; overflow-wrap: anywhere; }
+.jp-item.jp-sel { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: 0 0 0 4px var(--accent-soft); }
+.jp-item.jp-sel .lo-mark::after { content: "✓"; }
+.jp-item.jp-sel .lo-mark { font-size: 0; }
+.jp-item.jp-sel .lo-mark::after { font-size: 11px; }
+.jp-selbar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: max-content; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 8px 12px; max-width: calc(100vw - 24px); }
+html:not(.jpw) .jp-selbar, body:has(#view-unterricht[hidden]) .jp-selbar, body:has(#u-view-jahresplan[hidden]) .jp-selbar { display: none; }
+.ln-toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); width: max-content; z-index: 70; display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--surface); border-radius: 10px; padding: 8px 10px 8px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); max-width: calc(100vw - 24px); font-size: 0.9rem; }
+.ln-toast .btn { background: var(--surface); color: var(--ink); white-space: nowrap; }
+.ln-toast .x { border: 0; background: none; color: inherit; font-size: 1.2rem; padding: 0 4px; }
+.lm-tools { display: flex; gap: 14px; }
+.lm-list { display: grid; gap: 4px; max-height: 55vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+.lm-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: baseline; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+.lm-row:hover { background: var(--accent-soft); }
+.lm-row:has(input:checked) { background: var(--accent-soft); }
+.lm-row b { white-space: nowrap; }
+.lm-tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.88rem; }
+.lm-ph { color: var(--ink); font-weight: 600; margin-right: 6px; }
+.lm-d { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.lm-acts .right { flex-wrap: wrap; }
 /* Karte: weiss, feiner Rahmen; Wichtigkeit nur als Streifen links */
 .jp-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t rt" "bar bar"; align-items: baseline; gap: 3px 8px; border: 1px solid var(--jp-cline); border-left: 4px solid var(--jp-cline); background: var(--jp-card); text-align: left; padding: 5px 8px 5px 8px; border-radius: 5px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); color: var(--jp-title); transition: box-shadow 0.15s, border-color 0.15s; }
 .jp-item:hover { border-color: var(--jp-hline); box-shadow: 0 3px 8px rgba(15, 23, 42, 0.09); }
@@ -3403,16 +3427,19 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   (function jpDrag() {
     const box = document.getElementById("jp-main"); if (!box) return;
     let drag = null, justDragged = 0;
-    const clear = () => box.querySelectorAll(".drop-before,.drop-after,.drop-into").forEach((el) => el.classList.remove("drop-before", "drop-after", "drop-into"));
+    const clear = () => box.querySelectorAll(".drop-before,.drop-after,.drop-into,.drop-in").forEach((el) => el.classList.remove("drop-before", "drop-after", "drop-into", "drop-in"));
     box.addEventListener("dragstart", (e) => {
       const it = e.target.closest && e.target.closest(".jp-item"); if (!it) return;
-      drag = { id: it.dataset.open, year: +it.dataset.from }; it.classList.add("dragging");
+      drag = { id: it.dataset.open, year: +it.dataset.from, loose: isLoose(U.reihen[it.dataset.open]) }; it.classList.add("dragging");
       try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", drag.id); } catch (err) {}
     });
     box.addEventListener("dragover", (e) => {
       if (!drag) return;
       const tog = e.target.closest(".jp-park-tog");
       if (tog) { e.preventDefault(); clear(); tog.classList.add("drop-into"); return; }
+      // Einzellektion mitten auf eine Reihe ziehen: dort einfügen
+      const on = drag.loose && e.target.closest(".jp-item");
+      if (on && on.dataset.open !== drag.id && !isLoose(U.reihen[on.dataset.open])) { const rc = on.getBoundingClientRect(); if (e.clientY > rc.top + rc.height * 0.25 && e.clientY < rc.bottom - rc.height * 0.25) { e.preventDefault(); clear(); on.classList.add("drop-in"); return; } }
       const col = e.target.closest(".jp-items[data-zone]"); if (!col) return;
       const items = [...col.querySelectorAll(".jp-item")];
       e.preventDefault(); clear();
@@ -3422,11 +3449,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     });
     box.addEventListener("drop", (e) => {
       if (!drag) return; e.preventDefault();
-      const b = box.querySelector(".jp-item.drop-before"), a = box.querySelector(".jp-item.drop-after"), tog = box.querySelector(".jp-park-tog.drop-into"), into = box.querySelector(".jp-items.drop-into");
+      const b = box.querySelector(".jp-item.drop-before"), a = box.querySelector(".jp-item.drop-after"), tog = box.querySelector(".jp-park-tog.drop-into"), into = box.querySelector(".jp-items.drop-into"), din = box.querySelector(".jp-item.drop-in");
+      if (din) { clear(); const d = drag; drag = null; justDragged = Date.now(); closeMenu(); lnLooseInto(JSEL.has(d.id) ? [...JSEL] : [d.id], din.dataset.open); return; }
       const zoneOf = (el) => (el.closest(".jp-items[data-zone]") || {}).dataset.zone;
       const zone = tog ? "park" : into ? into.dataset.zone : b ? zoneOf(b) : a ? zoneOf(a) : null;
       clear();
-      const d = drag; drag = null; justDragged = Date.now();
+      const d = drag; drag = null; justDragged = Date.now(); closeMenu();
       if (!zone) return;
       const tEl = tog || into || b || a, ty = tog ? +tog.dataset.parktog : +(tEl.closest("[data-year]") || {}).dataset.year;
       let changed = false;
@@ -3437,7 +3465,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       else if (changed) { if (!b && !a) jpMove(d.id, d.year, "__end", false); else renderU(); }
     });
     box.addEventListener("dragend", () => { clear(); box.querySelectorAll(".dragging").forEach((el) => el.classList.remove("dragging")); drag = null; justDragged = Date.now(); });
-    box.addEventListener("click", (e) => { if (Date.now() - justDragged < 300 && e.target.closest(".jp-item")) { e.stopPropagation(); e.preventDefault(); } }, true);
+    box.addEventListener("click", (e) => {
+      const it = e.target.closest(".jp-item"); if (!it) return;
+      if (Date.now() - justDragged < 300) { e.stopPropagation(); e.preventDefault(); return; }
+      // Einzellektionen auswählen: Strg/Umschalt+Klick, oder einfach antippen, solange schon etwas ausgewählt ist
+      if (isLoose(U.reihen[it.dataset.open]) && (e.ctrlKey || e.metaKey || e.shiftKey || JSEL.size) && !e.target.closest("[data-jpeye],[data-subtog],[data-msgo]")) { e.stopPropagation(); e.preventDefault(); jselToggle(it.dataset.open); }
+    }, true);
+    longPress(box, ".jp-item", (it, x, y) => prioMenu(x, y, it.dataset.open, +it.dataset.from, +it.dataset.from));
   })();
   (function rlDrag() {
     const box = document.getElementById("r-list"); if (!box) return;
@@ -3483,9 +3517,22 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const list = year != null ? byYear(year).map(([rid]) => rid) : [], k = list.indexOf(id);
     m.innerHTML = '<div class="cm-title">Wichtigkeit</div>' + PRIOS.map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + (prioOf(r) === v) + '" data-prio="' + v + '"><span class="sq pc-' + v + '"></span>' + l + "</button>").join("") +
       (k >= 0 ? '<div class="cm-title">Verschieben</div>' + [["top", "Ganz nach oben", k > 0], ["up", "Eins nach oben", k > 0], ["down", "Eins nach unten", k < list.length - 1], ["end", "Ganz nach unten", k < list.length - 1]].filter((a) => a[2]).map(([a, l]) => '<button type="button" role="menuitem" data-mv="' + a + '"><span class="sq"></span>' + l + "</button>").join("") : "") +
+      (isLoose(r) ? '<div class="cm-title">Einzellektion</div><button type="button" role="menuitem" data-lo="into"><span class="sq"></span>In eine Reihe einfügen …</button>' +
+        '<button type="button" role="menuitem" data-lo="sel"><span class="sq">' + (JSEL.has(id) ? "✓" : "") + "</span>" + (JSEL.has(id) ? "Nicht mehr auswählen" : "Auswählen (zum Gruppieren)") + "</button>" +
+        (JSEL.size && !(JSEL.size === 1 && JSEL.has(id)) ? '<button type="button" role="menuitem" data-lo="group"><span class="sq"></span>Mit Auswahl zu neuer Reihe gruppieren (' + (JSEL.has(id) ? JSEL.size : JSEL.size + 1) + ")</button>" : "")
+        : lessonCount(r) ? '<div class="cm-title">Lektionen</div><button type="button" role="menuitem" data-lo="multi"><span class="sq"></span>Lektionen lösen oder gruppieren …</button>' : "") +
       (colYear != null ? '<div class="cm-title">Anzeige</div><button type="button" role="menuitem" data-park="' + (isParked(r, colYear) ? "0" : "1") + '"><span class="sq"></span>' + (isParked(r, colYear) ? "Wieder oben anzeigen" : "Ausblenden (nach unten)") + "</button>" : "");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
+      const lo = ev.target.closest("[data-lo]");
+      if (lo) {
+        closeMenu(); const a = lo.dataset.lo;
+        if (a === "into") lnAskInto(JSEL.has(id) ? [...JSEL] : [id]);
+        else if (a === "sel") jselToggle(id);
+        else if (a === "multi") lnMultiDialog(id);
+        else { const ids = [...new Set([...JSEL, id])]; lnGroupDialog(ids.length, colYear === 6 ? 6 : colYear, (t, yy) => lnGroupLoose(ids, t, yy)); }
+        return;
+      }
       const pk = ev.target.closest("[data-park]");
       if (pk) { closeMenu(); setParked(id, colYear, pk.dataset.park === "1"); renderU(); return; }
       const mv = ev.target.closest("[data-mv]");
@@ -3610,7 +3657,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + "" + '" data-open="' + id + '" data-from="' + y + '" title="Reihe öffnen' + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + " · Ziehen zum Verschieben" + ' · Rechtsklick: Wichtigkeit"><span class="t">' + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + '</span><span class="jp-rt"><span class="n">' +
+          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (isLoose(r) ? " jp-loose" : "") + (JSEL.has(id) ? " jp-sel" : "") + '" data-open="' + id + '" data-from="' + y + '" title="' + (isLoose(r) ? "Einzellektion öffnen · Strg+Klick: auswählen zum Gruppieren" : "Reihe öffnen") + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + (isLoose(r) ? " · Ziehen: verschieben oder auf eine Reihe legen" : " · Ziehen zum Verschieben") + ' · Rechtsklick (lange drücken): Menü"><span class="t">' + (isLoose(r) ? '<span class="lo-mark" aria-hidden="true">L</span>' : "") + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (isLoose(r) && r.from ? '<span class="lo-from">aus ' + esc(r.from) + "</span>" : "") + '</span><span class="jp-rt"><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
@@ -3627,7 +3674,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     h += '<div class="jp-stack">' + stack.join("") + "</div>";
     $("#jp-main").innerHTML = h + "</div></div>";
     const eb = $("#u-eye"); if (eb) eb.setAttribute("aria-pressed", String(!!UP.eye));
-    jpBoxes();
+    jpBoxes(); jselBar();
   }
   // Spalten so hoch wie das Fenster: verfügbare Höhe messen und als --jp-h setzen
   function jpBoxes() {
@@ -3903,9 +3950,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, br.right - m.offsetWidth)) + "px"; m.style.top = br.bottom + 4 + "px";
   }
   // Eine andere Reihe auswählen (für Unterpunkte und Materialsammlungen)
-  function reihePicker(self, cb) {
-    const all = Object.entries(U.reihen).filter(([id, r]) => id !== self && !r.klasse).sort((a, b) => String(a[1].title || "").localeCompare(String(b[1].title || ""), "de"));
-    openModal('<h3>Reihe verknüpfen</h3><input type="text" id="rp-q" class="rp-q" placeholder="Reihe suchen …" spellcheck="false"><div class="fp-list" id="rp-list"></div><div class="actions"><span></span><div class="right"><button type="button" class="btn" id="rp-cancel">Abbrechen</button></div></div>', (root) => {
+  function reihePicker(self, cb, heading, skip) {
+    const all = Object.entries(U.reihen).filter(([id, r]) => id !== self && !r.klasse && !(skip && skip(r, id))).sort((a, b) => String(a[1].title || "").localeCompare(String(b[1].title || ""), "de"));
+    openModal('<h3>' + esc(heading || "Reihe verknüpfen") + '</h3><input type="text" id="rp-q" class="rp-q" placeholder="Reihe suchen …" spellcheck="false"><div class="fp-list" id="rp-list"></div><div class="actions"><span></span><div class="right"><button type="button" class="btn" id="rp-cancel">Abbrechen</button></div></div>', (root) => {
       const draw = () => {
         const q = normTxt(root.querySelector("#rp-q").value);
         root.querySelector("#rp-list").innerHTML = all.filter(([, r]) => !q || normTxt(r.title || "").includes(q)).map(([id, r]) => '<button type="button" data-rp="' + id + '">' + esc(r.title || "Ohne Titel") + ' <small style="color:var(--muted)">' + yearsOf(r).map((y) => YEAR_SHORT[y]).join(", ") + "</small></button>").join("") || '<span class="msg">Nichts gefunden.</span>';
@@ -4324,6 +4371,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   uEl.addEventListener("contextmenu", (e) => {
     const it = e.target.closest(".jp-item");
     if (it) { e.preventDefault(); prioMenu(e.clientX, e.clientY, it.dataset.open, +it.dataset.from, +it.dataset.from); return; }
+    // Rechtsklick auf L1, L2 … (Kopf der Lektion): Menü mit Lösen, Verschieben, Gruppieren
+    const lh = e.target.closest(".lesson[data-li] .lh");
+    if (lh && !e.target.closest(".ph,.l-name,input,select") && /^\d+$/.test(lh.closest(".lesson").dataset.li) && U.reihen[U.sel]) { e.preventDefault(); lessonMenu({ x: e.clientX, y: e.clientY }, U.reihen[U.sel], +lh.closest(".lesson").dataset.li); return; }
     const t = e.target.closest(".ucell .inp"); if (!t || document.activeElement !== t) return;
     const c = t.closest("[data-lesson]"); if (!c || String(c.dataset.lesson).startsWith("ln")) return;
     const r = U.reihen[U.sel]; if (!r) return;
@@ -4509,18 +4559,201 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<button type="button" role="menuitem" data-lop="after">Neue Lektion danach einfügen</button>' +
       (k > 0 ? '<button type="button" role="menuitem" data-lop="up">▲ Nach oben verschieben</button>' : "") +
       (k < bl.length - 1 ? '<button type="button" role="menuitem" data-lop="down">▼ Nach unten verschieben</button>' : "") +
+      (r.klasse ? "" : '<hr><button type="button" role="menuitem" data-lop="loose">Lektion lösen (zu «Einzellektionen»)</button>' +
+        '<button type="button" role="menuitem" data-lop="moveto">In eine andere Reihe verschieben …</button>' +
+        '<button type="button" role="menuitem" data-lop="multi">Mehrere Lektionen lösen oder gruppieren …</button><hr>') +
       '<button type="button" role="menuitem" class="cm-danger" data-lop="del">' + lab + " löschen</button>";
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-lop]"); if (!b) return;
       if (b.dataset.lop === "del" && !b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich löschen? Inhalt und Dokumente dieser Lektion gehen weg."; return; }
       closeMenu();
-      if (lessonOp(r, i, b.dataset.lop)) { saveReihe(U.sel, 0); renderU(); }
+      const rid = U.sel, op = b.dataset.lop;
+      if (op === "loose") { lnLoosen(rid, [i]); return; }
+      if (op === "moveto") { lnAskMove(rid, [i]); return; }
+      if (op === "multi") { lnMultiDialog(rid, [i]); return; }
+      if (lessonOp(r, i, op)) { saveReihe(U.sel, 0); renderU(); }
     });
     document.body.appendChild(m);
-    const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    const br = btn.getBoundingClientRect ? btn.getBoundingClientRect() : { left: btn.x, bottom: btn.y }, mr = m.getBoundingClientRect();
     m.style.left = Math.max(8, Math.min(br.left, innerWidth - mr.width - 8)) + "px";
     m.style.top = Math.max(8, Math.min(br.bottom + 4, innerHeight - mr.height - 8)) + "px";
+  }
+  // ---------- Lektionen lösen, in eine andere Reihe verschieben, zu einer neuen Reihe gruppieren ----------
+  // Eine gelöste Lektion ist eine kleine Reihe (r.loose) bei «Einzellektionen». Alles, was zur Lektion gehört
+  // (Kurzeintrag, Phase, Ziele, Lektionsplanung, Notizen, Dokumente), steht in lessons/phases/meta und wandert mit.
+  const isLoose = (r) => !!(r && r.loose);
+  const JSEL = new Set(); // im Jahresplan ausgewählte Einzellektionen
+  function looseTitle(b) {
+    const t = htmlToPlain(b.les[0] || "").split("\n").map((x) => x.trim()).find(Boolean) || String(b.ph[0] || "").trim();
+    return t ? (t.length > 70 ? t.slice(0, 68).trim() + " …" : t) : "Einzellektion";
+  }
+  // Blöcke (Lektion oder Doppellektion, nach Anfangsindex) herausnehmen; Materialsammlungen und Unterreihen behalten ihren Platz
+  function takeBlocks(r, starts) {
+    const want = new Set(starts.map(Number)), bl = blocksOf(r), data = blocksData(r), keep = [], out = [], map = {};
+    let pos = 0, prevKept = -1, prevTaken = false;
+    bl.forEach(([a, s], k) => {
+      const b = { ...data[k], me: data[k].me.map((m) => (m ? clone(m) : m)) };
+      if (want.has(a)) { out.push({ ...b, link: b.link && prevTaken, from: r.title || "Reihe", lab: lessonLabel(a, s) }); map[a] = prevKept; prevTaken = true; return; }
+      keep.push({ ...b, link: b.link && !prevTaken }); map[a] = pos; prevKept = pos; pos += s; prevTaken = false;
+    });
+    const re = (v) => { if (v == null || v === -1 || v >= 1e9) return v; const blk = bl.find(([a, s]) => v >= a && v < a + s); return blk ? map[blk[0]] : v; };
+    writeBlocks(r, keep);
+    if (!pos && !(r.lessons || []).some(filled)) r.lektionen = null;
+    r.lnItems = (r.lnItems || []).map((m) => (m && m.mat && m.after != null ? { ...m, after: re(m.after) } : m));
+    if (Array.isArray(r.children)) r.children = r.children.map((c) => { if (!c) return c; const n = { ...c }; if (c.after != null) n.after = re(c.after); if (c.place) { n.place = {}; for (const [j, v] of Object.entries(c.place)) n.place[j] = re(v); } return n; });
+    return out;
+  }
+  function addBlocks(r, blocks) {
+    const bl = blocksData(r);
+    blocks.forEach((b, k) => bl.push({ s: b.s, link: k > 0 && !!b.link, les: b.les, ph: b.ph, me: b.me }));
+    writeBlocks(r, bl);
+  }
+  // Was ausser den Lektionen an einer Einzellektion hängt (Dokumente der Reihe, Leistungsnachweise), kommt mit
+  function addExtras(t, src) {
+    const ids = new Set([...(t.files || []), ...(t.mainFiles || [])].map((f) => f && f.id));
+    const more = [...(src.mainFiles || []), ...(src.files || [])].filter((f) => f && !ids.has(f.id)).map(stripGrp);
+    if (more.length) t.files = [...(t.files || []), ...more];
+    const ln = (src.lnItems || []).filter(Boolean).map((m) => { const n = clone(m); delete n.after; return n; });
+    if (ln.length) t.lnItems = [...(t.lnItems || []), ...ln];
+  }
+  function reiheFromBlocks(blocks, o, touch) {
+    const id = "y" + o.year + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    touch(id);
+    const r = normReihe({ years: [o.year], home: o.year, prio: o.prio || "wichtig", order: nextOrder(), title: o.title || "Neue Reihe", lektionen: 0, ln: "", leitfrage: "", lessons: [], zusatz: "" });
+    if (o.loose) { r.loose = true; if (o.from) r.from = o.from; }
+    addBlocks(r, blocks); U.reihen[id] = r; return id;
+  }
+  // Jede Änderung merkt sich die betroffenen Reihen vorher, damit «Rückgängig» alles zurücknimmt
+  function lnDo(msg, fn) {
+    const snap = {}, touch = (id) => { if (!(id in snap)) snap[id] = U.reihen[id] ? clone(U.reihen[id]) : null; };
+    if (fn(touch) === false) return;
+    closeMenu();
+    const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur();
+    Object.keys(snap).forEach((id) => saveReihe(id, 0));
+    if (U.sel && !U.reihen[U.sel]) U.sel = null;
+    jselBar(); renderU();
+    lnToast(msg, () => {
+      for (const [id, v] of Object.entries(snap)) { if (v) U.reihen[id] = v; else { delete U.reihen[id]; JSEL.delete(id); } saveReihe(id, 0); }
+      if (U.sel && !U.reihen[U.sel]) U.sel = null;
+      jselBar(); renderU(); lnToast("Rückgängig gemacht.");
+    });
+  }
+  function lnToast(msg, undo) {
+    const old = $("#ln-toast"); if (old) old.remove();
+    const t = document.createElement("div"); t.id = "ln-toast"; t.className = "ln-toast"; t.setAttribute("role", "status");
+    t.innerHTML = "<span>" + esc(msg) + "</span>" + (undo ? '<button type="button" class="btn" data-lnundo>↶ Rückgängig</button>' : "") + '<button type="button" class="x" data-lnx title="Schliessen" aria-label="Schliessen">×</button>';
+    t.addEventListener("click", (e) => { if (e.target.closest("[data-lnundo]")) { t.remove(); undo(); } else if (e.target.closest("[data-lnx]")) t.remove(); });
+    document.body.appendChild(t);
+    clearTimeout(lnToast.tm); lnToast.tm = setTimeout(() => t.remove(), undo ? 20000 : 4000);
+  }
+  const nLek = (n) => (n === 1 ? "1 Lektion" : n + " Lektionen");
+  function lnLoosen(rid, starts) {
+    const r = U.reihen[rid]; if (!r || r.klasse || !starts.length) return;
+    lnDo((starts.length === 1 ? "Lektion gelöst. Sie liegt jetzt bei «Einzellektionen» und lässt" : starts.length + " Lektionen gelöst. Sie liegen jetzt bei «Einzellektionen» und lassen") + " sich von dort aus herumziehen.", (touch) => {
+      touch(rid);
+      takeBlocks(r, starts).forEach((b) => reiheFromBlocks([b], { year: 6, title: looseTitle(b), loose: true, from: b.from + " · " + b.lab, prio: prioOf(r) }, touch));
+    });
+  }
+  function lnMoveTo(rid, starts, tid) {
+    const r = U.reihen[rid], t = U.reihen[tid]; if (!r || !t || rid === tid || !starts.length) return;
+    lnDo(nLek(starts.length) + " nach «" + (t.title || "Reihe") + "» verschoben (am Ende angehängt).", (touch) => { touch(rid); touch(tid); addBlocks(t, takeBlocks(r, starts)); });
+  }
+  function lnGroupFrom(rid, starts, title, year) {
+    const r = U.reihen[rid]; if (!r || !starts.length) return;
+    lnDo("Neue Reihe «" + title + "» mit " + nLek(starts.length) + " in " + YEAR_SHORT[year] + ".", (touch) => { touch(rid); reiheFromBlocks(takeBlocks(r, starts), { year, title, prio: prioOf(r) }, touch); });
+  }
+  // Einzellektionen in der Reihenfolge des Jahresplans
+  const looseSorted = (ids) => ids.filter((id) => isLoose(U.reihen[id])).sort((a, b) => { const ra = U.reihen[a], rb = U.reihen[b], ya = homeYear(ra), yb = homeYear(rb); return ya - yb || ordOf(ra, ya) - ordOf(rb, yb); });
+  function lnGroupLoose(ids, title, year) {
+    ids = looseSorted(ids); if (!ids.length) return;
+    lnDo("Neue Reihe «" + title + "» aus " + (ids.length === 1 ? "1 Einzellektion" : ids.length + " Einzellektionen") + " in " + YEAR_SHORT[year] + ".", (touch) => {
+      const bs = [], extra = { files: [], lnItems: [] }, prio = prioOf(U.reihen[ids[0]]);
+      ids.forEach((id) => { const r = U.reihen[id]; touch(id); blocksData(r).forEach((b, k) => bs.push({ ...b, link: k > 0 && b.link })); extra.files.push(...(r.mainFiles || []), ...(r.files || [])); extra.lnItems.push(...(r.lnItems || [])); delete U.reihen[id]; JSEL.delete(id); });
+      const nid = reiheFromBlocks(bs, { year, title, prio }, touch); addExtras(U.reihen[nid], extra);
+    });
+  }
+  function lnLooseInto(ids, tid) {
+    ids = looseSorted(ids).filter((id) => id !== tid); const t = U.reihen[tid]; if (!ids.length || !t) return;
+    lnDo((ids.length === 1 ? "Einzellektion" : ids.length + " Einzellektionen") + " in «" + (t.title || "Reihe") + "» eingefügt (am Ende).", (touch) => {
+      touch(tid);
+      ids.forEach((id) => { const r = U.reihen[id]; touch(id); addBlocks(t, blocksData(r)); addExtras(t, r); delete U.reihen[id]; JSEL.delete(id); });
+    });
+  }
+  const lnAskMove = (rid, starts) => reihePicker(rid, (tid) => lnMoveTo(rid, starts, tid), "In welche Reihe? (wird am Ende angehängt)", (r) => isLoose(r));
+  const lnAskInto = (ids) => reihePicker(null, (tid) => lnLooseInto(ids, tid), "In welche Reihe einfügen? (am Ende)", (r, id) => isLoose(r) || ids.includes(id));
+  function lnGroupDialog(n, defYear, cb) {
+    openModal('<h3>Zu einer neuen Reihe gruppieren</h3><p class="help">' + nLek(n) + ' werden zu einer neuen Reihe. Inhalt, Ziele, Lektionsplanung und Dokumente kommen mit.</p>' +
+      '<label class="field"><span class="lbl">Name der neuen Reihe</span><input type="text" id="lg-t" value="Neue Reihe"></label>' +
+      '<label class="field"><span class="lbl">Schuljahr</span><select id="lg-y">' + YEARS.map((y) => '<option value="' + y + '"' + (y === defYear ? " selected" : "") + ">" + esc(YEAR_SHORT[y]) + "</option>").join("") + "</select></label>" +
+      '<div class="actions"><span></span><div class="right"><button type="button" class="btn" id="lg-c">Abbrechen</button><button type="button" class="btn primary" id="lg-ok">Gruppieren</button></div></div>', (root) => {
+      const t = root.querySelector("#lg-t"), ok = () => { const v = t.value.trim() || "Neue Reihe", y = +root.querySelector("#lg-y").value; closeModal(); cb(v, y); };
+      root.querySelector("#lg-ok").onclick = ok; root.querySelector("#lg-c").onclick = closeModal;
+      t.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); ok(); } });
+      setTimeout(() => { t.focus(); t.select(); }, 30);
+    });
+  }
+  // Auswahl von Lektionen einer Reihe: lösen, verschieben oder gruppieren
+  function lnMultiDialog(rid, pre) {
+    const r = U.reihen[rid]; if (!r || r.klasse) return;
+    const bl = blocksOf(r); if (!bl.length) { lnToast("Diese Reihe hat keine eigenen Lektionen."); return; }
+    const rows = bl.map(([i, s]) => {
+      const m = (r.meta || {})[i] || {}, txt = htmlToPlain(r.lessons[i] || "").split("\n").map((x) => x.trim()).find(Boolean) || "", nd = (m.files || []).length;
+      return '<label class="lm-row"><input type="checkbox" data-lm="' + i + '"' + (pre && pre.includes(i) ? " checked" : "") + '><b>' + lessonLabel(i, s) + '</b><span class="lm-tx"><span class="lm-ph">' + esc(phaseOf(r, i)) + "</span>" + esc(txt.slice(0, 120)) + "</span>" + (nd ? '<span class="lm-d" title="' + nd + ' Dokumente">📎 ' + nd + "</span>" : "") + "</label>";
+    }).join("");
+    openModal('<h3>Lektionen aus «' + esc(r.title || "Reihe") + '»</h3><p class="help">Lektionen anhaken und dann wählen, was damit geschieht. Inhalt, Ziele, Lektionsplanung, Notizen und Dokumente wandern mit. Danach lässt sich alles mit «Rückgängig» zurücknehmen.</p>' +
+      '<div class="lm-tools"><button type="button" class="linkbtn" data-lmall="1">Alle anhaken</button><button type="button" class="linkbtn" data-lmall="0">Keine</button></div><div class="lm-list">' + rows + "</div>" +
+      '<div class="actions lm-acts"><button type="button" class="btn ghost" id="lm-c">Abbrechen</button><div class="right"><button type="button" class="btn" data-lmdo="loose" title="Jede angehakte Lektion wird eine Einzellektion">Lösen</button><button type="button" class="btn" data-lmdo="move">In andere Reihe …</button><button type="button" class="btn primary" data-lmdo="group">Zu neuer Reihe …</button></div></div>', (root) => {
+      const sel = () => [...root.querySelectorAll("[data-lm]:checked")].map((x) => +x.dataset.lm);
+      const upd = () => { const n = sel().length; root.querySelectorAll("[data-lmdo]").forEach((b) => { b.disabled = !n; }); };
+      root.addEventListener("change", upd); upd();
+      root.addEventListener("click", (e) => {
+        const a = e.target.closest("[data-lmall]"); if (a) { root.querySelectorAll("[data-lm]").forEach((x) => { x.checked = a.dataset.lmall === "1"; }); upd(); return; }
+        if (e.target.closest("#lm-c")) { closeModal(); return; }
+        const d = e.target.closest("[data-lmdo]"); if (!d || d.disabled) return;
+        const st = sel(); closeModal();
+        if (d.dataset.lmdo === "loose") lnLoosen(rid, st);
+        else if (d.dataset.lmdo === "move") lnAskMove(rid, st);
+        else lnGroupDialog(st.length, homeYear(r), (t, y) => lnGroupFrom(rid, st, t, y));
+      });
+    });
+  }
+  // Auswahlleiste im Jahresplan (erscheint, sobald Einzellektionen ausgewählt sind)
+  function jselToggle(id) {
+    if (JSEL.has(id)) JSEL.delete(id); else if (isLoose(U.reihen[id])) JSEL.add(id);
+    document.querySelectorAll('.jp-item[data-open="' + id + '"]').forEach((el) => el.classList.toggle("jp-sel", JSEL.has(id)));
+    jselBar();
+  }
+  function jselBar() {
+    [...JSEL].forEach((id) => { if (!isLoose(U.reihen[id])) JSEL.delete(id); });
+    let b = $("#jp-selbar");
+    if (!JSEL.size) { if (b) b.remove(); return; }
+    if (!b) {
+      b = document.createElement("div"); b.id = "jp-selbar"; b.className = "jp-selbar"; b.setAttribute("role", "toolbar"); document.body.appendChild(b);
+      b.addEventListener("click", (e) => {
+        const x = e.target.closest("[data-js]"); if (!x) return;
+        const ids = [...JSEL];
+        if (x.dataset.js === "clear") { JSEL.clear(); jselBar(); renderU(); }
+        else if (x.dataset.js === "into") lnAskInto(ids);
+        else { const r0 = U.reihen[looseSorted(ids)[0]]; lnGroupDialog(ids.length, r0 && r0.home !== 6 ? homeYear(r0) : 6, (t, y) => lnGroupLoose(ids, t, y)); }
+      });
+    }
+    b.innerHTML = "<span><b>" + JSEL.size + "</b> " + (JSEL.size === 1 ? "Einzellektion" : "Einzellektionen") + ' ausgewählt</span><button type="button" class="btn primary" data-js="group">Zu neuer Reihe gruppieren</button><button type="button" class="btn" data-js="into">In eine Reihe einfügen …</button><button type="button" class="btn ghost" data-js="clear">Auswahl aufheben</button>';
+  }
+  // Langes Drücken (Tablet, Handy) wirkt wie ein Rechtsklick
+  function longPress(root, sel, fn) {
+    let tm = 0, st = null, fired = 0;
+    const stop = () => { clearTimeout(tm); tm = 0; st = null; };
+    root.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" || !e.isPrimary) return; const el = e.target.closest && e.target.closest(sel); if (!el) return;
+      st = { x: e.clientX, y: e.clientY }; clearTimeout(tm);
+      tm = setTimeout(() => { const p = st; tm = 0; st = null; if (!p || !el.isConnected) return; fired = Date.now(); fn(el, p.x, p.y); }, 520);
+    });
+    root.addEventListener("pointermove", (e) => { if (st && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) stop(); });
+    ["pointerup", "pointercancel"].forEach((t) => root.addEventListener(t, stop, true));
+    // Der Browser meldet langes Drücken teils selbst als Rechtsklick: dann nur einmal öffnen
+    root.addEventListener("contextmenu", (e) => { if (Date.now() - fired < 900) { e.preventDefault(); e.stopImmediatePropagation(); return; } if (tm) stop(); }, true);
+    root.addEventListener("click", (e) => { if (Date.now() - fired < 700) { e.preventDefault(); e.stopPropagation(); } }, true);
   }
   // Lektion an der Bezeichnung (L1, L2 …) packen und an eine andere Stelle ziehen
   // Materialsammlung zwischen Lektionen ziehen; Nummern M1, M2 … folgen der Reihenfolge
@@ -4626,7 +4859,14 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const bl = blocksOf(r), ti = bl.findIndex(([a]) => a === +t.dataset.li); if (ti < 0) return;
       if (lessonOp(r, from, "move", tb ? ti : ti + 1)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
     });
-    uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".l-dragging").forEach((el) => el.classList.remove("l-dragging")); d = null; });
+    uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".l-dragging").forEach((el) => el.classList.remove("l-dragging")); uEl.querySelectorAll("#r-list .drop-in").forEach((el) => el.classList.remove("drop-in")); d = null; });
+    // Lektion auf eine andere Reihe in der Liste links ziehen: dorthin verschieben (ans Ende)
+    const rlBox = document.getElementById("r-list");
+    if (rlBox) {
+      rlBox.addEventListener("dragover", (e) => { if (d == null) return; const r = U.reihen[U.sel]; const t = e.target.closest("button[data-rid]"); rlBox.querySelectorAll(".drop-in").forEach((el) => el.classList.remove("drop-in")); if (!r || r.klasse || !t || t.dataset.rid === U.sel || isLoose(U.reihen[t.dataset.rid])) return; e.preventDefault(); t.classList.add("drop-in"); });
+      rlBox.addEventListener("drop", (e) => { const t = rlBox.querySelector(".drop-in"); if (d == null || !t) return; e.preventDefault(); e.stopPropagation(); t.classList.remove("drop-in"); const from = d; d = null; lnMoveTo(U.sel, [from], t.dataset.rid); });
+    }
+    longPress(uEl, ".lesson[data-li] .l-drag[data-ldrag]", (h, x, y) => { const r = U.reihen[U.sel]; if (r) lessonMenu({ x, y }, r, +h.dataset.ldrag); });
   })();
   // Ordner auf dem Computer: Pfad hinterlegen und kopieren (Browser dürfen den Explorer nicht selbst öffnen)
   function folderSuggest(r) {
