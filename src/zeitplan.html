@@ -989,6 +989,11 @@ html.jpw main.wrap:has(#view-unterricht:not([hidden])) { max-width: none; }
 .split-btn { justify-self: start; border: 0; background: none; color: var(--muted); font-size: 0.72rem; padding: 0; text-decoration: underline; }
 .split-btn:hover { color: var(--accent); }
 .ldocs { border-left: 1px solid var(--line); padding: 6px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+/* Materialsammlung mit kleinem Notizteil: Dokumente in Spalten über die ganze Breite */
+.lesson.mat-slim .cell { display: none; }
+.lesson.mat-slim .ldocs { grid-column: 2 / -1; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 3px 8px; }
+.mat-slim-tog { justify-self: start; font-size: 0.78rem; margin-top: 2px; }
+html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .doc { display: flex; gap: 6px; align-items: baseline; border: 0; background: none; padding: 2px 4px; border-radius: 4px; color: var(--ink); text-decoration: none; text-align: left; font-size: 0.82rem; min-width: 0; }
 .doc span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .doc:hover { background: var(--accent-soft); }
@@ -3866,9 +3871,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function matRowHtml(r, m, k) {
     const key = "ln" + k, more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan));
         const lk = m.rid && U.reihen[m.rid];
-        return '<div class="lesson ln-row mat-row" data-li="' + key + '"><div class="lh"><div class="lh-top"><b' + (' class="l-drag" draggable="true" data-mdrag="' + k + '" title="Ziehen, um die Materialsammlung zwischen die Lektionen zu verschieben"') + ">M" + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
+        // Notizteil klein: Dokumente nutzen die ganze Breite und stehen in Spalten (ohne eigene Wahl ab 7 Dokumenten)
+        const slim = typeof m.slim === "boolean" ? m.slim : (m.files || []).length > 6 && !filled(m.html);
+        return '<div class="lesson ln-row mat-row' + (slim ? " mat-slim" : "") + '" data-li="' + key + '"><div class="lh"><div class="lh-top"><b' + (' class="l-drag" draggable="true" data-mdrag="' + k + '" title="Ziehen, um die Materialsammlung zwischen die Lektionen zu verschieben"') + ">M" + matNo(r, k) + "</b>" + '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente" aria-label="Materialsammlung gross öffnen">+</button>' +
           '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diese Materialsammlung entfernen" aria-label="Materialsammlung entfernen">×</button></div>' +
           '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Name, z. B. Bilder" aria-label="Name der Materialsammlung">' +
+          '<button type="button" class="linkbtn mat-slim-tog" data-matslim="' + k + '" title="' + (slim ? "Notizfeld wieder breit zeigen" : "Notizfeld klein machen, Dokumente in Spalten über die ganze Breite") + '">' + (slim ? "▸ Notiz zeigen" : "◂ Notiz klein") + (slim && filled(m.html) ? " •" : "") + "</button>" +
           (lk ? '<span class="mat-link"><button type="button" class="linkbtn" data-goto="' + esc(m.rid) + '" title="Verknüpfte Reihe öffnen">↗ ' + esc(lk.title || "Reihe") + '</button><button type="button" class="x" data-matunlink="' + k + '" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">×</button></span>'
               : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>') + "</div>" +
           cellHtml2('data-rf="lnItems.' + k + '.html" id="l-' + key + '" aria-label="Kurzzusammenfassung der Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
@@ -5120,6 +5128,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (st) { e.preventDefault(); e.stopPropagation(); const id = st.dataset.subtog; UP.subOpen = { ...(UP.subOpen || {}), [id]: !subsOpen(id) }; saveUP(); renderU(); return; }
     const b = e.target.closest("button"); if (!b || !uEl.contains(b)) return;
     if (b.dataset.arbtog != null) { const row = b.closest(".r-lfrow"), on = !row.classList.contains("arb-open"); row.classList.toggle("arb-open", on); ARB[U.sel] = on; try { localStorage.setItem("zeitplan-arb", JSON.stringify(ARB)); } catch (err) {} if (on) { const inp = row.querySelector("#r-arbnotiz"); if (inp) inp.focus(); } return; }
+    if (b.dataset.matslim != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +b.dataset.matslim, m = (r.lnItems || [])[k]; if (!m) return; const row = b.closest(".lesson"); r.lnItems = r.lnItems.slice(); r.lnItems[k] = { ...m, slim: !row.classList.contains("mat-slim") }; saveReihe(U.sel, 0); renderLessonsOnly(r); return; }
     if (b.id === "u-legend") { prioFilterMenu(b); return; }
     if (b.id === "u-subs") { UP.subs = !UP.subs; UP.subOpen = {}; saveUP(); renderU(); return; }
     if (b.dataset.sopen) {
