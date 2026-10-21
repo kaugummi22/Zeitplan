@@ -1881,6 +1881,19 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ln-add { display: flex; gap: 6px; flex-wrap: wrap; }
 .sub-link { cursor: pointer; color: var(--accent); }
 .sub-link:hover { text-decoration: underline; }
+/* Leitfrage mit aufklappbaren Arbeitsnotizen rechts daneben */
+.r-lfrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.r-lfrow.arb-open { grid-template-columns: minmax(0, 1fr) minmax(220px, 34%); }
+@media (max-width: 760px) { .r-lfrow.arb-open { grid-template-columns: minmax(0, 1fr); } }
+.r-arb { min-width: 0; }
+.r-arb .cell { display: none; }
+.r-lfrow.arb-open .r-arb .cell { display: flex; }
+.r-arb .cell { background: color-mix(in srgb, var(--c-gelb) 35%, var(--surface)); }
+.arb-tog { border: 0; background: none; font: inherit; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 0 8px 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.arb-tog:hover { color: var(--accent); }
+.arb-car { display: inline-block; transition: transform 0.15s; }
+.r-lfrow.arb-open .arb-car { transform: rotate(90deg); }
+.arb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--p-wich); display: inline-block; }
 .jp-item .jp-kids { grid-column: 1 / -1; margin: 0 0 1px 2px; font-size: 12px; line-height: 1.3; }
 .jp-item .jp-kids > span::before { content: "↳ "; }
 .jp-item .jp-kids .sub-link { color: var(--jp-meta); }
@@ -4053,6 +4066,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (U.view === "vorlagen") { $("#u-legend").hidden = true; renderV(); return; }
     if (U.view === "jahresplan") renderJP(); else { renderRSide(); renderRDetail(); }
   }
+  // Arbeitsnotizen neben der Leitfrage: offen, wenn etwas drinsteht oder auf diesem Gerät aufgeklappt
+  let ARB = {}; try { ARB = JSON.parse(localStorage.getItem("zeitplan-arb") || "{}") || {}; } catch (e) {}
+  const arbOpen = (r) => (typeof ARB[U.sel] === "boolean" ? ARB[U.sel] : filled(r.arbnotiz));
   // Unterpunkte einer Reihe (z. B. Wortarten: Nomen, Verb …)
   const subsOf = (r) => (Array.isArray(r.subs) ? r.subs.filter((x) => String(x || "").trim()) : []);
   const subRid = (x) => (String(x).startsWith("@") ? String(x).slice(1) : null);
@@ -4079,6 +4095,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (hit(r.title)) where.push(["", "Titel"]);
       subsOf(r).forEach((x) => { if (hit(subLabel(x))) where.push(["", "Unterpunkt «" + subLabel(x) + "»"]); });
       if (hit(htmlToPlain(r.leitfrage || ""))) where.push(["", "Leitfrage"]);
+      if (hit(htmlToPlain(r.arbnotiz || ""))) where.push(["", "Notizen"]);
       blocksOf(r).forEach(([i, sp]) => {
         const m = (r.meta || {})[i] || {}, pl = m.plan || {};
         const txt = [phaseOf(r, i), htmlToPlain(r.lessons[i] || ""), m.details || "", htmlToPlain(m.notesHtml || ""), htmlToPlain(pl.ziele || ""), ...(pl.rows || []).flat().map((c) => htmlToPlain(c || ""))].join(" ");
@@ -4701,7 +4718,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           (canFolders() ? (r.kfolder ? '<br>Die Dokumente sind Kopien im Klassenordner (' + esc(relPath(r.folder)) + '). Die Originale im Unterricht bleiben unverändert. Ein bearbeitetes Dokument können Sie beim Ansehen mit «Als Original übernehmen» zurück in den Unterricht geben.'
             : '<br><b>Achtung:</b> Die Dokumente dieser Kopie sind noch die Originale aus dem Unterricht – wenn Sie sie in Word bearbeiten, ändern sich die Originale. <button type="button" class="btn ghost" data-kcopyfiles="1">In den Klassenordner kopieren</button>') : "") + "</div>"
         : '<div class="r-years-pick"><span class="lbl">Schuljahr</span><div class="chips" id="r-chips">' + yearChips(r) + '</div><span id="r-homewrap">' + homePick(r) + "</span></div>") +
-      '<div class="r-field"><span class="lbl">Leitfrage oder Leitproblem</span>' + cellHtml2('data-rf="leitfrage" id="r-leitfrage" aria-label="Leitfrage"', r.leitfrage) + "</div>" +
+      '<div class="r-lfrow' + (arbOpen(r) ? " arb-open" : "") + '"><div class="r-field"><span class="lbl">Leitfrage oder Leitproblem</span>' + cellHtml2('data-rf="leitfrage" id="r-leitfrage" aria-label="Leitfrage"', r.leitfrage) + "</div>" +
+      '<div class="r-field r-arb"><button type="button" class="arb-tog" data-arbtog title="Arbeitsnotizen zur Überarbeitung ein- oder ausklappen"><span class="arb-car">▸</span> Notizen' + (filled(r.arbnotiz) ? ' <i class="arb-dot" aria-label="enthält Text"></i>' : "") + "</button>" + cellHtml2('data-rf="arbnotiz" id="r-arbnotiz" aria-label="Arbeitsnotizen zur Überarbeitung"', r.arbnotiz) + "</div></div>" +
       reiheFilesHtml(r) +
       '<div class="lessons" id="r-lessons">' + lessonsHtml(r) + "</div>" +
       '<div class="r-field r-subs"><span class="lbl">Unterpunkte</span><div class="subs-ed" id="r-subs">' + subsEdHtml(r) + "</div></div>" +
@@ -5559,6 +5577,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const st = e.target.closest && e.target.closest("[data-subtog]");
     if (st) { e.preventDefault(); e.stopPropagation(); const id = st.dataset.subtog; UP.subOpen = { ...(UP.subOpen || {}), [id]: !subsOpen(id) }; saveUP(); renderU(); return; }
     const b = e.target.closest("button"); if (!b || !uEl.contains(b)) return;
+    if (b.dataset.arbtog != null) { const row = b.closest(".r-lfrow"), on = !row.classList.contains("arb-open"); row.classList.toggle("arb-open", on); ARB[U.sel] = on; try { localStorage.setItem("zeitplan-arb", JSON.stringify(ARB)); } catch (err) {} if (on) { const inp = row.querySelector("#r-arbnotiz"); if (inp) inp.focus(); } return; }
     if (b.id === "u-legend") { prioFilterMenu(b); return; }
     if (b.id === "u-subs") { UP.subs = !UP.subs; UP.subOpen = {}; saveUP(); renderU(); return; }
     if (b.dataset.sopen) {
