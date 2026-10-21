@@ -3362,7 +3362,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
   const stVisible = (r) => (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true) && (UP.lit === "nur" ? !!r.lit : UP.lit === "ohne" ? !r.lit : true);
   // Unterreihen nur als Verknüpfung, wenn ihre Masterreihe in derselben Liste steht (ausser «Unterreihen einzeln anzeigen»)
-  const dropKids = (list) => { if (UP.kidCards) return list; const ids = new Set(list.map(([id]) => id)); return list.filter(([id]) => !mastersOf(id).some(([mid]) => ids.has(mid))); };
+  // Ketten: eine Unterreihe, die selbst Masterreihe ist, bleibt zusätzlich als eigene Karte sichtbar
+  const dropKids = (list) => { if (UP.kidCards) return list; const ids = new Set(list.map(([id]) => id)); return list.filter(([id, r]) => (r.master && childrenOf(r).length) || !mastersOf(id).some(([mid]) => ids.has(mid))); };
+  // Alle Reihen unterhalb einer Masterreihe (über mehrere Stufen, ohne Endlosschleife)
+  const descOf = (id, seen) => { seen = seen || new Set(); childrenOf(U.reihen[id]).forEach((c) => { if (!seen.has(c.rid)) { seen.add(c.rid); descOf(c.rid, seen); } }); return seen; };
   const kidsLinks = (r) => (!UP.kidCards && r.master && childrenOf(r).length ? '<span class="subs jp-kids">' + childrenOf(r).map((c) => '<span class="sub-link" data-subgo="' + esc(c.rid) + '" title="Unterreihe öffnen">' + litMark(U.reihen[c.rid]) + esc(U.reihen[c.rid].title || "Ohne Titel") + "</span>").join("") + "</span>" : "");
   // Lit-Reihen auf Wunsch unten sammeln (über den ausgeblendeten)
   const litSplit = (list, rowFn) => { if (!UP.litGroup) return list.map(rowFn).join(""); const a = list.filter(([, r]) => !r.lit), b = list.filter(([, r]) => r.lit); return a.map(rowFn).join("") + (b.length ? '<div class="jp-grp jp-grp-lit"><span>Lit</span><i>' + b.length + "</i></div>" + b.map(rowFn).join("") : ""); };
@@ -3692,7 +3695,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const inc = new Set(dropKids(vis.filter(([id]) => inc0.has(id))).map(([id]) => id)), all = vis.filter(([id]) => inc.has(id)), act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
       const inCol = new Set(all.map(([id]) => id));
       // Unterreihen nicht doppelt zählen, wenn ihre Masterreihe (mit eingeschalteter Unterreihe) in derselben Spalte steht
-      const sum = all.reduce((s, [id, r]) => s + (mastersOf(id).some(([mid, mr]) => inCol.has(mid) && shownChildren(mr).some((c) => c.rid === id)) ? 0 : effL(r)), 0);
+      // Jede Reihe nur einmal zählen: Reihen der Spalte plus die in Masterreihen gezeigten Unterreihen (auch über mehrere Stufen)
+      const cnt = new Set(), addC = (id) => { if (cnt.has(id) || !U.reihen[id]) return; cnt.add(id); shownChildren(U.reihen[id]).forEach((c) => addC(c.rid)); };
+      vis.filter(([id]) => inc0.has(id)).forEach(([id]) => addC(id));
+      const sum = [...cnt].reduce((s, id) => s + totalL(U.reihen[id]), 0);
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
@@ -3981,7 +3987,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (b.dataset.mtog != null) { const c = list[+b.dataset.mtog]; c.show = c.show === false; done(); return; }
       if (b.dataset.mmv) { const [k, d] = b.dataset.mmv.split(":").map(Number), q = k + d; if (q < 0 || q >= list.length) return; [list[k], list[q]] = [list[q], list[k]]; done(); return; }
       if (b.dataset.mrm != null) { list.splice(+b.dataset.mrm, 1); done(); return; }
-      if (b.dataset.madd != null) { closeMenu(); reihePicker(id, (rid) => { const rr = R(); if (rid === id || (rr.children || []).some((c) => c.rid === rid)) return; if (U.reihen[rid] && U.reihen[rid].master && childrenOf(U.reihen[rid]).some((c) => c.rid === id)) return; rr.children = [...(rr.children || []), { rid, show: true }]; saveReihe(id, 0); renderU(); }); return; }
+      if (b.dataset.madd != null) { closeMenu(); reihePicker(id, (rid) => { const rr = R(); if (rid === id || (rr.children || []).some((c) => c.rid === rid)) return; if (descOf(rid).has(id)) { uStatus("Geht nicht: diese Reihe enthält die Masterreihe schon (sonst entstünde ein Kreis).", true); return; } rr.children = [...(rr.children || []), { rid, show: true }]; saveReihe(id, 0); renderU(); }, "Unterreihe hinzufügen", (r2, id2) => descOf(id2).has(id)); return; }
       if (b.dataset.moff != null) { if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich aufheben? (Unterreihen bleiben bestehen)"; return; } closeMenu(); const rr = R(); delete rr.master; delete rr.children; saveReihe(id, 0); renderU(); }
     });
     document.body.appendChild(m);
