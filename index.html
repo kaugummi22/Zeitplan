@@ -1881,7 +1881,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ln-add { display: flex; gap: 6px; flex-wrap: wrap; }
 .sub-link { cursor: pointer; color: var(--accent); }
 .sub-link:hover { text-decoration: underline; }
-.lit-mark { font-size: 0.9em; }
+.lit-mark { display: inline-block; font-size: 10px; font-weight: 600; line-height: 1; letter-spacing: 0.02em; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 1px 3px; margin-right: 4px; vertical-align: 1px; }
 .lit-pick { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 /* Leitfrage mit aufklappbaren Arbeitsnotizen rechts daneben */
 .r-lfrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
@@ -3839,7 +3839,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
   const stVisible = (r) => (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true) && (UP.lit === "nur" ? !!r.lit : UP.lit === "ohne" ? !r.lit : true);
-  const litMark = (r) => (r.lit ? '<span class="lit-mark" title="Literatur">📖 </span>' : "");
+  const litMark = (r) => (r.lit ? '<span class="lit-mark" title="Literatur">Lit</span>' : "");
   // Lektionsreihe: hat Lektionen (auch wenn sie zusätzlich Materialsammlungen enthält) oder ist keine reine Sammlung
   const isLekt = (r) => lessonCount(r) > 0 || !isSamml(r);
   function showMenu(btn) {
@@ -3866,7 +3866,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const draw = () => {
       const hide = UP.stHide || {};
       m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("") +
-        '<div class="cm-sep"></div><div class="cm-title">Literatur</div>' + [["", "Alle"], ["nur", "📖 Nur Literatur"], ["ohne", "Ohne Literatur"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.lit || "") === v) + '" data-stlit="' + v + '"><span class="ck">' + ((UP.lit || "") === v ? "●" : "") + "</span>" + l + "</button>").join("");
+        '<div class="cm-sep"></div><div class="cm-title">Lit</div>' + [["", "Alle"], ["nur", "Nur Lit"], ["ohne", "Ohne Lit"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.lit || "") === v) + '" data-stlit="' + v + '"><span class="ck">' + ((UP.lit || "") === v ? "●" : "") + "</span>" + l + "</button>").join("");
     };
     draw();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
@@ -4025,7 +4025,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         '<button type="button" role="menuitem" data-lo="sel"><span class="sq">' + (JSEL.has(id) ? "✓" : "") + "</span>" + (JSEL.has(id) ? "Nicht mehr auswählen" : "Auswählen (zum Gruppieren)") + "</button>" +
         (JSEL.size && !(JSEL.size === 1 && JSEL.has(id)) ? '<button type="button" role="menuitem" data-lo="group"><span class="sq"></span>Mit Auswahl zu neuer Reihe gruppieren (' + (JSEL.has(id) ? JSEL.size : JSEL.size + 1) + ")</button>" : "")
         : lessonCount(r) ? '<div class="cm-title">Lektionen</div><button type="button" role="menuitem" data-lo="multi"><span class="sq"></span>Lektionen lösen oder gruppieren …</button>' : "") +
-      (!isLoose(r) ? '<div class="cm-title">Art</div><button type="button" role="menuitemcheckbox" aria-checked="' + !!r.lit + '" data-litog="1"><span class="sq">' + (r.lit ? "✓" : "") + "</span>📖 Literatur</button>" : "") +
+      (!isLoose(r) ? '<div class="cm-title">Art</div><button type="button" role="menuitemcheckbox" aria-checked="' + !!r.lit + '" data-litog="1"><span class="sq">' + (r.lit ? "✓" : "") + "</span>Lit</button>" : "") +
       (colYear != null ? '<div class="cm-title">Anzeige</div><button type="button" role="menuitem" data-park="' + (isParked(r, colYear) ? "0" : "1") + '"><span class="sq"></span>' + (isParked(r, colYear) ? "Wieder oben anzeigen" : "Ausblenden (nach unten)") + "</button>" : "");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
@@ -4064,7 +4064,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#u-view-vorlagen").hidden = U.view !== "vorlagen";
     ["#u-prio", "#u-show", "#u-stmenu"].forEach((x) => { $(x).hidden = U.view === "vorlagen"; });
     { const eb = $("#u-eye"); if (eb) eb.hidden = U.view !== "jahresplan"; }
-    $("#u-stmenu").textContent = [UP.kind === "samml" ? "Nur Sammlungen" : UP.kind === "lekt" ? "Nur Lektionsreihen" : "", UP.lit === "nur" ? "Nur Literatur" : UP.lit === "ohne" ? "Ohne Literatur" : ""].filter(Boolean).join(" · ") || "Reihen";
+    $("#u-stmenu").textContent = [UP.kind === "samml" ? "Nur Sammlungen" : UP.kind === "lekt" ? "Nur Lektionsreihen" : "", UP.lit === "nur" ? "Nur Lit" : UP.lit === "ohne" ? "Ohne Lit" : ""].filter(Boolean).join(" · ") || "Reihen";
     $("#u-stmenu").textContent += " ▾";
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
@@ -4721,7 +4721,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<datalist id="ln-list">' + LN_SUGGEST.map((s) => '<option value="' + esc(s) + '"></option>').join("") + "</datalist>" +
 
       '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" +
-      '<label class="lit-pick" title="Reihe zu einem Buch oder Werk (im Jahresplan mit 📖, unter «Reihen ▾» filterbar)"><input type="checkbox" id="r-lit"' + (r.lit ? " checked" : "") + "> 📖 Literatur</label></div>" +
+      '<label class="lit-pick" title="Literatur: Reihe zu einem Buch oder Werk (im Jahresplan mit «Lit», unter «Reihen ▾» filterbar)"><input type="checkbox" id="r-lit"' + (r.lit ? " checked" : "") + "> Lit</label></div>" +
       (r.klasse
         ? '<div class="k-banner">' + (r.partial ? "Ausgewählte Lektionen aus" : "Kopie von") + " „" + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse." +
           (canFolders() ? (r.kfolder ? '<br>Die Dokumente sind Kopien im Klassenordner (' + esc(relPath(r.folder)) + '). Die Originale im Unterricht bleiben unverändert. Ein bearbeitetes Dokument können Sie beim Ansehen mit «Als Original übernehmen» zurück in den Unterricht geben.'

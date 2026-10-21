@@ -78,7 +78,7 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
   - Ausblenden mit dem Auge.
   - Spaltenhöhen einzeln einstellbar.
   - Reihen zwischen Jahren ziehen.
-  - Literatur-Zeichen 📖 (`r.lit`): Häkchen in der Reihe oder Rechtsklick im Jahresplan; Filter «Reihen ▾» → Nur Literatur / Ohne Literatur (`UP.lit`).
+  - Literatur-Zeichen «Lit» (kleines Kästchen, kein Emoji; `r.lit`): Häkchen in der Reihe oder Rechtsklick im Jahresplan; Filter «Reihen ▾» → Nur Lit / Ohne Lit (`UP.lit`).
   - Neben «Leitfrage oder Leitproblem» aufklappbare «Notizen» (`r.arbnotiz`, Arbeitsnotizen zur Überarbeitung; offen, wenn gefüllt; Zustand pro Gerät `zeitplan-arb`), werden durchsucht, aber nicht gedruckt.
   - Aussehen (20.10.2026): weisse Karten, Wichtigkeit nur als Farbstreifen links (`--p-*`: Koralle, Bernstein, Salbei, Blau, Grau), Lektionen «10 L» rechts neben dem Titel, kompakte Karten, Spaltenkopf «1. SJ · 111 L», Bahnen `--jp-lane`. «Wichtigkeiten ▾» (`prioFilterMenu`) = Farbstreifen an/aus, Legende mit Anzahl, Filter. Notizspalte über «Notizen» bzw. › ausblendbar (`UP.notes`, ohne Wahl erst ab 1150 px sichtbar). «Anzeigen ▾»: Standard: Unterreihen nur als ↳-Verknüpfung in ihrer Masterreihe (wenn diese in derselben Spalte steht); «Unterreihen einzeln anzeigen» (`UP.kidCards`) zeigt sie zusätzlich als eigene Karten. Unterpunkte werden nicht mehr angezeigt (nur erfasst und durchsucht), «Nach Planungsstand gruppieren» entfernt. Spalten füllen die Fensterhöhe (`--jp-h`, `jpBoxes`), volle Breite (`html.jpw`); unter 980 px Breite (Container-Abfrage) fünf Jahre nebeneinander, «Anderes»/«Einzellektionen» als Band darunter.
 
