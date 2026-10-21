@@ -1399,6 +1399,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ln-add { display: flex; gap: 6px; flex-wrap: wrap; }
 .sub-link { cursor: pointer; color: var(--accent); }
 .sub-link:hover { text-decoration: underline; }
+.jp-item .jp-kids { grid-column: 1 / -1; margin: 0 0 1px 2px; font-size: 12px; line-height: 1.3; }
+.jp-item .jp-kids > span::before { content: "↳ "; }
+.jp-item .jp-kids .sub-link { color: var(--jp-meta); }
+.jp-item .jp-kids .sub-link:hover { color: var(--accent); }
 .sub-it.sub-r { background: color-mix(in srgb, var(--c-blau) 35%, var(--surface)); border-radius: 6px; padding: 0 2px 0 4px; }
 .rp-q { width: 100%; box-sizing: border-box; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
 .u-moved { display: none !important; }
@@ -3344,14 +3348,14 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const allOpen = YEARS.every((y) => PARK_OPEN[y]);
-    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["eqh", "Spalten an die Fensterhöhe anpassen (jede scrollt für sich)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
+    const items = [["kids", "Unterreihen ausblenden (in der Masterreihe als Verknüpfung)", !!UP.noKids], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["eqh", "Spalten an die Fensterhöhe anpassen (jede scrollt für sich)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
     m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-shw]"); if (!b) return;
       const k = b.dataset.shw;
       if (k === "park") { const open = !YEARS.every((y) => PARK_OPEN[y]); YEARS.forEach((y) => { PARK_OPEN[y] = open; }); renderU(); showMenu(btn); return; }
-      if (k === "subs") { UP.subs = !UP.subs; UP.subOpen = {}; } else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else if (k === "eqh") UP.eqh = UP.eqh === false; else UP.bars = UP.bars === false;
+      if (k === "kids") UP.noKids = !UP.noKids; else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else if (k === "eqh") UP.eqh = UP.eqh === false; else UP.bars = UP.bars === false;
       saveUP(); renderU(); showMenu(btn);
     });
     document.body.appendChild(m);
@@ -3571,7 +3575,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const subsOf = (r) => (Array.isArray(r.subs) ? r.subs.filter((x) => String(x || "").trim()) : []);
   const subRid = (x) => (String(x).startsWith("@") ? String(x).slice(1) : null);
   const subLabel = (x) => { const id = subRid(x); return id ? (U.reihen[id] && U.reihen[id].title) || "(Reihe gelöscht)" : x; };
-  const subsOpen = (id) => { const o = (UP.subOpen || {})[id]; return o == null ? !!UP.subs : o; };
+  const subsOpen = () => false; // Unterpunkte werden nicht angezeigt, nur erfasst und durchsucht
   function subsHtml(id, r) {
     const ss = subsOf(r); if (!ss.length) return { car: "", after: "", list: "" };
     const open = subsOpen(id);
@@ -3650,7 +3654,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const homeOf = (r) => (typeof r.home === "number" && yearsOf(r).includes(r.home) ? r.home : firstYear(r));
       const rs = vis.filter(([, r]) => homeOf(r) === y);
       const ms = UP.cross ? vis.filter(([, r]) => multi(r) && homeOf(r) !== y) : [];
-      const inc = new Set([...ms, ...rs].map(([id]) => id)), all = vis.filter(([id]) => inc.has(id)), act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
+      const inc0 = new Set([...ms, ...rs].map(([id]) => id));
+      // Unterreihen ausblenden, wenn ihre Masterreihe in derselben Spalte steht
+      const inc = UP.noKids ? new Set([...inc0].filter((id) => !mastersOf(id).some(([mid]) => inc0.has(mid)))) : inc0, all = vis.filter(([id]) => inc.has(id)), act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
       const inCol = new Set(all.map(([id]) => id));
       // Unterreihen nicht doppelt zählen, wenn ihre Masterreihe (mit eingeschalteter Unterreihe) in derselben Spalte steht
       const sum = all.reduce((s, [id, r]) => s + (mastersOf(id).some(([mid, mr]) => inCol.has(mid) && shownChildren(mr).some((c) => c.rid === id)) ? 0 : effL(r)), 0);
@@ -3660,10 +3666,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (isLoose(r) ? " jp-loose" : "") + (JSEL.has(id) ? " jp-sel" : "") + '" data-open="' + id + '" data-from="' + y + '" title="' + (isLoose(r) ? "Einzellektion öffnen · Strg+Klick: auswählen zum Gruppieren" : "Reihe öffnen") + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + (isLoose(r) ? " · Ziehen: verschieben oder auf eine Reihe legen" : " · Ziehen zum Verschieben") + ' · Rechtsklick (lange drücken): Menü"><span class="t">' + (isLoose(r) ? '<span class="lo-mark" aria-hidden="true">L</span>' : "") + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (isLoose(r) && r.from ? '<span class="lo-from">aus ' + esc(r.from) + "</span>" : "") + '</span><span class="jp-rt"><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
-            (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
+            (UP.noKids && r.master && childrenOf(r).length ? '<span class="subs jp-kids">' + childrenOf(r).map((c) => '<span class="sub-link" data-subgo="' + esc(c.rid) + '" title="Unterreihe öffnen">' + esc(U.reihen[c.rid].title || "Ohne Titel") + "</span>").join("") + "</span>" : "") + (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum" title="' + sum + ' Lektionen">· ' + sum + " L</span></div><div class=\"jp-box\" data-box=\"" + y + "\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
-        (UP.prio || !UP.groups ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
+        act.map(itemHtml).join("") + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
         '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button></div>' +
