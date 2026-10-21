@@ -1881,6 +1881,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ln-add { display: flex; gap: 6px; flex-wrap: wrap; }
 .sub-link { cursor: pointer; color: var(--accent); }
 .sub-link:hover { text-decoration: underline; }
+.lit-mark { font-size: 0.9em; }
+.lit-pick { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 /* Leitfrage mit aufklappbaren Arbeitsnotizen rechts daneben */
 .r-lfrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
 .r-lfrow.arb-open { grid-template-columns: minmax(0, 1fr) minmax(220px, 34%); }
@@ -3836,7 +3838,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const statusOf = (r) => r.status || "progress";
   // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
-  const stVisible = (r) => (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true);
+  const stVisible = (r) => (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true) && (UP.lit === "nur" ? !!r.lit : UP.lit === "ohne" ? !r.lit : true);
+  const litMark = (r) => (r.lit ? '<span class="lit-mark" title="Literatur">📖 </span>' : "");
   // Lektionsreihe: hat Lektionen (auch wenn sie zusätzlich Materialsammlungen enthält) oder ist keine reine Sammlung
   const isLekt = (r) => lessonCount(r) > 0 || !isSamml(r);
   function showMenu(btn) {
@@ -3862,13 +3865,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const draw = () => {
       const hide = UP.stHide || {};
-      m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("");
+      m.innerHTML = '<div class="cm-title">Reihen</div>' + [["", "Alle"], ["samml", "Nur Sammlungen"], ["lekt", "Nur Lektionsreihen"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.kind || "") === v) + '" data-stk="' + v + '"><span class="ck">' + ((UP.kind || "") === v ? "●" : "") + "</span>" + l + "</button>").join("") +
+        '<div class="cm-sep"></div><div class="cm-title">Literatur</div>' + [["", "Alle"], ["nur", "📖 Nur Literatur"], ["ohne", "Ohne Literatur"]].map(([v, l]) => '<button type="button" role="menuitemradio" aria-checked="' + ((UP.lit || "") === v) + '" data-stlit="' + v + '"><span class="ck">' + ((UP.lit || "") === v ? "●" : "") + "</span>" + l + "</button>").join("");
     };
     draw();
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("button"); if (!b) return;
-      if (b.dataset.stk != null) UP.kind = b.dataset.stk || undefined;
+      if (b.dataset.stlit != null) UP.lit = b.dataset.stlit || undefined;
+      else if (b.dataset.stk != null) UP.kind = b.dataset.stk || undefined;
       else if (b.dataset.stv) { UP.stHide = { ...(UP.stHide || {}) }; UP.stHide[b.dataset.stv] = !UP.stHide[b.dataset.stv]; }
       else if (b.dataset.stl != null) UP.stLabels = !UP.stLabels;
       else if (b.dataset.stq) { const q = b.dataset.stq; if (q.startsWith("all")) { UP.stHide = {}; UP.stLabels = q === "all1"; } else { UP.stHide = { todo: q !== "todo", progress: q !== "progress", done: q !== "done" }; UP.stLabels = true; } }
@@ -4020,6 +4025,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         '<button type="button" role="menuitem" data-lo="sel"><span class="sq">' + (JSEL.has(id) ? "✓" : "") + "</span>" + (JSEL.has(id) ? "Nicht mehr auswählen" : "Auswählen (zum Gruppieren)") + "</button>" +
         (JSEL.size && !(JSEL.size === 1 && JSEL.has(id)) ? '<button type="button" role="menuitem" data-lo="group"><span class="sq"></span>Mit Auswahl zu neuer Reihe gruppieren (' + (JSEL.has(id) ? JSEL.size : JSEL.size + 1) + ")</button>" : "")
         : lessonCount(r) ? '<div class="cm-title">Lektionen</div><button type="button" role="menuitem" data-lo="multi"><span class="sq"></span>Lektionen lösen oder gruppieren …</button>' : "") +
+      (!isLoose(r) ? '<div class="cm-title">Art</div><button type="button" role="menuitemcheckbox" aria-checked="' + !!r.lit + '" data-litog="1"><span class="sq">' + (r.lit ? "✓" : "") + "</span>📖 Literatur</button>" : "") +
       (colYear != null ? '<div class="cm-title">Anzeige</div><button type="button" role="menuitem" data-park="' + (isParked(r, colYear) ? "0" : "1") + '"><span class="sq"></span>' + (isParked(r, colYear) ? "Wieder oben anzeigen" : "Ausblenden (nach unten)") + "</button>" : "");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
@@ -4032,6 +4038,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         else { const ids = [...new Set([...JSEL, id])]; lnGroupDialog(ids.length, colYear === 6 ? 6 : colYear, (t, yy) => lnGroupLoose(ids, t, yy)); }
         return;
       }
+      if (ev.target.closest("[data-litog]")) { closeMenu(); if (r.lit) delete r.lit; else r.lit = true; saveReihe(id, 0); renderU(); return; }
       const pk = ev.target.closest("[data-park]");
       if (pk) { closeMenu(); setParked(id, colYear, pk.dataset.park === "1"); renderU(); return; }
       const mv = ev.target.closest("[data-mv]");
@@ -4057,7 +4064,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#u-view-vorlagen").hidden = U.view !== "vorlagen";
     ["#u-prio", "#u-show", "#u-stmenu"].forEach((x) => { $(x).hidden = U.view === "vorlagen"; });
     { const eb = $("#u-eye"); if (eb) eb.hidden = U.view !== "jahresplan"; }
-    $("#u-stmenu").textContent = (UP.kind === "samml" ? "Nur Sammlungen" : UP.kind === "lekt" ? "Nur Lektionsreihen" : "Reihen") + " ▾";
+    $("#u-stmenu").textContent = [UP.kind === "samml" ? "Nur Sammlungen" : UP.kind === "lekt" ? "Nur Lektionsreihen" : "", UP.lit === "nur" ? "Nur Literatur" : UP.lit === "ohne" ? "Ohne Literatur" : ""].filter(Boolean).join(" · ") || "Reihen";
+    $("#u-stmenu").textContent += " ▾";
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
     $("#u-legend").hidden = $("#u-notes").hidden = U.view !== "jahresplan";
@@ -4162,10 +4170,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const pOpen = !!PARK_OPEN[y];
       const itemHtml = ([id, r]) => {
           const pl = planned(r), n = lessonCount(r), also = yearsOf(r).filter((z) => z !== y), foreign = homeOf(r) !== y;
-          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (isLoose(r) ? " jp-loose" : "") + (JSEL.has(id) ? " jp-sel" : "") + '" data-open="' + id + '" data-from="' + y + '" title="' + (isLoose(r) ? "Einzellektion öffnen · Strg+Klick: auswählen zum Gruppieren" : "Reihe öffnen") + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + (isLoose(r) ? " · Ziehen: verschieben oder auf eine Reihe legen" : " · Ziehen zum Verschieben") + ' · Rechtsklick (lange drücken): Menü"><span class="t">' + (isLoose(r) ? '<span class="lo-mark" aria-hidden="true">L</span>' : "") + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (isLoose(r) && r.from ? '<span class="lo-from">aus ' + esc(r.from) + "</span>" : "") + '</span><span class="jp-rt"><span class="n">' +
+          return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (isLoose(r) ? " jp-loose" : "") + (JSEL.has(id) ? " jp-sel" : "") + '" data-open="' + id + '" data-from="' + y + '" title="' + (isLoose(r) ? "Einzellektion öffnen · Strg+Klick: auswählen zum Gruppieren" : "Reihe öffnen") + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + (isLoose(r) ? " · Ziehen: verschieben oder auf eine Reihe legen" : " · Ziehen zum Verschieben") + ' · Rechtsklick (lange drücken): Menü"><span class="t">' + (isLoose(r) ? '<span class="lo-mark" aria-hidden="true">L</span>' : "") + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + litMark(r) + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (isLoose(r) && r.from ? '<span class="lo-from">aus ' + esc(r.from) + "</span>" : "") + '</span><span class="jp-rt"><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
-            (!UP.kidCards && r.master && childrenOf(r).length ? '<span class="subs jp-kids">' + childrenOf(r).map((c) => '<span class="sub-link" data-subgo="' + esc(c.rid) + '" title="Unterreihe öffnen">' + esc(U.reihen[c.rid].title || "Ohne Titel") + "</span>").join("") + "</span>" : "") + (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
+            (!UP.kidCards && r.master && childrenOf(r).length ? '<span class="subs jp-kids">' + childrenOf(r).map((c) => '<span class="sub-link" data-subgo="' + esc(c.rid) + '" title="Unterreihe öffnen">' + litMark(U.reihen[c.rid]) + esc(U.reihen[c.rid].title || "Ohne Titel") + "</span>").join("") + "</span>" : "") + (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum" title="' + sum + ' Lektionen">· ' + sum + " L</span></div><div class=\"jp-box\" data-box=\"" + y + "\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
         act.map(itemHtml).join("") + "</div>" +
@@ -4201,7 +4209,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#r-years").innerHTML = YEARS.map((y) => '<button type="button" data-year="' + y + '" aria-pressed="' + (y === U.year) + '">' + YEAR_SHORT[y] + "</button>").join("");
     $("#u-cross").setAttribute("aria-pressed", String(UP.cross));
     const y = U.year, rs = sideList(y), act = rs.filter(([, r]) => !isParked(r, y)), pk = rs.filter(([, r]) => isParked(r, y)), pOpen = !!PARK_OPEN[y];
-    const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + msArrow(id) + (r.master ? '<span class="ms-mark">◆ </span>' : "") + esc(r.title || "Ohne Titel") + sh.after + sh.list + '</span><span class="n">' + (effL(r) ? effL(r) + " L" : "") + "</span></button>"; };
+    const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + msArrow(id) + (r.master ? '<span class="ms-mark">◆ </span>' : "") + litMark(r) + esc(r.title || "Ohne Titel") + sh.after + sh.list + '</span><span class="n">' + (effL(r) ? effL(r) + " L" : "") + "</span></button>"; };
     $("#r-list").innerHTML = rs.length
       ? '<div class="rl-zone" data-zone="act">' + act.map(row).join("") + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
@@ -4712,7 +4720,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<label>Leistungsnachweis <input type="text" id="r-ln" data-rf="ln" list="ln-list" value="' + esc(r.ln || "") + '" placeholder="z. B. Prüfung, Abgabe"></label>' +
       '<datalist id="ln-list">' + LN_SUGGEST.map((s) => '<option value="' + esc(s) + '"></option>').join("") + "</datalist>" +
 
-      '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label></div>" +
+      '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" +
+      '<label class="lit-pick" title="Reihe zu einem Buch oder Werk (im Jahresplan mit 📖, unter «Reihen ▾» filterbar)"><input type="checkbox" id="r-lit"' + (r.lit ? " checked" : "") + "> 📖 Literatur</label></div>" +
       (r.klasse
         ? '<div class="k-banner">' + (r.partial ? "Ausgewählte Lektionen aus" : "Kopie von") + " „" + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse." +
           (canFolders() ? (r.kfolder ? '<br>Die Dokumente sind Kopien im Klassenordner (' + esc(relPath(r.folder)) + '). Die Originale im Unterricht bleiben unverändert. Ein bearbeitetes Dokument können Sie beim Ansehen mit «Als Original übernehmen» zurück in den Unterricht geben.'
@@ -4981,6 +4990,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   });
   uEl.addEventListener("change", async (e) => {
     const t = e.target;
+    if (t.id === "r-lit") { const r = U.reihen[U.sel]; if (!r) return; if (t.checked) r.lit = true; else delete r.lit; saveReihe(U.sel, 0); renderRSide(); return; }
     if (t.id === "r-prio") { const r = U.reihen[U.sel]; if (!r) return; r.prio = t.value; t.className = "prio-sel pr-" + t.value; saveReihe(U.sel, 0); renderRSide(); return; }
     if (t.id === "r-home") { const r = U.reihen[U.sel]; if (!r) return; r.home = +t.value; saveReihe(U.sel, 0); U.year = r.home; renderU(); return; }
     if (t.id === "r-status") { const r = U.reihen[U.sel]; if (!r) return; if (t.value === "progress") delete r.status; else r.status = t.value; t.className = "st-sel st-" + t.value; saveReihe(U.sel, 0); t.blur(); renderRSide(); return; }
