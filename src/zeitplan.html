@@ -872,8 +872,34 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid var(--line); b
 .jp-item .bar-mini > i { display: block; height: 100%; background: var(--c-gruen); background: color-mix(in srgb, var(--accent) 55%, var(--c-gruen)); }
 .jp-add { margin: 0 4px 6px; justify-self: start; }
 .jp-box { display: grid; align-content: start; min-height: 0; }
-.jp-grid.eqh .jp-box { overflow: auto; resize: vertical; min-height: 100px; }
+.jp-grid.eqh .jp-box { overflow: auto; min-height: 60px; }
 .jp-grid:not(.eqh) .jp-box { height: auto !important; }
+/* Spalten füllen das Fenster (Höhe --jp-h wird beim Zeichnen gemessen); jede Spalte scrollt für sich */
+.jp-grid { grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1fr); }
+.jp-grid.eqh .jp-col { display: flex; flex-direction: column; height: var(--jp-h, 640px); }
+.jp-grid.eqh .jp-box { flex: 1 1 0; height: auto !important; overscroll-behavior: contain; }
+.jp-grid.eqh .jp-col > .jp-head, .jp-grid.eqh .jp-col > .jp-sec { flex: none; }
+.jp-grid.eqh .jp-stack { height: var(--jp-h, 640px); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+.jp-grid.eqh .jp-stack .jp-col { height: auto; min-height: 0; align-self: stretch; }
+.jp-other { border-style: solid; }
+.jp-other .jp-head { background: color-mix(in srgb, var(--p-wich) 16%, var(--jp-head)); }
+#jp-main { container-type: inline-size; }
+.jp-scroll { overflow-x: visible; }
+/* Schmales Fenster (z. B. halber Bildschirm): fünf Jahre nebeneinander, «Anderes» und «Einzellektionen» als Band darunter */
+@container (max-width: 980px) {
+  .jp-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .jp-stack { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  .jp-grid.eqh .jp-stack { height: calc(var(--jp-h, 640px) * 0.34); grid-template-rows: minmax(0, 1fr); }
+  .jp-grid.eqh > .jp-col { height: calc(var(--jp-h, 640px) * 0.66 - 6px); }
+  .jp-items { padding: 4px; gap: 3px; }
+  .jp-item { padding: 4px 6px; gap: 2px 4px; }
+  .jp-item .t { font-size: 12.5px; line-height: 1.3; }
+  .jp-item .n { font-size: 11px; }
+  .jp-head { padding: 6px 8px; }
+  .jp-head .yr { font-size: 0.95rem; }
+}
+@container (max-width: 980px) and (min-width: 1px) { .jp-stack .jp-items { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
+html.jpw main.wrap:has(#view-unterricht:not([hidden])) { max-width: none; }
 .jp-stack { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .jp-grid.eqh .jp-col { align-self: start; }
 .jp-rt { display: inline-flex; align-items: center; gap: 4px; justify-self: end; }
@@ -3294,7 +3320,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const allOpen = YEARS.every((y) => PARK_OPEN[y]);
-    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["eqh", "Spalten mit fester Höhe (scrollbar, unten rechts ziehen)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
+    const items = [["subs", "Unterpunkte anzeigen", !!UP.subs], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["groups", "Nach Planungsstand gruppieren", !!UP.groups], ["eqh", "Spalten an die Fensterhöhe anpassen (jede scrollt für sich)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
     m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
@@ -3489,6 +3515,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#u-subs").setAttribute("aria-pressed", String(!!UP.subs));
     $("#u-stmenu").hidden = U.view !== "jahresplan";
     $("#u-legend").hidden = $("#u-notes").hidden = U.view !== "jahresplan";
+    document.documentElement.classList.toggle("jpw", U.view === "jahresplan");
     if (!U.loaded) { $("#jp-main").innerHTML = '<div class="empty">Lädt …</div>'; return; }
     if (U.view === "vorlagen") { $("#u-legend").hidden = true; renderV(); return; }
     if (U.view === "jahresplan") renderJP(); else { renderRSide(); renderRDetail(); }
@@ -3566,7 +3593,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     $("#u-prio").setAttribute("aria-pressed", String(UP.prio)); $("#u-cross").setAttribute("aria-pressed", String(UP.cross)); $("#u-bars").setAttribute("aria-pressed", String(UP.bars !== false));
     const hideP = UP.hide || {};
     { const nOff = UP.prio ? PRIOS.filter(([v]) => hideP[v]).length : 0; $("#u-legend").textContent = nOff ? "Wichtigkeiten (" + (PRIOS.length - nOff) + " von " + PRIOS.length + ") ▾" : "Wichtigkeiten ▾"; }
-    { const nb = $("#u-notes"), lay = $("#u-view-jahresplan .jp-layout"), nn = (state.nb && state.nb.unterricht || []).length; nb.setAttribute("aria-pressed", String(UP.notes !== false)); nb.textContent = UP.notes === false && nn ? "Notizen (" + nn + ")" : "Notizen"; lay.classList.toggle("no-notes", UP.notes === false); }
+    jpNotes();
     let h = '<div class="jp-scroll"><div class="jp-grid' + (UP.prio ? " show-prio" : "") + (UP.eqh !== false ? " eqh" : "") + (UP.eye ? " eye-on" : "") + '">';
     const stack = [];
     for (const y of YEARS) {
@@ -3588,7 +3615,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
             (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
-      let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum" title="' + sum + ' Lektionen">· ' + sum + " L</span></div><div class=\"jp-box\" data-box=\"" + y + "\" style=\"height:" + jphOf(y) + "px\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
+      let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum" title="' + sum + ' Lektionen">· ' + sum + " L</span></div><div class=\"jp-box\" data-box=\"" + y + "\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
         (UP.prio || !UP.groups ? act.map(itemHtml).join("") : jpGroups(act, itemHtml)) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
@@ -3602,18 +3629,20 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const eb = $("#u-eye"); if (eb) eb.setAttribute("aria-pressed", String(!!UP.eye));
     jpBoxes();
   }
-  // Jede Spalte hat ihre eigene Höhe (unten rechts ziehen); gemerkt pro Gerät
-  let JPHS = {}; try { JPHS = JSON.parse(localStorage.getItem("zeitplan-jphs") || "{}") || {}; } catch (e) {}
-  const jphOf = (y) => JPHS[y] || (y >= 5 ? 280 : 560);
+  // Spalten so hoch wie das Fenster: verfügbare Höhe messen und als --jp-h setzen
   function jpBoxes() {
-    const grid = document.querySelector("#jp-main .jp-grid.eqh"); if (!grid) return;
-    let t = 0;
-    try {
-      const ro = new ResizeObserver((ents) => {
-        for (const en of ents) { const y = en.target.dataset.box, hh = Math.round(en.target.getBoundingClientRect().height); if (hh > 80 && Math.abs(hh - jphOf(+y)) > 2) { JPHS[y] = hh; clearTimeout(t); t = setTimeout(() => { try { localStorage.setItem("zeitplan-jphs", JSON.stringify(JPHS)); } catch (err) {} }, 300); } }
-      });
-      grid.querySelectorAll(".jp-box").forEach((bx) => ro.observe(bx));
-    } catch (e) {}
+    const grid = document.querySelector("#jp-main .jp-grid"); if (!grid) return;
+    if (document.documentElement.classList.contains("fit")) { grid.style.removeProperty("--jp-h"); return; }
+    const top = grid.getBoundingClientRect().top + scrollY;
+    grid.style.setProperty("--jp-h", Math.max(380, Math.round(innerHeight - top - 14)) + "px");
+  }
+  let jpRz = 0;
+  addEventListener("resize", () => { clearTimeout(jpRz); jpRz = setTimeout(() => { if (!$("#view-unterricht").hidden && U.view === "jahresplan") { jpNotes(); jpBoxes(); } }, 120); });
+  // Notizspalte: ohne eigene Wahl nur in breiten Fenstern zeigen
+  const jpNotesOn = () => (typeof UP.notes === "boolean" ? UP.notes : innerWidth >= 1150);
+  function jpNotes() {
+    const nb = $("#u-notes"), lay = $("#u-view-jahresplan .jp-layout"), nn = ((state.nb && state.nb.unterricht) || []).length, on = jpNotesOn();
+    nb.setAttribute("aria-pressed", String(on)); nb.textContent = !on && nn ? "Notizen (" + nn + ")" : "Notizen"; lay.classList.toggle("no-notes", !on);
   }
 
   function renderRSide() {
@@ -4820,7 +4849,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.sel) { U.sel = b.dataset.sel; renderU(); return; }
     if (b.dataset.move) { moveReihe(+b.dataset.move); return; }
     if (b.id === "u-prio") { UP.prio = !UP.prio; saveUP(); renderU(); return; }
-    if (b.id === "u-notes" || b.id === "u-notes-fold") { UP.notes = b.id === "u-notes" ? UP.notes === false : false; saveUP(); renderU(); return; }
+    if (b.id === "u-notes" || b.id === "u-notes-fold") { UP.notes = b.id === "u-notes" ? !jpNotesOn() : false; saveUP(); renderU(); return; }
     if (b.id === "u-cross") { UP.cross = !UP.cross; saveUP(); renderU(); return; }
     if (b.dataset.parktog != null) { const y = b.dataset.parktog; PARK_OPEN[y] = !PARK_OPEN[y]; renderU(); return; }
     if (b.id === "u-bars") { UP.bars = UP.bars === false; saveUP(); renderU(); return; }
@@ -7920,7 +7949,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const sw = Math.min(innerWidth, screen.width || innerWidth), small = sw < 900, phone = sw < 700;
       const tT = !$("#view-termine").hidden, tU = !$("#view-unterricht").hidden, tK = !$("#view-klassen").hidden, tL = !$("#view-lektion").hidden;
       const cal = small && ((tT && state.view === "kalender") || tL || (phone && ((tU && U.view !== "jahresplan") || tK)));
-      const narrow = small && !cal;
+      const narrow = small && !cal && !(tU && U.view === "jahresplan" && sw >= 600);
       root.classList.toggle("phone", phone && cal);
       root.classList.toggle("mob", cal);
       root.classList.toggle("fit", narrow);
