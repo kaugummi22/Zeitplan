@@ -1896,6 +1896,10 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .arb-car { display: inline-block; transition: transform 0.15s; }
 .r-lfrow.arb-open .arb-car { transform: rotate(90deg); }
 .arb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--p-wich); display: inline-block; }
+.r-list .jp-kids { display: grid; margin: 2px 0 0 4px; font-size: 12px; line-height: 1.3; }
+.r-list .jp-kids > span::before { content: "↳ "; }
+.r-list button[aria-current="true"] .jp-kids .sub-link { color: inherit; }
+.r-list .jp-grp { margin: 8px 8px 2px; }
 .jp-item .jp-kids { grid-column: 1 / -1; margin: 0 0 1px 2px; font-size: 12px; line-height: 1.3; }
 .jp-item .jp-kids > span::before { content: "↳ "; }
 .jp-item .jp-kids .sub-link { color: var(--jp-meta); }
@@ -3839,6 +3843,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   // Sammlung: ausdrücklich 0 Lektionen oder Materialsammlungs-Einträge
   const isSamml = (r) => (r.lnItems || []).some((m) => m && m.mat) || ((r.lektionen === 0 || r.lektionen === "0") && lessonCount(r) === 0);
   const stVisible = (r) => (UP.kind === "samml" ? isSamml(r) : UP.kind === "lekt" ? isLekt(r) : true) && (UP.lit === "nur" ? !!r.lit : UP.lit === "ohne" ? !r.lit : true);
+  // Unterreihen nur als Verknüpfung, wenn ihre Masterreihe in derselben Liste steht (ausser «Unterreihen einzeln anzeigen»)
+  const dropKids = (list) => { if (UP.kidCards) return list; const ids = new Set(list.map(([id]) => id)); return list.filter(([id]) => !mastersOf(id).some(([mid]) => ids.has(mid))); };
+  const kidsLinks = (r) => (!UP.kidCards && r.master && childrenOf(r).length ? '<span class="subs jp-kids">' + childrenOf(r).map((c) => '<span class="sub-link" data-subgo="' + esc(c.rid) + '" title="Unterreihe öffnen">' + litMark(U.reihen[c.rid]) + esc(U.reihen[c.rid].title || "Ohne Titel") + "</span>").join("") + "</span>" : "");
+  // Lit-Reihen auf Wunsch unten sammeln (über den ausgeblendeten)
+  const litSplit = (list, rowFn) => { if (!UP.litGroup) return list.map(rowFn).join(""); const a = list.filter(([, r]) => !r.lit), b = list.filter(([, r]) => r.lit); return a.map(rowFn).join("") + (b.length ? '<div class="jp-grp jp-grp-lit"><span>Lit</span><i>' + b.length + "</i></div>" + b.map(rowFn).join("") : ""); };
   const litMark = (r) => (r.lit ? '<span class="lit-mark" title="Literatur">Lit</span>' : "");
   // Lektionsreihe: hat Lektionen (auch wenn sie zusätzlich Materialsammlungen enthält) oder ist keine reine Sammlung
   const isLekt = (r) => lessonCount(r) > 0 || !isSamml(r);
@@ -3846,14 +3855,14 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     closeMenu();
     const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
     const allOpen = YEARS.every((y) => PARK_OPEN[y]);
-    const items = [["kids", "Unterreihen einzeln anzeigen (zusätzlich zur Masterreihe)", !!UP.kidCards], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["eqh", "Spalten an die Fensterhöhe anpassen (jede scrollt für sich)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
+    const items = [["kids", "Unterreihen einzeln anzeigen (zusätzlich zur Masterreihe)", !!UP.kidCards], ["litgrp", "Lit-Reihen unten sammeln", !!UP.litGroup], ["cross", "Mehrfach-Reihen anzeigen", !!UP.cross], ["bars", "Fortschritt anzeigen", UP.bars !== false], ["eqh", "Spalten an die Fensterhöhe anpassen (jede scrollt für sich)", UP.eqh !== false], ["park", "Ausgeblendete Reihen anzeigen", allOpen]];
     m.innerHTML = '<div class="cm-title">Anzeigen</div>' + items.map(([k, l, on]) => '<button type="button" role="menuitemcheckbox" aria-checked="' + on + '" data-shw="' + k + '"><span class="ck">' + (on ? "✓" : "") + "</span>" + l + "</button>").join("");
     m.addEventListener("mousedown", (ev) => ev.preventDefault());
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-shw]"); if (!b) return;
       const k = b.dataset.shw;
       if (k === "park") { const open = !YEARS.every((y) => PARK_OPEN[y]); YEARS.forEach((y) => { PARK_OPEN[y] = open; }); renderU(); showMenu(btn); return; }
-      if (k === "kids") UP.kidCards = !UP.kidCards; else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else if (k === "eqh") UP.eqh = UP.eqh === false; else UP.bars = UP.bars === false;
+      if (k === "kids") UP.kidCards = !UP.kidCards; else if (k === "litgrp") UP.litGroup = !UP.litGroup; else if (k === "cross") UP.cross = !UP.cross; else if (k === "groups") UP.groups = !UP.groups; else if (k === "eqh") UP.eqh = UP.eqh === false; else UP.bars = UP.bars === false;
       saveUP(); renderU(); showMenu(btn);
     });
     document.body.appendChild(m);
@@ -4162,8 +4171,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const rs = vis.filter(([, r]) => homeOf(r) === y);
       const ms = UP.cross ? vis.filter(([, r]) => multi(r) && homeOf(r) !== y) : [];
       const inc0 = new Set([...ms, ...rs].map(([id]) => id));
-      // Unterreihen ausblenden, wenn ihre Masterreihe in derselben Spalte steht
-      const inc = !UP.kidCards ? new Set([...inc0].filter((id) => !mastersOf(id).some(([mid]) => inc0.has(mid)))) : inc0, all = vis.filter(([id]) => inc.has(id)), act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
+      const inc = new Set(dropKids(vis.filter(([id]) => inc0.has(id))).map(([id]) => id)), all = vis.filter(([id]) => inc.has(id)), act = all.filter(([, r]) => !isParked(r, y)), pk = all.filter(([, r]) => isParked(r, y));
       const inCol = new Set(all.map(([id]) => id));
       // Unterreihen nicht doppelt zählen, wenn ihre Masterreihe (mit eingeschalteter Unterreihe) in derselben Spalte steht
       const sum = all.reduce((s, [id, r]) => s + (mastersOf(id).some(([mid, mr]) => inCol.has(mid) && shownChildren(mr).some((c) => c.rid === id)) ? 0 : effL(r)), 0);
@@ -4173,10 +4181,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           return '<button type="button" draggable="true" class="jp-item prio-' + prioOf(r) + (foreign ? " jp-foreign" : "") + (isLoose(r) ? " jp-loose" : "") + (JSEL.has(id) ? " jp-sel" : "") + '" data-open="' + id + '" data-from="' + y + '" title="' + (isLoose(r) ? "Einzellektion öffnen · Strg+Klick: auswählen zum Gruppieren" : "Reihe öffnen") + (foreign ? " · Mehrfach-Reihe aus " + YEAR_SHORT[homeOf(r)] : (also.length ? " · auch in " + also.map((z) => YEAR_SHORT[z]).join(", ") : "")) + (isLoose(r) ? " · Ziehen: verschieben oder auf eine Reihe legen" : " · Ziehen zum Verschieben") + ' · Rechtsklick (lange drücken): Menü"><span class="t">' + (isLoose(r) ? '<span class="lo-mark" aria-hidden="true">L</span>' : "") + statusBadge(r) + msArrow(id) + (r.master ? '<span class="ms-mark" title="Masterreihe mit ' + childrenOf(r).length + ' Unterreihen">◆ </span>' : "") + litMark(r) + esc(r.title || "Ohne Titel") + subsHtml(id, r).after + (foreign ? '<span class="home-yr">Mehrfach-Reihe aus ' + YEAR_SHORT[homeOf(r)] + "</span>" : "") + subsHtml(id, r).list + (isLoose(r) && r.from ? '<span class="lo-from">aus ' + esc(r.from) + "</span>" : "") + '</span><span class="jp-rt"><span class="n">' +
             (effL(r) ? effL(r) + " L" : esc(htmlToPlain(r.hinweis || ""))) + "</span>" +
             (UP.eye ? '<span class="jp-eye" role="button" tabindex="0" data-jpeye="' + id + '" data-y="' + y + '" title="' + (isParked(r, y) ? "Wieder einblenden" : "Ausblenden (nach unten)") + '">' + (isParked(r, y) ? "👁" : "⊘") + "</span>" : "") + "</span>" +
-            (!UP.kidCards && r.master && childrenOf(r).length ? '<span class="subs jp-kids">' + childrenOf(r).map((c) => '<span class="sub-link" data-subgo="' + esc(c.rid) + '" title="Unterreihe öffnen">' + litMark(U.reihen[c.rid]) + esc(U.reihen[c.rid].title || "Ohne Titel") + "</span>").join("") + "</span>" : "") + (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
+            kidsLinks(r) + (pl && n && UP.bars !== false ? '<span class="bar-mini" title="' + pl + " von " + n + ' Lektionen ausgearbeitet"><i style="width:' + Math.round(pl / n * 100) + '%"></i></span>' : "") + "</button>";
       };
       let sec = '<section class="jp-col' + (y >= 5 ? " jp-other" : "") + '" data-col="' + y + '"><div class="jp-head"><span class="yr">' + YEAR_SHORT[y] + '</span><span class="sum" title="' + sum + ' Lektionen">· ' + sum + " L</span></div><div class=\"jp-box\" data-box=\"" + y + "\"><div class=\"jp-items\" data-zone=\"act\" data-year=\"" + y + "\">" +
-        act.map(itemHtml).join("") + "</div>" +
+        litSplit(act, itemHtml) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="jp-items jp-parked" data-zone="park" data-year="' + y + '">' + pk.map(itemHtml).join("") + "</div>" : "") +
         '<div class="jp-items-end"></div><button class="btn ghost jp-add" type="button" data-addyear="' + y + '">+ Reihe</button></div>' +
@@ -4208,10 +4216,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function renderRSide() {
     $("#r-years").innerHTML = YEARS.map((y) => '<button type="button" data-year="' + y + '" aria-pressed="' + (y === U.year) + '">' + YEAR_SHORT[y] + "</button>").join("");
     $("#u-cross").setAttribute("aria-pressed", String(UP.cross));
-    const y = U.year, rs = sideList(y), act = rs.filter(([, r]) => !isParked(r, y)), pk = rs.filter(([, r]) => isParked(r, y)), pOpen = !!PARK_OPEN[y];
-    const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + msArrow(id) + (r.master ? '<span class="ms-mark">◆ </span>' : "") + litMark(r) + esc(r.title || "Ohne Titel") + sh.after + sh.list + '</span><span class="n">' + (effL(r) ? effL(r) + " L" : "") + "</span></button>"; };
+    const y = U.year, rs = dropKids(sideList(y)), act = rs.filter(([, r]) => !isParked(r, y)), pk = rs.filter(([, r]) => isParked(r, y)), pOpen = !!PARK_OPEN[y];
+    const row = ([id, r]) => { const sh = subsHtml(id, r); return '<button type="button" draggable="true" data-sel="' + id + '" data-rid="' + id + '" aria-current="' + (id === U.sel) + '" title="Öffnen · Ziehen zum Anordnen"><span>' + msArrow(id) + (r.master ? '<span class="ms-mark">◆ </span>' : "") + litMark(r) + esc(r.title || "Ohne Titel") + sh.after + sh.list + kidsLinks(r) + '</span><span class="n">' + (effL(r) ? effL(r) + " L" : "") + "</span></button>"; };
     $("#r-list").innerHTML = rs.length
-      ? '<div class="rl-zone" data-zone="act">' + act.map(row).join("") + "</div>" +
+      ? '<div class="rl-zone" data-zone="act">' + litSplit(act, row) + "</div>" +
         '<button type="button" class="jp-park-tog' + (pk.length ? "" : " empty") + '" data-parktog="' + y + '" aria-expanded="' + pOpen + '" title="' + (pk.length ? (pOpen ? "Ausgeblendete Reihen einklappen" : "Ausgeblendete Reihen zeigen") + " · Reihen hierher ziehen zum Ausblenden" : "Reihen hierher ziehen, um sie auszublenden") + '"><span class="pk-in">✿' + (pk.length ? " " + pk.length + " ausgeblendet " + (pOpen ? "▾" : "▸") : "") + "</span></button>" +
         (pk.length && pOpen ? '<div class="rl-zone rl-parked" data-zone="park">' + pk.map(row).join("") + "</div>" : "")
       : '<div class="empty">Noch keine Reihen hier.</div>';
