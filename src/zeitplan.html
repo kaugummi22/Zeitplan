@@ -433,6 +433,15 @@ html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; ma
 .lk-nav button.on { background: var(--accent-soft); border-color: var(--accent); }
 .lk-draw.fix { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 100001; }
 .lk-penbar.fix { z-index: 100004; }
+#lk-prbar .lk-prnet { font-size: 0.85rem; color: var(--muted); padding: 0 6px; } #lk-prbar .lk-prnet.bad { color: #b4412f; font-weight: 700; }
+.lk-recv { grid-template-rows: 1fr; z-index: 100008; } .lk-recv .lk-slide { height: 100vh; box-sizing: border-box; overflow: hidden; }
+.lk-recv.black { background: #000; } .lk-recv.black .lk-slide, .lk-recv.rv-idle .lk-slide { visibility: hidden; }
+.lk-rvwait { display: none; position: absolute; inset: 0; margin: auto; width: min(560px, 90vw); height: fit-content; font: 18px/1.5 system-ui, sans-serif; color: #444; text-align: center; }
+.lk-recv.rv-idle .lk-rvwait { display: block; }
+.lk-rvbar { position: fixed; right: 14px; bottom: 14px; display: flex; gap: 8px; opacity: 0.25; transition: opacity 0.2s; }
+.lk-rvbar:hover, .lk-recv.rv-idle .lk-rvbar { opacity: 0.95; } .lk-recv.rv-net .lk-rvbar::before { content: "⚠ Keine Verbindung"; align-self: center; font: 600 13px system-ui, sans-serif; color: #b4412f; }
+.lk-rvbar button { font: 600 15px system-ui, sans-serif; padding: 10px 16px; border-radius: 10px; border: 1px solid #ccc; background: #fff; color: #222; cursor: pointer; }
+:fullscreen .lk-rvbar { opacity: 0; } :fullscreen .lk-rvbar:hover { opacity: 0.9; }
 #lk-prbar .lk-prsep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
 .lkw-menu { min-width: 220px; }
 .lkw-layer { position: fixed; inset: 0; z-index: 100005; pointer-events: none; }
@@ -6459,7 +6468,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
       '<div class="lk-page" id="lk-page" contenteditable="true" data-ph="Schreiben Sie hier die Seite für diese Lektion: Ablauf für die Klasse, Aufträge, Bilder, Links zu Dokumenten …"></div>';
     const pg = $("#lk-page"); pg.innerHTML = lkSanitize((LK.page || {}).html || ""); lkWrapStray(pg); pg.querySelectorAll(".lk-box").forEach((bx) => lkWrapStray(bx)); lkBlank();
-    if (LK.histPid !== pid) { LK.histPid = pid; LK.undo = []; LK.redo = []; if (lkPresenting()) { PR.s = 0; PR.k = 0; setTimeout(() => lkPrRender(true), 50); } } LK.cur = lkSanitize(pg.innerHTML); LK.lastType = 0;
+    if (LK.histPid !== pid) { LK.histPid = pid; LK.undo = []; LK.redo = []; if (lkBeaming()) { PR.s = 0; PR.k = 0; setTimeout(() => lkPrRender(true), 50); } } LK.cur = lkSanitize(pg.innerHTML); LK.lastType = 0;
     if (lkPen) { lkPen.bar.remove(); lkPen = null; document.documentElement.classList.remove("lk-pen"); }
     if (lkZooms.has(document)) lkZooms.get(document).close();
     lkOpenHead(); lkUndoBtns(); lkPlanRender();
@@ -6491,7 +6500,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     }
     if (html === LK.cur && LK.page && LK.page.html === html) { lkUndoBtns(); return; }
     LK.cur = html; lkUndoBtns(); lkPersist(html);
-    if (lkPresenting()) { clearTimeout(PR.timer); PR.timer = setTimeout(() => lkPrRender(false), 400); }
+    if (lkBeaming()) { clearTimeout(PR.timer); PR.timer = setTimeout(() => lkPrRender(false), 400); }
   }
   function lkPersist(html) {
     const pid = LK.pid; LK.page = { ...(LK.page || {}), html, at: new Date().toISOString() };
@@ -6562,38 +6571,110 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     try { ov.requestFullscreen && ov.requestFullscreen().then(() => lkwSync()).catch(() => {}); } catch (e) {}
   }
   // ---------- Beamer-Fenster: Sie sehen die ganze Seite, der Beamer zeigt Abschnitt für Abschnitt ----------
-  const PR = { win: null, s: 0, k: 0, black: false, deck: null, timer: 0, poll: 0 };
+  const PR = { win: null, s: 0, k: 0, black: false, deck: null, timer: 0, poll: 0, remote: false };
   const lkPresenting = () => !!(PR.win && !PR.win.closed);
+  // Beamer am Fenster oder an einem anderen Gerät (dort mit «Dieses Gerät ist der Beamer»)
+  const lkBeaming = () => lkPresenting() || PR.remote;
   function lkPrDeck() { const pg = $("#lk-page"); if (!pg) return null; PR.deck = lkDeck(pg, true); const n = PR.deck.secs.length; if (PR.s >= n) { PR.s = n - 1; PR.k = 0; } if (PR.k >= PR.deck.secs[PR.s].length) PR.k = PR.deck.secs[PR.s].length - 1; return PR.deck; }
   async function lkPrRender(scroll) {
-    if (!lkPresenting()) { lkPrStop(); return; }
+    if (!lkBeaming()) { lkPrStop(); return; }
     const d = lkPrDeck(); if (!d) return;
     // Seite (Ihre Ansicht): aktuellen Abschnitt markieren
     d.map.forEach((m) => { if (m.el.nodeType !== 1 || m.line) return; m.el.classList.remove("pr-on", "pr-next", "pr-off"); m.el.classList.add(m.s !== PR.s ? "pr-off" : m.k <= PR.k ? "pr-on" : "pr-next"); });
     if (scroll) { const first = d.map.find((m) => m.s === PR.s && m.k === PR.k && m.el.nodeType === 1 && !m.line) || d.map.find((m) => m.s === PR.s && m.el.nodeType === 1); if (first) first.el.scrollIntoView({ block: "center", behavior: "smooth" }); }
     lkPrBar();
+    const html = PR.black ? "" : lkStepHtml(d.secs, PR.s, PR.k);
+    if (PR.remote) { lkBeamSend({ html, black: PR.black, s: PR.s }); return; }
     // Beamer
     const w = PR.win, st = w.document.getElementById("st"); if (!st) return;
-    let html = PR.black ? "" : lkStepHtml(d.secs, PR.s, PR.k);
+    await lkSlideFill(st, html, w, () => lkCheckIdx(st, d.secs, PR.s));
+    w.document.body.classList.toggle("black", PR.black);
+    if (PR.lastS !== PR.s) { if (PR.lastS != null) { lkPenWipe(w.document); if (lkZooms.has(w.document)) lkZooms.get(w.document).close(); } PR.lastS = PR.s; }
+  }
+  // Folie füllen (Bilder aus OneDrive holen) und passend machen: Schrift verkleinern, bis alles Platz hat
+  async function lkSlideFill(st, html, w, after) {
     const srcs = [...new Set((html.match(/\/_blob\/[0-9a-f]{8,64}/g) || []))];
     for (const src of srcs) { const im = await lkLoadImg(src); if (im) html = html.split('src="' + src + '"').join('src="' + im.src + '"'); }
-    st.innerHTML = html; w.document.body.classList.toggle("black", PR.black); lkCheckIdx(st, d.secs, PR.s);
-    if (PR.lastS !== PR.s) { if (PR.lastS != null) { lkPenWipe(w.document); if (lkZooms.has(w.document)) lkZooms.get(w.document).close(); } PR.lastS = PR.s; }
-    // passend machen: Schrift verkleinern, bis alles Platz hat
+    st.innerHTML = html; if (after) after();
     let fs = 1; st.style.fontSize = ""; await new Promise((r) => w.requestAnimationFrame(() => r()));
     const imgs = [...st.querySelectorAll("img")]; await Promise.all(imgs.map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; }))));
     while (st.scrollHeight > st.clientHeight + 2 && fs > 0.45) { fs -= 0.06; st.style.fontSize = "calc(clamp(20px, 2.6vw, 40px) * " + fs + ")"; }
   }
+  // ---------- Beamer an einem anderen Gerät: das Tablet schreibt, was gezeigt wird, in eine kleine Datei in OneDrive; das Gerät am Beamer holt sie laufend ----------
+  const BM = { last: "", busy: false, next: null, ok: true };
+  async function lkBeamSend(o) {
+    const j = JSON.stringify(o); if (j === BM.last && BM.ok) return;
+    BM.next = j; if (BM.busy) return;
+    BM.busy = true;
+    while (BM.next) {
+      const cur = BM.next; BM.next = null;
+      try { await window.ZBEAM.put({ ...JSON.parse(cur), t: Date.now() }); BM.last = cur; BM.ok = true; }
+      catch (e) { BM.ok = false; BM.last = ""; }
+      lkBeamStat();
+    }
+    BM.busy = false;
+  }
+  function lkBeamStat() { const el = $("#lk-prbar .lk-prnet"); if (el) { el.textContent = BM.ok ? "📡 an anderes Gerät" : "⚠ Keine Verbindung"; el.classList.toggle("bad", !BM.ok); } }
+  function lkPrRemote() {
+    if (lkPresenting()) lkPrStop();
+    if (!window.ZBEAM) { lkStat("Das geht nur mit Anmeldung bei OneDrive."); return; }
+    lkSave(); PR.remote = true; PR.s = 0; PR.k = 0; PR.black = false; BM.last = ""; BM.ok = true;
+    lkPrRender(true); lkOpenHead(); lkwSync();
+  }
+  // Empfänger: dieses Gerät hängt am Beamer und zeigt, was am Tablet weitergeschaltet wird
+  const RV = { el: null, tag: null, timer: 0, lock: null, html: null };
+  function lkRecvStart() {
+    if (RV.el) return;
+    if (!window.ZBEAM) { alert("Das geht nur mit Anmeldung bei OneDrive."); return; }
+    lkPopsClose();
+    const ov = document.createElement("div"); ov.className = "lk-show aud lk-recv"; ov.tabIndex = 0;
+    ov.innerHTML = '<div class="lk-slide" id="lk-rvst"></div><div class="lk-rvwait"><b>Dieses Gerät ist der Beamer.</b><br>Am Tablet (oder Handy) unter «▶ Zeigen ▾» «📡 Beamer an anderem Gerät» wählen. Was Sie dort zeigen, erscheint hier nach etwa 1–3 Sekunden.</div>' +
+      '<div class="lk-rvbar"><button type="button" data-rv="fs">⛶ Vollbild</button><button type="button" data-rv="x">✕ Beenden</button></div>';
+    document.body.appendChild(ov); RV.el = ov; RV.tag = null; RV.html = null; ov.focus();
+    ov.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-rv]"); if (!b) return;
+      if (b.dataset.rv === "x") lkRecvStop(); else { try { ov.requestFullscreen(); } catch (e2) {} lkRecvLock(); }
+    });
+    ov.addEventListener("keydown", (e) => { if (e.key === "Escape" && !document.fullscreenElement) lkRecvStop(); });
+    lkRecvLock(); lkRecvPoll();
+  }
+  async function lkRecvLock() { try { if (navigator.wakeLock && !RV.lock) { RV.lock = await navigator.wakeLock.request("screen"); RV.lock.addEventListener("release", () => { RV.lock = null; }); } } catch (e) {} }
+  async function lkRecvPoll() {
+    clearTimeout(RV.timer); if (!RV.el) return;
+    try {
+      const r = await window.ZBEAM.get(RV.tag);
+      if (r && !r.same) { RV.tag = r.tag; await lkRecvShow(r.data); }
+      else if (!r) await lkRecvShow(null);
+      RV.el.classList.remove("rv-net");
+    } catch (e) { if (RV.el) RV.el.classList.add("rv-net"); }
+    if (RV.el) RV.timer = setTimeout(lkRecvPoll, document.hidden ? 4000 : 1200);
+  }
+  async function lkRecvShow(d) {
+    const ov = RV.el; if (!ov) return;
+    // ausgeschaltet oder älter als 6 Stunden: warten
+    const live = d && !d.off && Date.now() - (d.t || 0) < 6 * 3600e3;
+    ov.classList.toggle("rv-idle", !live); ov.classList.toggle("black", !!(live && d.black));
+    const html = live && !d.black ? d.html || "" : "";
+    if (html === RV.html) return; RV.html = html;
+    await lkSlideFill(ov.querySelector("#lk-rvst"), html, window);
+  }
+  function lkRecvStop() {
+    if (!RV.el) return; clearTimeout(RV.timer);
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+    try { if (RV.lock) RV.lock.release(); } catch (e) {}
+    RV.el.remove(); RV.el = null; RV.lock = null;
+  }
+  document.addEventListener("visibilitychange", () => { if (RV.el && !document.hidden) { lkRecvLock(); lkRecvPoll(); } });
   function lkPrBar() {
     let bar = $("#lk-prbar");
-    if (!lkPresenting()) { if (bar) bar.remove(); document.documentElement.classList.remove("lk-presenting"); return; }
+    if (!lkBeaming()) { if (bar) bar.remove(); document.documentElement.classList.remove("lk-presenting"); return; }
     document.documentElement.classList.add("lk-presenting");
     if (!bar) { bar = document.createElement("div"); bar.id = "lk-prbar"; document.body.appendChild(bar); }
     const d = PR.deck, n = d.secs.length, nk = d.secs[PR.s].length;
     bar.innerHTML = '<button type="button" class="lk-tb" data-pr="-1" title="Zurück (Bild↑ / ←)">◀</button><span class="lk-prpos"><b>Abschnitt ' + (PR.s + 1) + " / " + n + "</b>" + (nk > 1 ? " · Schritt " + (PR.k + 1) + " / " + nk : "") + '</span><button type="button" class="lk-tb pr-next-btn" data-pr="1" title="Weiter (Bild↓ / → / Leertaste)">▶</button>' +
-      '<button type="button" class="lk-tb' + (PR.black ? " on" : "") + '" data-pr="black" title="Beamer kurz leer (Taste B)">⬛ Leer</button><button type="button" class="lk-tb" data-pr="stop" title="Beamer-Fenster schliessen">✕ Beamer</button>' +
-      '<span class="lk-prsep"></span><button type="button" class="lk-tb" data-lkb="pen" title="Stift auf dem Beamer (dort zeichnen)">🖊</button><button type="button" class="lk-tb" data-lkb="spot" title="Spotlight auf dem Beamer – im Beamer-Fenster verschieben">🔦</button><button type="button" class="lk-tb" data-lkb="zoom" title="Zoom auf dem Beamer – im Beamer-Fenster Bereich aufziehen oder doppelt tippen">🔍</button>';
-    lkToolsMark();
+      '<button type="button" class="lk-tb' + (PR.black ? " on" : "") + '" data-pr="black" title="Beamer kurz leer (Taste B)">⬛ Leer</button><button type="button" class="lk-tb" data-pr="stop" title="' + (PR.remote ? "Beamer am anderen Gerät beenden" : "Beamer-Fenster schliessen") + '">✕ Beamer</button>' +
+      (PR.remote ? '<span class="lk-prnet" title="Das Gerät am Beamer zeigt nach etwa 1–3 Sekunden, was Sie hier weiterschalten">📡 an anderes Gerät</span>' : '<span class="lk-prsep"></span><button type="button" class="lk-tb" data-lkb="pen" title="Stift auf dem Beamer (dort zeichnen)">🖊</button><button type="button" class="lk-tb" data-lkb="spot" title="Spotlight auf dem Beamer – im Beamer-Fenster verschieben">🔦</button><button type="button" class="lk-tb" data-lkb="zoom" title="Zoom auf dem Beamer – im Beamer-Fenster Bereich aufziehen oder doppelt tippen">🔍</button>');
+    lkToolsMark(); if (PR.remote) lkBeamStat();
   }
   function lkPrGo(d) {
     if (!PR.deck) lkPrDeck(); const secs = PR.deck.secs; const s0 = PR.s;
@@ -6602,7 +6683,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     lkPrRender(PR.s !== s0 || d > 0);
   }
   function lkPrKey(e) {
-    if (!lkPresenting()) return false;
+    if (!lkBeaming()) return false;
     const ae = (e.view && e.view.document && e.view.document.activeElement) || document.activeElement;
     if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return false;
     const editing = document.activeElement && document.activeElement.id === "lk-page" && e.view === window;
@@ -6613,6 +6694,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   document.addEventListener("keydown", (e) => { if (lkPrKey(e)) e.stopPropagation(); }, true);
   async function lkPrStart() {
     if (lkPresenting()) { PR.win.focus(); return; }
+    if (PR.remote) lkPrStop();
     lkSave();
     const w = window.open("", "semper-beamer", "popup=yes,width=1280,height=720");
     if (!w) { lkStat("Das Beamer-Fenster wurde blockiert – bitte Pop-ups für diese Seite erlauben."); return; }
@@ -6643,6 +6725,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   function lkPrStop() {
     clearInterval(PR.poll);
+    if (PR.remote) { PR.remote = false; BM.last = ""; lkBeamSend({ off: true }); }
     if (PR.win && !PR.win.closed) { try { PR.win.close(); } catch (e) {} }
     PR.win = null; PR.deck = null;
     [lkSpots, lkZooms, lkPens].forEach((m) => [...m.keys()].forEach((d) => { if (d !== document) m.delete(d); }));
@@ -6899,7 +6982,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const lkShowPop = () => '<span class="lk-tbw"><button type="button" class="btn primary" data-lkpop="show" title="Seite der Klasse zeigen">▶ Zeigen ▾</button><div class="lk-pop lkw-menu lk-showmenu" data-pop="show" hidden>' +
     '<button type="button" class="lk-tb" id="lk-proj" title="Seite gross zeigen, ohne Kopfzeile – Leisten und Werkzeuge bei Bedarf ausklappen">▶ Projizieren<small>Die ganze Seite gross</small></button>' +
     '<button type="button" class="lk-tb" id="lk-slides" title="Folie für Folie zeigen (Abschnitts- und Schrittlinien)">▭ Folien<small>Abschnitt für Abschnitt in diesem Fenster</small></button>' +
-    '<button type="button" class="lk-tb" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 ' + (lkPresenting() ? "Beamer schliessen" : "Beamer") + "<small>" + (lkPresenting() ? "Zweites Fenster wieder schliessen" : "Zweites Fenster für den Beamer, hier bleibt Ihre Ansicht") + "</small></button></div></span>";
+    '<button type="button" class="lk-tb" id="lk-beamer" title="Zweites Fenster für den Beamer: dort erscheint Abschnitt für Abschnitt, hier sehen Sie die ganze Seite">🖥 ' + (lkPresenting() ? "Beamer schliessen" : "Beamer") + "<small>" + (lkPresenting() ? "Zweites Fenster wieder schliessen" : "Zweites Fenster für den Beamer, hier bleibt Ihre Ansicht") + "</small></button>" +
+    '<button type="button" class="lk-tb" id="lk-remote" title="Ein anderes Gerät hängt am Beamer (z. B. der PC im Schulzimmer). Sie schalten hier weiter und sehen Ihre eigene Ansicht.">📡 ' + (PR.remote ? "Beamer am anderen Gerät beenden" : "Beamer an anderem Gerät") + "<small>" + (PR.remote ? "Das andere Gerät zeigt dann nichts mehr" : "Ein PC am Beamer zeigt, Sie steuern von hier") + "</small></button>" +
+    '<button type="button" class="lk-tb" id="lk-recv" title="Dieses Gerät hängt am Beamer und zeigt, was Sie am Tablet oder Handy weiterschalten">📺 Dieses Gerät ist der Beamer<small>Zeigt, was am Tablet weitergeschaltet wird</small></button></div></span>';
   function lkOpenHead() {
     const acts = $("#lk-acts"); if (!acts) return;
     const P = document.documentElement.classList.contains("lk-proj"), pen = document.documentElement.classList.contains("lk-pen"), tools = document.documentElement.classList.contains("lk-tools");
@@ -7716,7 +7801,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   document.getElementById("view-lektion").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); const a = e.target.closest("a[data-doc]");
     if (a) { e.preventDefault(); const f = lkAllDocs()[a.dataset.doc]; if (f) openViewer(f); return; }
-    if (lkPresenting() && e.target.tagName === "HR" && $("#lk-page").contains(e.target) && PR.deck) { const m = PR.deck.map.find((x) => x.el === e.target); if (m) { PR.s = m.s; PR.k = m.k; lkPrRender(true); } return; }
+    if (lkBeaming() && e.target.tagName === "HR" && $("#lk-page").contains(e.target) && PR.deck) { const m = PR.deck.map.find((x) => x.el === e.target); if (m) { PR.s = m.s; PR.k = m.k; lkPrRender(true); } return; }
     const ck = e.target.closest("#lk-page ul.lk-check > li"); if (ck && !b && lkCheckHit(ck, e)) { ck.classList.toggle("done"); lkSave(); return; }
     const fg = e.target.closest(".lk-fig"); if (fg && !b && $("#lk-page") && $("#lk-page").contains(fg)) { if (lkFigNoClick) { lkFigNoClick = 0; return; } if (lkFP && lkFP.fig === fg) return; lkInk(fg); return; }
     if (!b) return;
@@ -7733,6 +7818,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.z) { LK.pz = Math.max(0.8, Math.min(3, Math.round(((LK.pz || 1.35) + 0.15 * +b.dataset.z) * 100) / 100)); try { localStorage.setItem("zeitplan-lkpz", LK.pz); } catch (e2) {} lkLayout(); return; }
     if (b.id === "lk-slides") { lkSave(); lkPresent(); return; }
     if (b.id === "lk-beamer") { if (lkPresenting()) lkPrStop(); else lkPrStart(); return; }
+    if (b.id === "lk-remote") { if (PR.remote) lkPrStop(); else lkPrRemote(); return; }
+    if (b.id === "lk-recv") { lkRecvStart(); return; }
     if (b.dataset.pr) { const v = b.dataset.pr; if (v === "stop") lkPrStop(); else if (v === "black") { PR.black = !PR.black; lkPrRender(false); } else lkPrGo(+v); return; }
     if (b.dataset.lkundo) { lkUndo(+b.dataset.lkundo); return; }
     if (b.dataset.lkpick) { const f = lkAllDocs()[b.dataset.lkpick]; if (f) lkPick(f); return; }
@@ -7797,7 +7884,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const hashTab = location.hash.replace("#", "");
   let savedTab = null; try { savedTab = localStorage.getItem("zeitplan-tab"); } catch (e) {}
   const TABS = ["termine", "unterricht", "klassen", "lektion"];
-  setTab(TABS.includes(hashTab) ? hashTab : TABS.includes(savedTab) ? savedTab : "termine");
+  setTab(hashTab === "beamer" ? "lektion" : TABS.includes(hashTab) ? hashTab : TABS.includes(savedTab) ? savedTab : "termine");
+  if (hashTab === "beamer") setTimeout(lkRecvStart, 0);
 
   // Höhe der Kopfzeile für die klebende Spaltenüberschrift
   try { new ResizeObserver(() => document.documentElement.style.setProperty("--hdr", $("#hdr").offsetHeight + "px")).observe($("#hdr")); } catch (e) {}

@@ -235,6 +235,17 @@
     offline: () => OFF,
   };
 
+  // Beamer an einem anderen Gerät: eine kleine Datei sagt, was gerade gezeigt wird (bleibt im eigenen OneDrive)
+  const BEAM = BASE + "/temp/beamer.json";
+  window.ZBEAM = {
+    async put(o) { const r = await putFile(BEAM, new Blob([JSON.stringify(o)], { type: "application/json" })); if (!r.ok) throw new Error("Beamer " + r.status); },
+    async get(tag) {
+      const m = await getMeta(BEAM); if (!m) return null;
+      if (tag && m.eTag === tag) return { same: true };
+      return { tag: m.eTag, data: JSON.parse((await (await download(m)).text()) || "null") };
+    },
+  };
+
   // Änderungen von anderen Geräten (PC, Handy) übernehmen
   let refreshing = false;
   async function refresh() {

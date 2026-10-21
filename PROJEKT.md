@@ -122,6 +122,7 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
   - `lkProj`: dieselbe Seite ohne Kopfzeile, Leisten und Werkzeuge bei Bedarf, Stift über der Seite (vorübergehend).
   - **Folien** (`lkPresent`): Abschnitte und Schritte in einem Fenster.
   - **🖥 Beamer** (`lkPrStart`): zweites Fenster mit Abschnitt für Abschnitt. Das Hauptfenster bleibt die normale Lehreransicht (kein Wechsel zu Projizieren) plus Leiste unten: ◀ ▶, Leer (B), Beamer schliessen, Stift/Spotlight/Zoom für den Beamer. Das Beamer-Fenster selbst zeigt nur – keine Knöpfe, Karten ohne Bedienelemente (Katharina, 16.10.2026).
+  - **📡 Beamer an anderem Gerät** (`lkPrRemote`, 21.10.2026): für das Tablet am Beamer (iPad spiegelt nur). Ein anderes Gerät (z. B. Schul-PC) hängt am Beamer und wählt «📺 Dieses Gerät ist der Beamer» (`lkRecvStart`, auch Adresse mit `#beamer`). Das Tablet behält seine eigene Ansicht (Planung, Notizen) und schaltet mit derselben Leiste weiter. Übertragung nur über das eigene OneDrive: das Tablet schreibt den gezeigten Schritt (ohne Notizen) in `Zeitplan-App/temp/beamer.json` (`window.ZBEAM`), das Beamer-Gerät holt die Datei alle 1,2 s (Verzögerung etwa 1–3 s). Stift/Spotlight/Zoom und Werkzeug-Karten gibt es dort noch nicht.
   - Die Aufteilung macht `lkDeck`. Gibt es keine Abschnittslinien, trennen Titel H1/H2.
 - **Checkliste und Tabelle** (Werkzeugleiste): `ul.lk-check` mit `li.done` (Klick aufs Kästchen, auch in Folien/Beamer; Zuordnung über die Reihenfolge `lkCheckIdx`), `table.lk-tab` mit Zeilen/Spalten-Befehlen (`lkTableOp`), Tab springt in die nächste Zelle. Word-Export kennt beides.
 - **Hilfsmittel beim Projizieren** (Kopfzeile beim Projizieren «🔦 Spotlight», «🔍 Zoom», «Werkzeuge ▾»; Folien-Leiste; Beamer-Leiste im Hauptfenster):
@@ -152,7 +153,7 @@ Playwright mit installiertem Chromium und einer nachgebauten Graph-Schnittstelle
 ## Offen / später
 
 - **Mit dem echten Konto prüfen:** Umwandlung PowerPoint/Word → PDF (`toPdf`). Katharina gibt Rückmeldung.
-- **Beamer-Fenster** am Laptop mit zweitem Bildschirm ausprobieren. Auf dem iPad gibt es kein zweites Fenster.
+- **Beamer-Fenster** am Laptop mit zweitem Bildschirm ausprobieren. Auf dem iPad gibt es kein zweites Fenster. Lösung fürs Tablet: «📡 Beamer an anderem Gerät» – Rückmeldung aus dem Schulzimmer offen.
 - **Ideen besprochen, nicht gebaut:**
   - «Mitlesen» (Laptop holt Tablet-Änderungen alle 2–3 s) und Tablet als Fernbedienung
   - Abschnittsweise speichern bzw. ausgeben, Abschnitte als Bausteine
