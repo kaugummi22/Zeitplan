@@ -1031,7 +1031,40 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .notes-ed:focus { border-color: var(--accent); }
 .notes-ed:empty::before { content: attr(data-ph); color: var(--muted); }
 .notes-ed img { max-width: 100%; height: auto; display: inline-block; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; vertical-align: top; }
-.notes-ed img.w50 { max-width: 50%; } .notes-ed img.w33 { max-width: 33%; }
+.notes-ed img.w50 { max-width: 50%; } .notes-ed img.w33 { max-width: 33%; } .notes-ed img.w25 { max-width: 25%; } .notes-ed img.w75 { max-width: 75%; }
+/* Bilder in den Notizen: mit Bildunterschrift/Quelle, Grösse und Lage (Text daneben links/rechts, allein, Mitte) */
+.notes-ed, .notes { display: flow-root; }
+.nfig { margin: 6px 0; width: fit-content; max-width: 100%; }
+.nfig img { display: block; max-width: 100%; height: auto; margin: 0; }
+.nfig[class*=" w"] img { width: 100%; max-width: 100%; }
+.nfig.w25 { width: 25%; } .nfig.w33 { width: 33%; } .nfig.w50 { width: 50%; } .nfig.w75 { width: 75%; } .nfig.w100 { width: 100%; }
+.nfig figcaption { contain: inline-size; font-size: 0.8em; line-height: 1.3; color: var(--muted); font-style: italic; margin-top: 3px; overflow-wrap: anywhere; }
+.nfig.p-l { float: left; margin: 3px 16px 8px 0; } .nfig.p-r { float: right; margin: 3px 0 8px 16px; } .nfig.p-c { margin-left: auto; margin-right: auto; }
+.nfig.p-c figcaption { text-align: center; }
+.notes-ed .nfig { cursor: pointer; border-radius: 4px; }
+.notes-ed .nfig img { border: 1px solid var(--line); border-radius: 4px; vertical-align: top; }
+.notes-ed .nfig.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+.lk-plantext img { max-width: 100%; height: auto; }
+.lk-figpop input.nf-cap { width: 100%; font: inherit; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: var(--bg); color: var(--ink); }
+.lk-fpg.four { grid-template-columns: repeat(5, 1fr); }
+/* Lektion: Lektionsplanung links, Notizen rechts */
+.d-toggles .d-side { margin-left: auto; }
+.d-toggles .d-side::before { content: "◫ "; }
+.d-toggles .d-side[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.panel.wide.side { width: min(1760px, 100%); }
+@media (min-width: 900px) {
+  .d-split.on { display: grid; grid-template-columns: minmax(0, calc(var(--dl, 55) * 1%)) 14px minmax(0, 1fr); align-items: start; }
+  .d-split.on > .d-sl, .d-split.on > .d-sr { display: grid; gap: 12px; min-width: 0; }
+  .d-split.on .ptable { min-width: 480px; }
+  .d-split.on .notes-ed { min-height: 62vh; }
+  .d-split.on > .d-gut { align-self: stretch; cursor: col-resize; position: relative; touch-action: none; }
+  .d-split.on > .d-gut::before { content: ""; position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; border-radius: 2px; background: var(--line); }
+  .d-split.on > .d-gut:hover::before, .d-split.on > .d-gut.active::before { background: var(--accent); }
+}
+.d-split:not(.on) { display: grid; gap: 12px; }
+.d-split:not(.on) > .d-sl, .d-split:not(.on) > .d-sr { display: grid; gap: 12px; }
+.d-split:not(.on) > .d-gut { display: none; }
+@media (max-width: 899px) { .d-toggles .d-side { display: none; } .d-split.on > .d-gut { display: none; } .d-split.on, .d-split.on > .d-sl, .d-split.on > .d-sr { display: grid; gap: 12px; } }
 .notes-ed mark, .notes mark { color: inherit; border-radius: 2px; padding: 0 1px; }
 mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b { background: #cfe4ff; }
 :root[data-theme="dark"] mark.hl-y, :root[data-theme="dark"] mark.hl-g, :root[data-theme="dark"] mark.hl-b { color: #111; }
@@ -1279,7 +1312,7 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ptable tr:last-child td { border-bottom: 0; }
 .pcell { min-height: 34px; padding: 6px 8px; outline: none; overflow-wrap: anywhere; }
 .pcell:focus { box-shadow: inset 0 0 0 2px var(--accent); background: var(--surface); }
-.ptools { display: flex; align-items: center; gap: 10px; }
+.ptools { display: flex; align-items: center; gap: 10px; } .ptools > .btn { white-space: nowrap; flex: none; }
 @media (max-width: 0px) and (max-width: 760px) { .lesson, .lessons-head { grid-template-columns: 110px minmax(0, 1fr); } .ldocs { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); } .ldocs:empty { display: none; } .lessons-head span:last-child { display: none; } }
 .lesson:first-child { border-top: 0; }
 .lesson .lh { padding: 8px 10px; background: var(--bg); border-right: 1px solid var(--line); display: grid; align-content: start; gap: 2px; }
@@ -1900,7 +1933,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (n.nodeType !== 1) continue;
         const tag = n.tagName;
         if (tag === "BR") { out += "<br>"; continue; }
-        if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) { const w = /\bw(50|33)\b/.exec(n.className || ""); out += '<img src="' + src + '"' + (w ? ' class="w' + w[1] + '"' : "") + ' alt="">'; } continue; }
+        if (tag === "FIGURE") { const im = n.querySelector("img"), src = (im && im.getAttribute("src")) || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) { const c = n.className || "", w = /\bw(25|33|50|75|100)\b/.exec(c), ps = /\bp-([lrc])\b/.exec(c), fc = n.querySelector("figcaption"), cap = fc ? fc.textContent.replace(/[\u00a0\u200b]/g, " ").trim() : ""; out += '<figure class="nfig' + (w ? " w" + w[1] : "") + (ps ? " p-" + ps[1] : "") + '"><img src="' + src + '" alt="">' + (cap ? "<figcaption>" + esc(cap) + "</figcaption>" : "") + "</figure>"; } continue; }
+        if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) { const w = /\bw(25|33|50|75)\b/.exec(n.className || ""); out += '<img src="' + src + '"' + (w ? ' class="w' + w[1] + '"' : "") + ' alt="">'; } continue; }
         if (tag === "STYLE" || tag === "SCRIPT" || tag === "META" || tag === "TITLE") continue;
         const st = n.style || {};
         if (tag === "UL" || tag === "OL") { const t = tag.toLowerCase(); out += "<" + t + ">"; walk(n); out += "</" + t + ">"; continue; }
@@ -1930,7 +1964,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     out = out.replace(/<div( class="al-[crj]")?><\/div>/g, "<div><br></div>").replace(/<div class="ncol"><\/div>/g, '<div class="ncol"><br></div>').replace(/<div class="ncols"><\/div>/g, "").replace(/<(ul|ol)><\/\1>/g, "");
     return out.replace(/(<br>)+$/, "");
   }
-  const notesPlain = (h) => htmlToPlain(String(h || "").replace(/<img[^>]*>/g, "[Bild]"));
+  const notesPlain = (h) => htmlToPlain(String(h || "").replace(/<img[^>]*>/g, "[Bild]").replace(/<figcaption>/g, " (").replace(/<\/figcaption>/g, ")"));
   const sfx = (part) => (part > 1 ? String(part) : "");
   const richOf = (x, part) => { const h = x["html" + sfx(part)], t = x["text" + sfx(part)]; return h != null ? sanitize(h) : plainToHtml(t); };
   const PART_NAMES = ["", "", " (zweiter Teil)", " (dritter Teil)", " (vierter Teil)"];
@@ -2618,7 +2652,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
 
   // ---------- Drucken: eine Datei, die sich im Browser öffnet und gleich das Druckfenster zeigt ----------
-  const PRINT_CSS = "@page{size:A4;margin:10mm 11mm}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;line-height:1.3;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1{font-size:13pt;margin:0 0 4px}h2{font-size:11pt;margin:10px 0 4px;padding-bottom:2px;border-bottom:1.2px solid #333}h3{font-size:8.5pt;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.04em;color:#444}.meta{color:#444;margin:0 0 10px}.box{border:1px solid #bbb;border-radius:4px;padding:6px 8px;margin:4px 0}table{width:100%;border-collapse:collapse;margin:4px 0;table-layout:fixed}th,td{border:1px solid #999;padding:4px 6px;vertical-align:top;text-align:left;overflow-wrap:break-word}th{background:#eee;font-size:9.5pt}.pre{white-space:pre-wrap}tr{break-inside:avoid}.notes img{max-width:100%;max-height:120mm}.notes img.w50{max-width:50%}.notes img.w33{max-width:33%}mark.hl-y{background:#fff1a6}mark.hl-g{background:#d3f2c4}mark.hl-b{background:#cfe4ff}mark{color:inherit}.fs-s{font-size:85%}.fs-l{font-size:125%}.fs-xl{font-size:150%}.one h1{border-bottom:1.2px solid #333;padding-bottom:2px}.al-c{text-align:center}.al-r{text-align:right}.al-j{text-align:justify}.notes ul,.notes ol{margin:2px 0;padding-left:20px}.ncols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin:4px 0;break-inside:avoid}.ncol{padding:2px 8px}.ncol+.ncol{border-left:1px solid #999}.phase{font-weight:400;color:#555}ul{margin:2px 0;padding-left:18px}@media screen{body{max-width:190mm;margin:20px auto;padding:0 12px}}";
+  const PRINT_CSS = "@page{size:A4;margin:10mm 11mm}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;line-height:1.3;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1{font-size:13pt;margin:0 0 4px}h2{font-size:11pt;margin:10px 0 4px;padding-bottom:2px;border-bottom:1.2px solid #333}h3{font-size:8.5pt;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.04em;color:#444}.meta{color:#444;margin:0 0 10px}.box{border:1px solid #bbb;border-radius:4px;padding:6px 8px;margin:4px 0}table{width:100%;border-collapse:collapse;margin:4px 0;table-layout:fixed}th,td{border:1px solid #999;padding:4px 6px;vertical-align:top;text-align:left;overflow-wrap:break-word}th{background:#eee;font-size:9.5pt}.pre{white-space:pre-wrap}tr{break-inside:avoid}.notes img{max-width:100%;max-height:120mm}.notes img.w50{max-width:50%}.notes img.w33{max-width:33%}.notes img.w25{max-width:25%}.notes img.w75{max-width:75%}.notes{display:flow-root}.nfig{margin:4px 0;width:fit-content;max-width:100%;break-inside:avoid}.nfig img{display:block;max-width:100%;max-height:120mm}.nfig[class*=\" w\"] img{width:100%}.nfig.w25{width:25%}.nfig.w33{width:33%}.nfig.w50{width:50%}.nfig.w75{width:75%}.nfig.w100{width:100%}.nfig figcaption{contain:inline-size;font-size:8pt;font-style:italic;color:#555;margin-top:2px}.nfig.p-l{float:left;margin:2px 10px 6px 0}.nfig.p-r{float:right;margin:2px 0 6px 10px}.nfig.p-c{margin-left:auto;margin-right:auto}.nfig.p-c figcaption{text-align:center}mark.hl-y{background:#fff1a6}mark.hl-g{background:#d3f2c4}mark.hl-b{background:#cfe4ff}mark{color:inherit}.fs-s{font-size:85%}.fs-l{font-size:125%}.fs-xl{font-size:150%}.one h1{border-bottom:1.2px solid #333;padding-bottom:2px}.al-c{text-align:center}.al-r{text-align:right}.al-j{text-align:justify}.notes ul,.notes ol{margin:2px 0;padding-left:20px}.ncols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin:4px 0;break-inside:avoid}.ncol{padding:2px 8px}.ncol+.ncol{border-left:1px solid #999}.phase{font-weight:400;color:#555}ul{margin:2px 0;padding-left:18px}@media screen{body{max-width:190mm;margin:20px auto;padding:0 12px}}";
   const safeName = (t) => String(t || "Planung").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120);
   async function inlineImgs(body) {
     const ids = [...new Set([...body.matchAll(/src="\/_blob\/([0-9a-f]+)"/g)].map((m) => m[1]))];
@@ -2926,6 +2960,26 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     }
   }
 
+  // Lektion: Lektionsplanung links, Notizen rechts (Wahl und Breite pro Gerät)
+  const dSide = () => { try { return localStorage.getItem("zeitplan-dside") === "1"; } catch (e) { return false; } };
+  const dSideW = () => { let v = 55; try { v = +localStorage.getItem("zeitplan-dsidew") || 55; } catch (e) {} return Math.max(25, Math.min(75, v)); };
+  function bindSide(root) {
+    const b = root.querySelector("#d-side"), sp = root.querySelector("#d-split"), g = root.querySelector("#d-gut"), pn = root.querySelector(".panel");
+    if (!b || !sp) return;
+    b.addEventListener("click", () => {
+      const on = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", String(on)); sp.classList.toggle("on", on); pn.classList.toggle("side", on);
+      try { localStorage.setItem("zeitplan-dside", on ? "1" : "0"); } catch (e) {}
+    });
+    g.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); try { g.setPointerCapture(e.pointerId); } catch (err) {}
+      g.classList.add("active"); document.body.classList.add("col-resizing");
+      const r = sp.getBoundingClientRect(); let v = dSideW();
+      const move = (ev) => { v = Math.round(Math.max(25, Math.min(75, (ev.clientX - r.left) / r.width * 100))); sp.style.setProperty("--dl", v); };
+      const up = () => { g.removeEventListener("pointermove", move); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up); g.classList.remove("active"); document.body.classList.remove("col-resizing"); try { localStorage.setItem("zeitplan-dsidew", String(v)); } catch (err) {} };
+      g.addEventListener("pointermove", move); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+    });
+  }
   function openDetailBox(opt) {
     const x = opt.x;
     x.files = Array.isArray(x.files) ? x.files : [];
@@ -2956,18 +3010,20 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const openSet = window.__dopen;
       const secs = [["ziele", "Lernziele", '<div class="field"><span class="lbl">Lernziele</span><div class="rich rtfield" contenteditable="true" role="textbox" aria-multiline="true" id="p-ziele" data-ph="Die Lernenden können …">' + sanitize(opt.plan.ziele || "") + "</div></div>", filled(opt.plan.ziele)],
         ["kurz", "Kurzeintrag", textF, filled(richOf(x, 1))], ["farbe", "Farbe", colorF, !!x.color], ["docs", "Dokumente" + (x.files.length ? " (" + x.files.length + ")" : ""), docsF, x.files.length > 0]].concat(rfl.length ? [["rdocs", "Dokumente der Reihe (" + rfl.length + ")", rdocsF, true]] : []);
-      body = '<div class="d-toggles" role="group" aria-label="Weitere Angaben">' + secs.map(([k, l, , has]) => '<button type="button" class="d-tog' + (has ? " has" : "") + '" data-dtog="' + k + '" aria-expanded="' + !!openSet[k] + '">' + esc(l) + "</button>").join("") + "</div>" +
+      const side = dSide();
+      body = '<div class="d-toggles" role="group" aria-label="Weitere Angaben">' + secs.map(([k, l, , has]) => '<button type="button" class="d-tog' + (has ? " has" : "") + '" data-dtog="' + k + '" aria-expanded="' + !!openSet[k] + '">' + esc(l) + "</button>").join("") +
+        '<button type="button" class="d-tog d-side" id="d-side" aria-pressed="' + side + '" title="Lektionsplanung links und Notizen rechts nebeneinander zeigen (wird auf diesem Gerät gemerkt)">Nebeneinander</button></div>' +
         secs.map(([k, , h]) => '<div class="d-sec" data-dsec="' + k + '"' + (openSet[k] ? "" : " hidden") + ">" + h + "</div>").join("") +
-        '<div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
-        '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div>' +
-        notesF + actionsF;
+        '<div class="d-split' + (side ? " on" : "") + '" id="d-split" style="--dl:' + dSideW() + '"><div class="d-sl"><div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
+        '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div></div>' +
+        '<div class="d-gut" id="d-gut" title="Ziehen, um die Breite der beiden Seiten zu ändern" aria-hidden="true"></div><div class="d-sr">' + notesF + "</div></div>" + actionsF;
     } else body = textF + (opt.todo ? '<div class="field d-todof"><label class="dp-chk"><input type="checkbox" id="d-todo"' + (x.todo ? " checked" : "") + '> Als To-do (zum Abhaken)</label><label class="dp-chk"><input type="checkbox" id="d-done"' + (x.done ? " checked" : "") + (x.todo ? "" : " disabled") + "> erledigt</label></div>" : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
       (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, k) => { const n = k + 2; return '<div class="d-time" data-ptime="' + n + '"><input type="time" class="pf" value="' + esc(x["from" + n] || "") + '" aria-label="Teil ' + n + ' von"><span>bis</span><input type="time" class="pt" value="' + esc(x["to" + n] || "") + '" aria-label="Teil ' + n + ' bis"><button type="button" class="btn ghost pc" title="Zeit entfernen">×</button><span class="msg">(Teil ' + n + ")</span></div>"; }).join("") : "") + '</div>' : "") + colorF + notesF + docsF + actionsF;
     openModal(
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
       (root) => {
         const tText = $("#d-text"), tDet = $("#d-details");
-        if (opt.plan) { root.querySelector(".panel").classList.add("wide"); bindPlan(root, opt.plan, () => opt.changed()); }
+        if (opt.plan) { root.querySelector(".panel").classList.add("wide"); root.querySelector(".panel").classList.toggle("side", dSide()); bindPlan(root, opt.plan, () => opt.changed()); bindSide(root); }
         const tdc = root.querySelector("#d-todo");
         if (tdc) tdc.addEventListener("change", () => { x.todo = tdc.checked; if (!tdc.checked) { delete x.todo; delete x.done; } const dd = root.querySelector("#d-done"); if (dd) { dd.disabled = !tdc.checked; if (!tdc.checked) dd.checked = false; } opt.changed(); });
         const tdd = root.querySelector("#d-done"); if (tdd) tdd.addEventListener("change", () => { if (tdd.checked) x.done = true; else delete x.done; opt.changed(); });
@@ -3079,8 +3135,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         try {
           const r = await state.assets.upload(f, { type: f.type === "image/svg+xml" ? "image/png" : f.type });
           ned.focus(); const sl = getSelection(); if (sl.rangeCount && ned.contains(sl.anchorNode)) sl.collapseToEnd(); else { const rg = document.createRange(); rg.selectNodeContents(ned); rg.collapse(false); sl.removeAllRanges(); sl.addRange(rg); }
-          document.execCommand("insertHTML", false, '<img src="/_blob/' + r.id + '" alt=""><br>');
-          msg.textContent = "Bild eingefügt. Klick aufs Bild ändert die Grösse."; save();
+          document.execCommand("insertHTML", false, '<figure class="nfig" contenteditable="false"><img src="/_blob/' + r.id + '" alt=""></figure><div><br></div>');
+          figLock(); msg.textContent = "Bild eingefügt. Ein Klick aufs Bild: Grösse, Lage und Quelle."; save();
         } catch (e) { console.error(e); msg.textContent = e && e.code === "too_large" ? "Das Bild ist zu gross (höchstens 20 MB)." : "Das Bild konnte nicht gespeichert werden."; }
       }
     };
@@ -3096,10 +3152,67 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     ned.addEventListener("dragover", (e) => { if ([...(e.dataTransfer.items || [])].some((i) => i.kind === "file")) e.preventDefault(); });
     ned.addEventListener("drop", (e) => { const f = [...(e.dataTransfer.files || [])]; if (f.length) { e.preventDefault(); insertImgs(f); } });
     $("#d-nimg").addEventListener("change", (e) => { const f = [...e.target.files]; e.target.value = ""; insertImgs(f); });
+    // Bilder: im Text nicht bearbeitbar (ganzer Block), ein Klick öffnet Grösse, Lage, Bildunterschrift/Quelle
+    const figLock = () => ned.querySelectorAll("figure.nfig").forEach((f) => { f.contentEditable = "false"; });
+    figLock();
+    let fp = null;
+    const fpClose = () => { if (!fp) return; fp.fig.classList.remove("sel"); fp.el.remove(); document.removeEventListener("pointerdown", fp.out, true); document.removeEventListener("keydown", fp.key, true); if (fp.ov) fp.ov.removeEventListener("scroll", fp.place); fp = null; };
+    const toFig = (img) => {
+      // altes Bild (im Text) wird zum Bildblock; Grösse bleibt
+      const w = /\bw(25|33|50|75)\b/.exec(img.className || ""), f = document.createElement("figure");
+      f.className = "nfig" + (w ? " w" + w[1] : ""); f.contentEditable = "false";
+      img.replaceWith(f); img.removeAttribute("class"); f.appendChild(img); return f;
+    };
+    const figPop = (fig) => {
+      fpClose();
+      const cls = (re) => (re.exec(fig.className) || [])[1] || "";
+      const el = document.createElement("div"); el.className = "lk-figpop nfig-pop";
+      const W = (v, l, t) => '<button type="button" class="lk-tb" data-nw="' + v + '" title="' + t + '">' + l + "</button>";
+      const P = (v, l, t) => '<button type="button" class="lk-tb" data-np="' + v + '" title="' + t + '">' + l + "</button>";
+      const cap = fig.querySelector("figcaption");
+      el.innerHTML = '<div class="lk-fph"><b>Bild</b><button type="button" class="lk-fold" data-nx title="Schliessen">✕</button></div>' +
+        '<label class="lk-fpl" for="nf-cap">Bildunterschrift / Quelle</label><input class="nf-cap" id="nf-cap" type="text" placeholder="z. B. Quelle: Lehrmittel, S. 12" value="' + esc(cap ? cap.textContent : "") + '">' +
+        '<span class="lk-fpl">Grösse</span><div class="lk-fpg four">' + W("25", "¼", "Ein Viertel der Breite") + W("33", "⅓", "Ein Drittel der Breite") + W("50", "½", "Halbe Breite") + W("75", "¾", "Drei Viertel der Breite") + W("", "Ganz", "Ganze Breite bzw. Originalgrösse") + "</div>" +
+        '<span class="lk-fpl">Mit Text daneben</span><div class="lk-fpg two">' + P("l", "▤ Bild links", "Bild links, Text fliesst rechts daneben") + P("r", "Bild rechts ▤", "Bild rechts, Text fliesst links daneben") + "</div>" +
+        '<span class="lk-fpl">Allein</span><div class="lk-fpg two">' + P("", "◧ Links", "Bild links, Text darunter") + P("c", "▣ Mitte", "Bild in der Mitte, Text darunter") + "</div>" +
+        '<span class="lk-fpl">Verschieben</span><div class="lk-fpg two"><button type="button" class="lk-tb" data-nmv="-1" title="Bild einen Absatz nach oben">↑ Nach oben</button><button type="button" class="lk-tb" data-nmv="1" title="Bild einen Absatz nach unten">↓ Nach unten</button></div>' +
+        '<div class="lk-fpg two"><button type="button" class="lk-tb danger" data-ndel>🗑 Entfernen</button><button type="button" class="btn primary" data-nx>Fertig</button></div>';
+      document.body.appendChild(el); fig.classList.add("sel");
+      const mark = () => { const w = cls(/\bw(25|33|50|75)\b/), p = cls(/\bp-([lrc])\b/); el.querySelectorAll("[data-nw]").forEach((b) => b.classList.toggle("on", b.dataset.nw === w)); el.querySelectorAll("[data-np]").forEach((b) => b.classList.toggle("on", b.dataset.np === p)); };
+      const place = () => { const r = fig.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight; let x = r.right + 10; if (x + w > innerWidth - 8) x = r.left - w - 10; if (x < 8) x = Math.max(8, Math.min(innerWidth - w - 8, r.left + 10)); el.style.left = x + "px"; el.style.top = Math.max(8, Math.min(Math.max(8, r.top), innerHeight - h - 8)) + "px"; };
+      mark(); place();
+      const ci = el.querySelector("#nf-cap");
+      ci.addEventListener("input", () => {
+        let c = fig.querySelector("figcaption"); const v = ci.value;
+        if (v.trim()) { if (!c) { c = document.createElement("figcaption"); fig.appendChild(c); } c.textContent = v; } else if (c) c.remove();
+        clearTimeout(t); t = setTimeout(save, 300);
+      });
+      ci.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); fpClose(); save(); } });
+      el.addEventListener("click", (e) => {
+        const b = e.target.closest("button"); if (!b) return;
+        if (b.dataset.nx != null) { fpClose(); save(); return; }
+        if (b.dataset.nw != null) { fig.className = fig.className.replace(/\s*\bw(25|33|50|75|100)\b/g, "") + (b.dataset.nw ? " w" + b.dataset.nw : ""); mark(); place(); save(); return; }
+        if (b.dataset.np != null) { fig.className = fig.className.replace(/\s*\bp-[lrc]\b/g, "") + (b.dataset.np ? " p-" + b.dataset.np : ""); mark(); place(); save(); return; }
+        if (b.dataset.nmv) {
+          const box = fig.parentElement.closest(".ncol") || ned; let u = fig; while (u.parentElement && u.parentElement !== box) u = u.parentElement;
+          const sib = (n, d) => { let k = d < 0 ? n.previousSibling : n.nextSibling; while (k && k.nodeType === 3 && !k.nodeValue.trim()) k = d < 0 ? k.previousSibling : k.nextSibling; return k; };
+          if (+b.dataset.nmv < 0) { if (u !== fig) u.before(fig); else { const k = sib(fig, -1); if (k) k.before(fig); } }
+          else { if (u !== fig) u.after(fig); else { const k = sib(fig, 1); if (k) k.after(fig); } }
+          place(); save(); fig.scrollIntoView({ block: "nearest" }); return;
+        }
+        if (b.dataset.ndel != null) { if (b.dataset.armed) { fpClose(); fig.remove(); save(); } else { b.dataset.armed = "1"; b.textContent = "Wirklich entfernen?"; } }
+      });
+      const out = (e) => { if (!el.contains(e.target) && !fig.contains(e.target)) { fpClose(); save(); } };
+      const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); fpClose(); save(); } };
+      document.addEventListener("pointerdown", out, true); document.addEventListener("keydown", key, true);
+      const ov = document.getElementById("ov"); if (ov) ov.addEventListener("scroll", place);
+      fp = { fig, el, out, key, ov, place };
+    };
     ned.addEventListener("click", (e) => {
       const img = e.target.closest("img"); if (!img) return;
-      const cur = img.classList.contains("w50") ? "w50" : img.classList.contains("w33") ? "w33" : "";
-      img.classList.remove("w50", "w33"); const nx = cur === "" ? "w50" : cur === "w50" ? "w33" : ""; if (nx) img.classList.add(nx); save();
+      e.preventDefault();
+      const fig = img.closest("figure.nfig") || toFig(img);
+      figPop(fig);
     });
     const bar = root.querySelector(".nbar");
     bar.addEventListener("mousedown", (e) => { if (!e.target.closest("label,select")) e.preventDefault(); });
