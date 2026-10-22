@@ -1859,6 +1859,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .lesson.l-dragging { opacity: 0.45; }
 .lesson.l-drop-before { box-shadow: inset 0 3px 0 var(--accent); }
 .lesson.l-drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
+.lesson.l-drop-in { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+#r-list .sub-link.drop-in { background: var(--accent); color: var(--surface); border-radius: 4px; }
 .rf-pen { border: 0; background: none; color: var(--muted); font-size: 0.85rem; padding: 1px 5px; border-radius: 4px; cursor: pointer; }
 .rf-pen:hover { background: var(--accent-soft); color: var(--accent); }
 .cmenu .cm-danger { color: var(--danger); }
@@ -1873,7 +1875,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ld-pick select { font: inherit; color: var(--ink); max-width: 340px; }
 #k-undo[disabled] { opacity: 0.4; cursor: default; }
 .lexp { width: 20px; height: 20px; border: 1px solid var(--line); border-radius: 50%; padding: 0; cursor: pointer; background: var(--surface); color: var(--muted); display: grid; place-items: center; font-size: 15px; line-height: 1; font-weight: 700; flex: none; }
-.lexp.on { border-color: var(--accent); color: var(--accent); }
+.lexp.on { border-color: #1a4a75; background: #1a4a75; color: #fff; } /* Lektion geplant: Plus dunkelblau gefüllt */
+.lesson .ucell > .dot { display: none; } /* kein blauer Punkt bei Lektionen: das Plus zeigt, ob geplant */
 .lexp:hover, .lexp:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--surface); outline: none; }
 .lesson .ph { font-size: 0.78rem; color: var(--muted); border-radius: 4px; padding: 1px 3px; margin-left: -3px; outline: none; overflow-wrap: anywhere; }
 .lesson .ph:hover { background: color-mix(in srgb, var(--accent-soft) 60%, transparent); }
@@ -2450,6 +2453,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     out = out.replace(/<div( class="al-[crj]")?><\/div>/g, "<div><br></div>").replace(/<div class="ncol"><\/div>/g, '<div class="ncol"><br></div>').replace(/<div class="ncols"><\/div>/g, "").replace(/<(ul|ol)><\/\1>/g, "");
     return out.replace(/(<br>)+$/, "");
   }
+  // Links aus den Notizen (ohne Bildunterschriften: eine Quelle unter einem Bild erscheint nicht nochmals unten)
+  const notesLinkText = (h) => htmlToPlain(String(h || "").replace(/<figcaption>[\s\S]*?<\/figcaption>/g, "").replace(/<img[^>]*>/g, ""));
   const notesPlain = (h) => htmlToPlain(String(h || "").replace(/<img[^>]*>/g, "[Bild]").replace(/<figcaption>/g, " (").replace(/<\/figcaption>/g, ")"));
   const sfx = (part) => (part > 1 ? String(part) : "");
   const richOf = (x, part) => { const h = x["html" + sfx(part)], t = x["text" + sfx(part)]; return h != null ? sanitize(h) : plainToHtml(t); };
@@ -3481,7 +3486,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<label class="nlh" title="Spalten einfügen, z. B. Fragen links, Antworten rechts">Spalten <select id="d-ncols"><option value="">–</option><option value="2">2 Spalten</option><option value="3">3 Spalten</option><option value="0">Spalten aufheben</option></select></label>' + '<span class="nsep"></span>' +
       '<label class="nlh" title="Zeilenabstand">Zeilenabstand <select id="d-nlh">' + [[1.15, "eng"], [1.5, "normal"], [1.8, "weit"], [2.2, "sehr weit"]].map(([v, l]) => '<option value="' + v + '"' + ((x.notesLh || 1.5) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" + '<span class="nsep"></span>' +
       '<label class="nb nimg" title="Bild oder Screenshot einfügen (auch mit Strg+V)">🖼 Bild<input type="file" id="d-nimg" accept="image/*" multiple hidden></label><span class="msg" id="d-nmsg"></span></div>' +
-      '<div class="notes-ed" style="line-height:' + (x.notesLh || 1.5) + '" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notizen" id="d-notes" data-ph="Fragen, Hinweise, Tafelbild, Lösungen … Screenshots mit Strg+V einfügen.">' + sanitizeNotes(x.notesHtml || "") + '</div><div class="links" id="d-links">' + linkify(x.details || "") + "</div></div>";
+      '<div class="notes-ed" style="line-height:' + (x.notesLh || 1.5) + '" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notizen" id="d-notes" data-ph="Fragen, Hinweise, Tafelbild, Lösungen … Screenshots mit Strg+V einfügen.">' + sanitizeNotes(x.notesHtml || "") + '</div><div class="links" id="d-links">' + linkify(x.notesHtml ? notesLinkText(x.notesHtml) : x.details || "") + "</div></div>";
     const notesF = opt.plan ? notesRich : '<div class="field"><label for="d-details">' + (opt.plan ? "Notizen, Querverweise, Links" : "Details, Querverweise, Links") + '</label><textarea id="d-details" placeholder="' + (opt.plan ? "Fragen, Hinweise, Tafelbild, Querverweise … Links (https://…) werden unten anklickbar." : "Alles, was nicht in die Liste muss. Links (https://…) werden unten anklickbar.") + '">' + esc(x.details) + '</textarea><div class="links" id="d-links">' + linkify(x.details || "") + "</div></div>";
     const rfl = (opt.reiheFiles || []);
     const rdocsF = rfl.length ? '<div class="field"><span class="lbl">Dokumente der ganzen Reihe</span><div class="d-rfiles">' + rfl.map((f) => '<button type="button" class="doc" data-open-rfile="' + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>" + (f.link ? '<a class="btn ghost od-link" href="' + esc(f.link) + '" target="_blank" rel="noopener">↗ OneDrive</a>' : "")).join("") + "</div></div>" : "";
@@ -3609,7 +3614,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       });
   }
   function bindNotes(root, ned, x, changed) {
-    const save = () => { x.notesHtml = sanitizeNotes(ned.innerHTML); x.details = notesPlain(x.notesHtml); $("#d-links").innerHTML = linkify(x.details); changed(); };
+    const save = () => { x.notesHtml = sanitizeNotes(ned.innerHTML); x.details = notesPlain(x.notesHtml); $("#d-links").innerHTML = linkify(notesLinkText(x.notesHtml)); changed(); };
     let t = null; ned.addEventListener("input", () => { clearTimeout(t); t = setTimeout(save, 250); });
     ned.addEventListener("blur", () => { clearTimeout(t); save(); });
     const msg = $("#d-nmsg");
@@ -3695,42 +3700,55 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       fp = { fig, el, out, key, ov, place };
     };
     // Neben ein Bild klicken: dort weiterschreiben (Bild rückt auf die andere Seite, Text fliesst daneben)
+    // leere Füllzeilen (vom Klick neben ein Bild) wieder entfernen, wenn darunter nichts geschrieben wurde
+    const dropFill = (keep) => {
+      const isF = (n) => n && n.nodeType === 1 && n.dataset && n.dataset.fill;
+      const emptyF = (n) => isF(n) && !n.textContent.trim() && !n.querySelector("img,figure");
+      [...ned.querySelectorAll("div[data-fill]")].reverse().forEach((f) => {
+        if (!emptyF(f) || f === keep || (keep && f.contains(keep))) return;
+        let k = f.nextSibling; while (k && (k.nodeType === 3 && !k.nodeValue.trim())) k = k.nextSibling;
+        if (!k || !isF(k)) f.remove();
+      });
+    };
+    ned.addEventListener("blur", () => { const n = ned.querySelectorAll("div[data-fill]").length; dropFill(null); if (n !== ned.querySelectorAll("div[data-fill]").length) save(); });
     const besideFig = (e) => {
       if (e.target.closest("figure.nfig")) return;
+      dropFill(e.target.closest && e.target.closest("div[data-fill]"));
       const sel = getSelection(); if (sel.rangeCount && !sel.isCollapsed) return;
       let fig = [...ned.querySelectorAll("figure.nfig, img:not(figure img)")].find((f) => { const r = f.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom && (e.clientX < r.left || e.clientX > r.right); });
       if (!fig) return;
       const r0 = fig.getBoundingClientRect(), right = e.clientX > r0.right;
       if (fig.tagName === "IMG") fig = toFig(fig);
-      const r = fig.getBoundingClientRect();
-      if (sel.rangeCount && ned.contains(sel.anchorNode)) {
-        const rg = sel.getRangeAt(0); let cr = rg.getClientRects()[0];
-        if (!cr) { const a = sel.anchorNode, el = a.nodeType === 1 ? a : a.parentElement; if (el && el !== ned) cr = el.getBoundingClientRect(); }
-        if (cr && cr.top >= r.top - 4 && cr.top <= r.bottom && (cr.left >= r.right - 2 || cr.right <= r.left + 2)) return; // Cursor steht schon neben dem Bild
-      }
       if (!/\bp-[lr]\b/.test(fig.className)) fig.className = fig.className.replace(/\s*\bp-c\b/g, "") + (right ? " p-l" : " p-r");
-      const f2 = fig.getBoundingClientRect();
+      const f2 = fig.getBoundingClientRect(), lh = parseFloat(getComputedStyle(ned).lineHeight) || 24;
+      const besideX = (cr) => cr.left >= f2.right - 2 || cr.right <= f2.left + 2;
       ned.focus();
-      // Stelle unter dem Mauszeiger (nach dem Umstellen des Bildes); liegt dort Text neben dem Bild, dort schreiben
+      // Liegt unter dem Mauszeiger schon eine Textzeile neben dem Bild, dort schreiben
       let rg = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
       if (!rg && document.caretPositionFromPoint) { const cp = document.caretPositionFromPoint(e.clientX, e.clientY); if (cp) { rg = document.createRange(); rg.setStart(cp.offsetNode, cp.offset); } }
       if (rg) {
         const n = rg.startContainer, cr = rg.getClientRects()[0] || ((n.nodeType === 1 ? n : n.parentElement) || ned).getBoundingClientRect();
-        const ok = ned.contains(n) && n !== ned && !fig.contains(n) && Math.abs(cr.top + cr.height / 2 - e.clientY) < 30 && (cr.left >= f2.right - 2 || cr.right <= f2.left + 2);
-        if (!ok) rg = null;
+        if (!(ned.contains(n) && n !== ned && !fig.contains(n) && Math.abs(cr.top + cr.height / 2 - e.clientY) < lh * 0.75 && besideX(cr))) rg = null;
       }
       if (!rg) {
-        // sonst: neue Zeile neben dem Bild (nach dem letzten Absatz, der noch neben dem Bild steht)
+        // sonst wie ein Textfeld: leere Zeilen neben dem Bild bis zur angeklickten Höhe
         const box = fig.parentElement.closest(".ncol") || ned; let u = fig; while (u.parentElement && u.parentElement !== box) u = u.parentElement;
-        let last = null, empty = null;
+        let last = null;
         for (let k = u.nextSibling; k; k = k.nextSibling) {
           if (k.nodeType === 3 || k.nodeName === "BR") continue;
           if (k.nodeType !== 1 || k.matches("figure.nfig") || k.getBoundingClientRect().top >= f2.bottom - 2) break;
-          last = k; if (!empty && k.tagName === "DIV" && !k.textContent.trim() && !k.querySelector("img,figure")) empty = k;
+          const kr = k.getBoundingClientRect(); if (kr.top > e.clientY) break;
+          last = k;
         }
-        let tgt = empty;
-        if (!tgt) { tgt = document.createElement("div"); tgt.innerHTML = "<br>"; (last || u).after(tgt); }
-        rg = document.createRange(); rg.setStart(tgt, 0);
+        let tgt = null, after = last || u;
+        // eine leere Zeile, die schon auf der angeklickten Höhe steht, wiederverwenden
+        if (last && last.tagName === "DIV" && !last.textContent.trim() && !last.querySelector("img,figure") && last.getBoundingClientRect().bottom >= e.clientY - lh / 2) tgt = last;
+        for (let guard = 0; !tgt && guard < 80; guard++) {
+          const d = document.createElement("div"); d.innerHTML = "<br>"; d.dataset.fill = "1"; after.after(d); after = d;
+          const dr = d.getBoundingClientRect();
+          if (dr.bottom >= e.clientY - lh / 4 || dr.bottom >= f2.bottom - 2) tgt = d;
+        }
+        rg = document.createRange(); rg.setStart(tgt || after, 0);
       }
       rg.collapse(true);
       sel.removeAllRanges(); sel.addRange(rg); save();
@@ -4502,7 +4520,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const mAt = r.master ? masterAt(r) : {}, mp = matPlace(r, bl), chAt = (t) => (mAt[t] || []).map((x) => msItemHtml(r, x)).join(""), matAt = (t) => chAt(t) + (mp.at[t] || []).map((k) => matRowHtml(r, r.lnItems[k], k)).join("");
     return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + matAt(-1) + bl.map(([i, s], k) => {
       const m = (r.meta || {})[i] || {};
-      const more = !!(m.details || (m.files && m.files.length) || hasPlan(m.plan));
+      const more = !!(m.details || filled(m.notesHtml) || /<img/.test(m.notesHtml || "") || (m.files && m.files.length) || hasPlan(m.plan));
       const linked = k > 0 && !!links[i];
       const nextLinked = k < bl.length - 1 && !!links[bl[k + 1][0]];
       const joint = k > 0 ? '<button type="button" class="joint' + (linked ? " on" : "") + '" data-joint="' + i + '" title="Verbindung zu ' + lessonLabel(bl[k - 1][0], bl[k - 1][1]) + ' einstellen" aria-label="Verbindung einstellen"><span>' + (linked ? "Doppellektion" : "verbinden") + "</span></button>" : "";
@@ -5361,7 +5379,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   function lnMoveTo(rid, starts, tid) {
     const r = U.reihen[rid], t = U.reihen[tid]; if (!r || !t || rid === tid || !starts.length) return;
-    lnDo(nLek(starts.length) + " nach «" + (t.title || "Reihe") + "» verschoben (am Ende angehängt).", (touch) => { touch(rid); touch(tid); addBlocks(t, takeBlocks(r, starts)); });
+    const kid = childrenOf(r).some((c) => c.rid === tid);
+    lnDo(nLek(starts.length) + " nach «" + (t.title || "Reihe") + "» verschoben (am Ende angehängt" + (kid ? "; " + (starts.length === 1 ? "sie bleibt" : "sie bleiben") + " in der Masterreihe sichtbar" : "") + ").", (touch) => { touch(rid); touch(tid); addBlocks(t, takeBlocks(r, starts)); });
   }
   function lnGroupFrom(rid, starts, title, year) {
     const r = U.reihen[rid]; if (!r || !starts.length) return;
@@ -5545,20 +5564,25 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   })();
   (function lessonDrag() {
     let d = null;
-    const clear = () => uEl.querySelectorAll(".l-drop-before,.l-drop-after").forEach((el) => el.classList.remove("l-drop-before", "l-drop-after"));
+    const clear = () => uEl.querySelectorAll(".l-drop-before,.l-drop-after,.l-drop-in").forEach((el) => el.classList.remove("l-drop-before", "l-drop-after", "l-drop-in"));
     uEl.addEventListener("dragstart", (e) => {
       const h = e.target.closest && e.target.closest("[data-ldrag]"); if (!h) return;
       d = +h.dataset.ldrag; const row = h.closest(".lesson"); if (row) row.classList.add("l-dragging");
       try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", h.textContent); } catch (err) {}
     });
     uEl.addEventListener("dragover", (e) => {
-      if (d == null) return; const row = e.target.closest && e.target.closest(".lesson:not(.ln-row)"); if (!row) return;
+      if (d == null) return;
+      // auf eine Unterreihe (Kopf oder ihre Lektionen in der Masterreihe): Lektion in die Unterreihe verschieben
+      const cr = e.target.closest && e.target.closest(".ms-head[data-crid], .ms-l[data-crid]");
+      if (cr) { const r = U.reihen[U.sel]; if (!r || r.klasse || !U.reihen[cr.dataset.crid]) return; e.preventDefault(); clear(); uEl.querySelectorAll('[data-crid="' + cr.dataset.crid + '"]').forEach((el) => el.classList.add("l-drop-in")); return; }
+      const row = e.target.closest && e.target.closest(".lesson:not(.ln-row)"); if (!row) return;
       e.preventDefault(); clear(); const rc = row.getBoundingClientRect();
       row.classList.add(e.clientY < rc.top + rc.height / 2 ? "l-drop-before" : "l-drop-after");
     });
     uEl.addEventListener("drop", (e) => {
-      if (d == null) return; const tb = uEl.querySelector(".l-drop-before"), ta = uEl.querySelector(".l-drop-after"); clear();
+      if (d == null) return; const tb = uEl.querySelector(".l-drop-before"), ta = uEl.querySelector(".l-drop-after"), ti2 = uEl.querySelector(".l-drop-in"); clear();
       const from = d; d = null; const r = U.reihen[U.sel]; if (!r) return;
+      if (ti2) { e.preventDefault(); lnMoveTo(U.sel, [from], ti2.dataset.crid, true); return; }
       const t = tb || ta; if (!t) return; e.preventDefault();
       const bl = blocksOf(r), ti = bl.findIndex(([a]) => a === +t.dataset.li); if (ti < 0) return;
       if (lessonOp(r, from, "move", tb ? ti : ti + 1)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
@@ -5567,8 +5591,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     // Lektion auf eine andere Reihe in der Liste links ziehen: dorthin verschieben (ans Ende)
     const rlBox = document.getElementById("r-list");
     if (rlBox) {
-      rlBox.addEventListener("dragover", (e) => { if (d == null) return; const r = U.reihen[U.sel]; const t = e.target.closest("button[data-rid]"); rlBox.querySelectorAll(".drop-in").forEach((el) => el.classList.remove("drop-in")); if (!r || r.klasse || !t || t.dataset.rid === U.sel || isLoose(U.reihen[t.dataset.rid])) return; e.preventDefault(); t.classList.add("drop-in"); });
-      rlBox.addEventListener("drop", (e) => { const t = rlBox.querySelector(".drop-in"); if (d == null || !t) return; e.preventDefault(); e.stopPropagation(); t.classList.remove("drop-in"); const from = d; d = null; lnMoveTo(U.sel, [from], t.dataset.rid); });
+      rlBox.addEventListener("dragover", (e) => { if (d == null) return; const r = U.reihen[U.sel]; const sg = e.target.closest("[data-subgo]");
+        if (sg) { rlBox.querySelectorAll(".drop-in").forEach((el) => el.classList.remove("drop-in")); if (!r || r.klasse || sg.dataset.subgo === U.sel || !U.reihen[sg.dataset.subgo]) return; e.preventDefault(); sg.classList.add("drop-in"); return; }
+        const t = e.target.closest("button[data-rid]"); rlBox.querySelectorAll(".drop-in").forEach((el) => el.classList.remove("drop-in")); if (!r || r.klasse || !t || t.dataset.rid === U.sel || isLoose(U.reihen[t.dataset.rid])) return; e.preventDefault(); t.classList.add("drop-in"); });
+      rlBox.addEventListener("drop", (e) => { const t = rlBox.querySelector(".drop-in"); if (d == null || !t) return; e.preventDefault(); e.stopPropagation(); t.classList.remove("drop-in"); const from = d; d = null; lnMoveTo(U.sel, [from], t.dataset.subgo || t.dataset.rid); });
     }
     longPress(uEl, ".lesson[data-li] .l-drag[data-ldrag]", (h, x, y) => { const r = U.reihen[U.sel]; if (r) lessonMenu({ x, y }, r, +h.dataset.ldrag); });
   })();
