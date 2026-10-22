@@ -41,20 +41,21 @@
   // ---------- Anmeldung (OAuth 2.0 mit PKCE, ohne Passwort in der App) ----------
   const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const rnd = (n) => b64url(crypto.getRandomValues(new Uint8Array(n)));
-  async function login(acc, prompt) {
+  async function login(acc, prompt, extra) {
     const verifier = rnd(48), state = rnd(16);
     const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
     sessionStorage.setItem("zp-pkce", JSON.stringify({ verifier, state, acc }));
     const tok = ls.get("zp-tok-" + acc) || {};
-    const q = new URLSearchParams({ client_id: CFG.clientId, response_type: "code", redirect_uri: REDIRECT, scope: SCOPES, state, code_challenge: challenge, code_challenge_method: "S256", response_mode: "query" });
+    const q = new URLSearchParams({ client_id: CFG.clientId, response_type: "code", redirect_uri: REDIRECT, scope: SCOPES + (extra ? " " + extra : ""), state, code_challenge: challenge, code_challenge_method: "S256", response_mode: "query" });
     if (prompt) q.set("prompt", prompt);
     if (tok.user) q.set("login_hint", tok.user);
     location.assign("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/authorize?" + q);
   }
-  async function tokenRequest(acc, body) {
-    const r = await _fetch("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: CFG.clientId, scope: SCOPES, ...body }) });
+  async function tokenRequest(acc, body, scope) {
+    const r = await _fetch("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: CFG.clientId, scope: scope || SCOPES, ...body }) });
     const j = await r.json();
-    if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || "Anmeldung fehlgeschlagen");
+    if (!r.ok || !j.access_token) { const x = new Error(j.error_description || j.error || "Anmeldung fehlgeschlagen"); x.code = j.error || ""; throw x; }
+    if (scope) { const old = ls.get("zp-tok-" + acc) || {}; if (j.refresh_token) { old.refresh = j.refresh_token; ls.set("zp-tok-" + acc, old); } return { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000 }; }
     const old = ls.get("zp-tok-" + acc) || {};
     const t = { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, refresh: j.refresh_token || old.refresh, user: old.user };
     ls.set("zp-tok-" + acc, t); return t;
@@ -86,6 +87,32 @@
       return r;
     }
   }
+  // ---------- Microsoft To Do (Erinnerungen aufs Handy) ----------
+  // Eigener Schlüssel nur für To Do, damit die normale Anmeldung unverändert bleibt. Beim ersten Mal fragt Microsoft einmal um Zustimmung.
+  const TODO_SCOPE = "https://graph.microsoft.com/Tasks.ReadWrite offline_access";
+  async function todoToken() {
+    const t = ls.get("zp-tok-todo");
+    if (t && t.access && t.exp > Date.now()) return t.access;
+    const p = ls.get("zp-tok-privat");
+    if (!p || !p.refresh) { const x = new Error("Nicht angemeldet"); x.consent = true; throw x; }
+    try { const n = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: p.refresh }, TODO_SCOPE); ls.set("zp-tok-todo", n); return n.access; }
+    catch (e) { if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; } e.consent = true; throw e; }
+  }
+  window.ZTODO = {
+    async api(path, opts) {
+      opts = opts || {};
+      for (let i = 0; i < 2; i++) {
+        const h = { ...(opts.headers || {}), Authorization: "Bearer " + (await todoToken()) };
+        if (opts.body && typeof opts.body !== "string") { h["Content-Type"] = "application/json"; }
+        const r = await _fetch(path.startsWith("http") ? path : GRAPH + path, { ...opts, headers: h, body: opts.body && typeof opts.body !== "string" ? JSON.stringify(opts.body) : opts.body });
+        if (r.status === 401 && i === 0) { ls.del("zp-tok-todo"); continue; }
+        if (r.status === 403) { const x = new Error("Keine Berechtigung für To Do"); x.consent = true; throw x; }
+        return r;
+      }
+    },
+    connect() { ls.del("zp-tok-todo"); return login("privat", "", "Tasks.ReadWrite"); },
+    async ready() { try { await todoToken(); return true; } catch (e) { if (e.offline) throw e; return false; } },
+  };
   const enc = (p) => p.split("/").map(encodeURIComponent).join("/");
   const item = (p) => "/me/drive/root:/" + enc(p);
   async function download(meta) {

@@ -593,6 +593,9 @@ html.fit aside.side, html.fit .side-rz { display: none !important; }
 html.fit .layout { grid-template-columns: minmax(0, 1fr) !important; }
 html.fit body { touch-action: pan-x pan-y; }
 .savebtn { font-size: 14px; line-height: 1; }
+.tdbtn svg { width: 55%; height: 55%; } .tdbtn.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); } .tdbtn.warn { color: var(--danger); border-color: var(--danger); }
+.td-intro { margin: 0 0 12px; color: var(--muted); } .td-main { font-weight: 700; margin-bottom: 10px; } .td-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.td-opts { border-left: 3px solid var(--line); padding-left: 12px; margin-bottom: 8px; } .td-opts .field { margin-bottom: 12px; } .td-stat { color: var(--muted); font-size: 0.92rem; }
 .savebtn.busy { opacity: 0.5; pointer-events: none; }
 .sv-toast { position: fixed; right: 16px; bottom: 16px; z-index: 60; max-width: min(420px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 10px 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.9rem; }
 .sv-toast.warn { border-color: var(--danger); }
@@ -1645,6 +1648,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       </nav>
       <div class="hdr-tools" id="hdrTools">
       <div class="hdr-size" role="group" aria-label="Grösse der Kopfzeile"><button type="button" id="hdrMinus" title="Kopfzeile verkleinern" aria-label="Kopfzeile verkleinern">−</button><button type="button" id="hdrPlus" title="Kopfzeile vergrössern" aria-label="Kopfzeile vergrössern">+</button></div>
+      <button class="codebtn tdbtn" id="tdBtn" type="button" title="Erinnerungen aufs Handy (über Microsoft To Do)" aria-label="Erinnerungen aufs Handy" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5V7a4 4 0 0 1 8 0v4.5l1 1H3z"/><path d="M6.5 14a1.6 1.6 0 0 0 3 0"/></svg></button>
       <button class="codebtn savebtn" id="saveBtn" type="button" title="Speicherpunkte und Sicherungen – zu einem früheren Stand zurückkehren" aria-label="Speicherpunkte und Sicherungen">💾</button>
       <button class="codebtn" id="codeBtn" type="button" title="Code der Seite ansehen und ändern" aria-label="Code der Seite ansehen und ändern"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4 1.5 8l4 4M10.5 4l4 4-4 4"/></svg></button>
       </div>
@@ -1872,6 +1876,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (!timers[key]) dirty.delete(key);
       setStatus("Gespeichert");
     });
+    tdKick();
   }
   // Zwei getrennte Notizsammlungen: Termine und allgemeine Unterrichtsnotizen
   const NOTE_DOCS = { termine: "board", unterricht: "unterricht" };
@@ -8487,6 +8492,147 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   window.addEventListener("resize", () => autosizeAll());
   window.addEventListener("beforeunload", () => { Object.keys(timers).forEach(flush); Object.keys(uTimers).forEach(uFlush); });
 
+  // ---------- Erinnerungen aufs Handy: To-dos aus «Termine» → Microsoft To Do (Liste «Semper») ----------
+  // Nur über das eigene Microsoft-Konto. Einstellungen und Zuordnung in plan/erinnerungen, damit alle Geräte gleich abgleichen.
+  const TD = { cfg: null, loaded: false, busy: false, again: false, timer: 0, err: "", at: 0, n: 0 };
+  const TD_DEF = { on: false, at: "07:00", vortag: false, lead: 15, termine: false, listId: "", map: {} };
+  const tdCfg = () => ({ ...TD_DEF, ...(TD.cfg || {}), map: { ...((TD.cfg || {}).map || {}) } });
+  const tdKick = (ms) => { if (!TD.cfg || !TD.cfg.on || !window.ZTODO) return; clearTimeout(TD.timer); TD.timer = setTimeout(tdSync, ms ?? 6000); };
+  const tdSaveCfg = (c) => { TD.cfg = c; if (state.local) return Promise.resolve(); return enqueue("u:td", () => state.db.collection("plan").doc("erinnerungen").set(clone(c))); };
+  const tdUtc = (d) => ({ dateTime: d.toISOString().slice(0, 19), timeZone: "UTC" });
+  const tdAt = (key, hm, minus) => { const [y, m, d] = key.split("-").map(Number), [h, mi] = String(hm || "07:00").split(":").map(Number); return new Date(y, m - 1, d, h || 0, (mi || 0) - (minus || 0)); };
+  // Alle Einträge, die in To Do stehen sollen (7 Tage zurück bis gut ein Jahr voraus)
+  function tdWanted(c) {
+    const out = {}, t0 = today(), from = keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - 7)), to = keyOf(new Date(t0.getFullYear() + 1, t0.getMonth(), t0.getDate() + 30)), tk = keyOf(t0);
+    for (const [key, d] of Object.entries(state.days)) {
+      if (key < from || key > to || !d) continue;
+      for (const [s, lab] of SLOTS) {
+        const x = d[s]; if (!x) continue;
+        partsOf(x).forEach((p, i) => {
+          const title = htmlToPlain(p.html || "").replace(/\s+/g, " ").trim().slice(0, 240);
+          const termin = !p.todo && c.termine && p.from && title;
+          if (!p.todo && !termin) return;
+          const rem = p.from ? tdAt(key, p.from, +c.lead || 0) : tdAt(key, c.at, c.vortag ? 24 * 60 : 0);
+          const due = { dateTime: key + "T00:00:00", timeZone: "UTC" };
+          const body = "Aus Semper · " + TAGE[tdAt(key).getDay()] + ", " + fmt(tdAt(key)) + " · " + lab + (p.from ? " · " + p.from + (p.to ? "–" + p.to : "") : "");
+          out[key + "|" + s + "|" + (i + 1)] = { key, slot: s, part: i + 1, todo: !!p.todo, done: p.todo ? !!p.done : key < tk, title: title || "To-do", rem, due, body };
+        });
+      }
+    }
+    return out;
+  }
+  const tdHash = (w) => [w.title, w.due.dateTime, w.rem.getTime(), w.body].join("¦");
+  const tdTask = (w, done) => { const on = !done && w.rem.getTime() > Date.now(); return { title: w.title, body: { content: w.body, contentType: "text" }, dueDateTime: w.due, isReminderOn: on, reminderDateTime: tdUtc(w.rem), status: done ? "completed" : "notStarted" }; };
+  async function tdJson(r) { if (!r.ok) { const x = new Error("To Do " + r.status); x.status = r.status; throw x; } return r.status === 204 ? null : r.json(); }
+  async function tdList(c) {
+    const A = window.ZTODO;
+    if (c.listId) { const r = await A.api("/me/todo/lists/" + encodeURIComponent(c.listId)); if (r.ok) return c.listId; if (r.status !== 404) await tdJson(r); }
+    const ls = (await tdJson(await A.api("/me/todo/lists"))).value || [];
+    const hit = ls.find((l) => l.displayName === "Semper");
+    c.listId = hit ? hit.id : (await tdJson(await A.api("/me/todo/lists", { method: "POST", body: { displayName: "Semper" } }))).id;
+    return c.listId;
+  }
+  async function tdSync() {
+    if (!TD.cfg || !TD.cfg.on || !window.ZTODO || state.local) return;
+    if (TD.busy) { TD.again = true; return; }
+    TD.busy = true; TD.again = false;
+    const A = window.ZTODO, c = tdCfg(), before = JSON.stringify({ l: c.listId, m: c.map });
+    try {
+      const lid = await tdList(c), base = "/me/todo/lists/" + encodeURIComponent(lid) + "/tasks";
+      const tasks = {}; let url = base + "?$top=100&$select=id,title,status,dueDateTime";
+      while (url) { const j = await tdJson(await A.api(url)); (j.value || []).forEach((t) => (tasks[t.id] = t)); url = j["@odata.nextLink"] || ""; }
+      const want = tdWanted(c), used = new Set(Object.values(c.map).map((m) => m.id)), pulled = new Set();
+      for (const [k, w] of Object.entries(want)) {
+        let m = c.map[k]; const h = tdHash(w), t = m && tasks[m.id];
+        if (m && !t) { if (m.gone && m.h === h) continue; if (!m.gone && m.h === h) { m.gone = 1; continue; } m = null; } // in To Do gelöscht: erst bei einer Änderung neu
+        if (!m) {
+          if (w.done) continue; // Erledigtes und Vergangenes nicht neu anlegen
+          const twin = Object.values(tasks).find((x) => !used.has(x.id) && x.title === w.title && x.dueDateTime && String(x.dueDateTime.dateTime).slice(0, 10) === w.key);
+          const r = twin ? await tdJson(await A.api(base + "/" + twin.id, { method: "PATCH", body: tdTask(w, false) })) : await tdJson(await A.api(base, { method: "POST", body: tdTask(w, false) }));
+          c.map[k] = { id: r.id, h, done: false }; used.add(r.id); continue;
+        }
+        let done = w.done, push = m.h !== h;
+        if (w.done !== !!m.done) push = true; // in Semper geändert
+        else if (w.todo && (t.status === "completed") !== !!m.done) { done = t.status === "completed"; pulled.add(k); const x = slotOf(w.key, w.slot); x["done" + sfx(w.part)] = done; if (!done) delete x["done" + sfx(w.part)]; scheduleSave(w.key, 0); }
+        else if (!w.todo && (t.status === "completed") !== done) push = true;
+        if (push) await tdJson(await A.api(base + "/" + m.id, { method: "PATCH", body: tdTask(w, done) }));
+        c.map[k] = { id: m.id, h, done };
+      }
+      const t0 = today(), from = keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - 7));
+      for (const [k, m] of Object.entries(c.map)) {
+        if (want[k]) continue;
+        if (k.split("|")[0] >= from && tasks[m.id]) { const r = await A.api(base + "/" + m.id, { method: "DELETE" }); if (!r.ok && r.status !== 404) await tdJson(r); }
+        delete c.map[k];
+      }
+      TD.err = ""; TD.at = Date.now(); TD.n = Object.values(c.map).filter((m) => !m.done && !m.gone).length;
+      if (JSON.stringify({ l: c.listId, m: c.map }) !== before) { const cur = tdCfg(); await tdSaveCfg({ ...cur, listId: c.listId, map: c.map }); }
+      if (pulled.size && !$("#ov")) render();
+    } catch (e) {
+      console.error(e);
+      TD.err = e.offline ? "offline" : e.consent ? "consent" : "fehler";
+      if (Object.keys(c.map).length && JSON.stringify({ l: c.listId, m: c.map }) !== before) { const cur = tdCfg(); tdSaveCfg({ ...cur, listId: c.listId, map: c.map }); }
+    } finally {
+      TD.busy = false; tdBadge(); tdPaint();
+      if (TD.again) tdKick(1500);
+    }
+  }
+  // Ausschalten: offene Einträge von Semper wieder aus To Do entfernen
+  async function tdClear(c) {
+    if (!c.listId || !window.ZTODO) return;
+    const base = "/me/todo/lists/" + encodeURIComponent(c.listId) + "/tasks";
+    for (const m of Object.values(c.map)) { if (m.done || m.gone) continue; try { await window.ZTODO.api(base + "/" + m.id, { method: "DELETE" }); } catch (e) {} }
+    c.map = {};
+  }
+  function tdBadge() { const b = $("#tdBtn"); if (!b) return; b.classList.toggle("on", !!(TD.cfg && TD.cfg.on)); b.classList.toggle("warn", !!(TD.cfg && TD.cfg.on && TD.err === "consent")); }
+  const tdStatusTxt = () => {
+    if (!TD.cfg || !TD.cfg.on) return "Ausgeschaltet.";
+    if (TD.busy) return "Gleicht ab …";
+    if (TD.err === "consent") return "Microsoft muss einmal erlauben, dass Semper in To Do schreiben darf.";
+    if (TD.err === "offline") return "Kein Internet – wird nachgeholt.";
+    if (TD.err) return "Der Abgleich hat nicht geklappt. Er wird später nochmals versucht.";
+    if (!TD.at) return "Noch nicht abgeglichen.";
+    const d = new Date(TD.at); return "Abgeglichen um " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + " · " + TD.n + " offene Erinnerung" + (TD.n === 1 ? "" : "en") + " in der Liste «Semper».";
+  };
+  function tdPaint() { const s = $("#td-stat"); if (s) s.textContent = tdStatusTxt(); const cb = $("#td-consent"); if (cb) cb.hidden = TD.err !== "consent"; }
+  function openTodoDlg() {
+    const c = tdCfg(), sel = (v) => [0, 5, 10, 15, 30, 60, 120].map((n) => '<option value="' + n + '"' + (+c.lead === n ? " selected" : "") + ">" + (n ? (n < 60 ? n + " Minuten" : n / 60 + (n === 60 ? " Stunde" : " Stunden")) + " vorher" : "zur Startzeit") + "</option>").join("");
+    openModal('<h3>Erinnerungen aufs Handy</h3>' +
+      '<p class="td-intro">Semper trägt Ihre To-dos aus «Termine» in die Liste <b>«Semper»</b> in Microsoft To Do ein. Die App To Do auf dem Handy meldet sich dann zur eingestellten Zeit – auch wenn Semper geschlossen ist. Abhaken geht auf beiden Seiten.</p>' +
+      '<label class="dp-chk td-main"><input type="checkbox" id="td-on"' + (c.on ? " checked" : "") + "> Erinnerungen über Microsoft To Do</label>" +
+      '<div class="td-opts"><div class="field"><label for="td-at">To-dos ohne Uhrzeit: erinnern um</label><div class="td-row"><input type="time" id="td-at" value="' + esc(c.at) + '"><label class="dp-chk"><input type="checkbox" id="td-vt"' + (c.vortag ? " checked" : "") + "> schon am Vortag</label></div></div>" +
+      '<div class="field"><label for="td-lead">Mit Uhrzeit: erinnern</label><select id="td-lead">' + sel() + "</select></div>" +
+      '<label class="dp-chk"><input type="checkbox" id="td-tm"' + (c.termine ? " checked" : "") + "> Auch an Termine mit Uhrzeit erinnern (nicht nur an To-dos)</label></div>" +
+      '<p class="td-stat" id="td-stat" role="status"></p><p id="td-consent" hidden><button class="btn primary" type="button" id="td-ok">Bei Microsoft erlauben</button></p>' +
+      '<details class="hint"><summary>ⓘ Was ist auf dem Handy zu tun?</summary><p>Einmal die App <b>Microsoft To Do</b> installieren, mit demselben Microsoft-Konto anmelden und Mitteilungen erlauben. Die Erinnerungen stehen in der Liste «Semper». Beim Ausschalten entfernt Semper die offenen Einträge wieder aus dieser Liste.</p></details>' +
+      '<div class="actions"><button class="btn ghost" id="td-now" type="button">Jetzt abgleichen</button><div class="right"><button class="btn primary" id="td-x" type="button">Fertig</button></div></div>',
+      (root) => {
+        const q = (s) => root.querySelector(s), opts = q(".td-opts");
+        const show = () => { opts.hidden = !q("#td-on").checked; q("#td-now").hidden = !q("#td-on").checked; };
+        show(); tdPaint();
+        const apply = async () => {
+          const cur = tdCfg(), on = q("#td-on").checked;
+          const n = { ...cur, on, at: q("#td-at").value || "07:00", vortag: q("#td-vt").checked, lead: +q("#td-lead").value || 0, termine: q("#td-tm").checked };
+          await tdSaveCfg(n); tdBadge();
+          if (cur.on && !on) {
+            clearTimeout(TD.timer); while (TD.busy) await new Promise((r) => setTimeout(r, 200));
+            const c2 = tdCfg(); TD.busy = true; tdPaint();
+            try { await tdClear(c2); } finally { TD.busy = false; }
+            TD.at = 0; TD.err = ""; await tdSaveCfg({ ...tdCfg(), map: {} });
+          }
+          tdPaint();
+          if (on) { if (!cur.on && !(await window.ZTODO.ready().catch(() => true))) { TD.err = "consent"; tdPaint(); return; } tdKick(300); }
+        };
+        q("#td-on").onchange = () => { show(); apply(); };
+        ["#td-at", "#td-vt", "#td-lead", "#td-tm"].forEach((s) => (q(s).onchange = apply));
+        q("#td-now").onclick = () => { tdKick(0); setTimeout(tdPaint, 50); };
+        q("#td-ok").onclick = () => window.ZTODO.connect();
+        q("#td-x").onclick = closeModal;
+      });
+  }
+  if (window.ZTODO) { const b = $("#tdBtn"); if (b) { b.hidden = false; b.onclick = openTodoDlg; } }
+  setInterval(() => { if (document.visibilityState === "visible") tdKick(0); }, 5 * 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") tdKick(2000); });
+
   // Mitternacht: vergangene Tage rutschen ins Archiv
   let shownDay = keyOf(today());
   setInterval(() => { const k = keyOf(today()); if (k !== shownDay) { shownDay = k; render(); } }, 60000);
@@ -8540,8 +8686,14 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       for (const k of dirty) if (state.days[k]) days[k] = state.days[k];
       state.days = days;
       if (!$("#ov")) render();
+      tdKick(TD.at ? 6000 : 2500);
       if (!dirty.size) setStatus("");
     }, (err) => { console.error(err); setStatus("Die Termine konnten nicht geladen werden. Bitte die Seite neu laden.", true); });
+    db.collection("plan").doc("erinnerungen").onSnapshot((snap) => {
+      if (!TD.busy) TD.cfg = snap.exists ? clone(snap.data()) : null;
+      if (!TD.loaded) { TD.loaded = true; tdKick(3000); }
+      tdBadge();
+    }, (err) => console.error(err));
     db.collection("notes").doc("board").onSnapshot((snap) => {
       state.nb.termine = snap.exists ? clone(snap.data().items || []) : []; renderNotes();
     }, (err) => console.error(err));

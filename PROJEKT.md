@@ -88,6 +88,8 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
 
   - **Lektion gross geöffnet** (22.10.2026): Knopf «◫ Nebeneinander» (`zeitplan-dside`, ab 900 px) zeigt Lektionsplanung links und Notizen rechts, Trennlinie ziehbar (`zeitplan-dsidew`, 25–75 %). Bilder in den Notizen sind Blöcke `figure.nfig` (Grösse `w25/33/50/75`, Lage `p-l`/`p-r` = Text daneben, `p-c` = Mitte, ohne = allein links, `figcaption` = Bildunterschrift/Quelle); Klick aufs Bild öffnet das Fenster dazu (auch ↑/↓ verschieben, Entfernen). Alte Bilder werden beim ersten Klick umgewandelt. Klick neben ein Bild: Bild rückt auf die andere Seite (Text daneben), Cursor kommt genau auf die angeklickte Höhe wie in einem Textfeld (`besideFig`, leere Füllzeilen `data-fill`, ungenutzte werden mit `dropFill` wieder entfernt). Bildunterschriften erscheinen nicht in der Linkliste unter den Notizen (`notesLinkText`). Unterricht «◫ Planung»: Knopf «⇥ In die Seite» auf jedem Notiz-Bild fügt es an der letzten Cursorstelle der Seite ein (Quelle als kleine Zeile darunter); ist die Klassen-Kopie einer Lektion leer, zeigt die Planung die Lektion aus der Original-Reihe (`LK.planFrom`, «Bearbeiten» öffnet dann das Original).
 
+**Erinnerungen aufs Handy** (22.10.2026, Glocke in der Kopfzeile, `openTodoDlg`): To-dos aus Termine (mit Datum) gehen in die Liste «Semper» in **Microsoft To Do**; die To-Do-App auf dem Handy meldet sich, auch wenn Semper zu ist. Nur über das eigene Microsoft-Konto (kein fremder Dienst): eigener Schlüssel `zp-tok-todo` mit `Tasks.ReadWrite` über das bestehende Refresh-Token (`window.ZTODO` in cloud.js), beim ersten Mal «Bei Microsoft erlauben» (einmalige Zustimmung, keine Änderung in der App-Registrierung nötig). Einstellungen und Zuordnung Eintrag → Aufgabe in `plan/erinnerungen` (`on, at, vortag, lead, termine, listId, map`), damit alle Geräte gleich abgleichen (`tdSync`, nach Änderungen, alle 5 Min. und beim Zurückkehren). Ohne Uhrzeit: Erinnerung um `at` (Standard 07:00, wahlweise am Vortag); mit Uhrzeit: `lead` Minuten vorher; wahlweise auch Termine mit Uhrzeit. Abhaken in To Do hakt in Semper ab und umgekehrt; in Semper gelöscht/geändert = in To Do gelöscht/geändert; in To Do gelöscht = bleibt weg, bis der Eintrag in Semper geändert wird. Fenster: 7 Tage zurück bis gut 1 Jahr voraus; Erledigtes/Vergangenes wird nicht neu angelegt, vergangene Erinnerungen bleiben stumm. Ausschalten entfernt die offenen Einträge wieder. To-do-Notizen ohne Datum gehen nicht mit. **Mit dem echten Konto noch unbestätigt.**
+
 **Kopfzeile am Handy** (unter 700 px): Semper und Datum in einer Zeile, Reiter darunter, − + 💾 ‹› hinter ⋯ (`hdrMore`). Am Handy springen Termine (Kalender) und Klassen (Tagesplan) beim Öffnen zu heute (`jumpTodayNow`). Lange Hilfetexte stehen hinter «ⓘ Hilfe» (`details.hint`).
 
 **Klassen** (`view-klassen`)
@@ -161,12 +163,12 @@ Playwright mit installiertem Chromium und einer nachgebauten Graph-Schnittstelle
 ## Offen / später
 
 - **Mit dem echten Konto prüfen:** Umwandlung PowerPoint/Word → PDF (`toPdf`). Katharina gibt Rückmeldung.
+- **Mit dem echten Konto prüfen:** Erinnerungen über Microsoft To Do (Zustimmung, Liste «Semper», Mitteilung auf dem Handy).
 - **Beamer-Fenster** am Laptop mit zweitem Bildschirm ausprobieren. Auf dem iPad gibt es kein zweites Fenster. Lösung fürs Tablet: «📡 Beamer an anderem Gerät» – Rückmeldung aus dem Schulzimmer offen.
 - **Ideen besprochen, nicht gebaut:**
   - «Mitlesen» (Laptop holt Tablet-Änderungen alle 2–3 s) und Tablet als Fernbedienung
   - Abschnittsweise speichern bzw. ausgeben, Abschnitte als Bausteine
 - **Zurückgestellt:**
-  - Erinnerungen (Outlook-Kalender oder To Do)
   - OneNote/Schulkonto
   - Doppelte Reihen zusammenführen
 - **Vorschläge:**
