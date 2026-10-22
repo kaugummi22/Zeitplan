@@ -1045,6 +1045,10 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .notes-ed .nfig img { border: 1px solid var(--line); border-radius: 4px; vertical-align: top; }
 .notes-ed .nfig.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
 .lk-plantext img { max-width: 100%; height: auto; }
+.lk-plantext .lk-pimg, .lk-plantext .nfig { position: relative; display: inline-block; max-width: 100%; }
+.lk-plantext .nfig { display: block; }
+.lk-ptake { position: absolute; top: 6px; right: 6px; white-space: nowrap; font: inherit; font-size: 0.75rem; font-weight: 600; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--accent); padding: 3px 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+.lk-ptake:hover { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lk-figpop input.nf-cap { width: 100%; font: inherit; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: var(--bg); color: var(--ink); }
 .lk-fpg.four { grid-template-columns: repeat(5, 1fr); }
 /* Lektion: Lektionsplanung links, Notizen rechts */
@@ -3208,8 +3212,49 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const ov = document.getElementById("ov"); if (ov) ov.addEventListener("scroll", place);
       fp = { fig, el, out, key, ov, place };
     };
+    // Neben ein Bild klicken: dort weiterschreiben (Bild rückt auf die andere Seite, Text fliesst daneben)
+    const besideFig = (e) => {
+      if (e.target.closest("figure.nfig")) return;
+      const sel = getSelection(); if (sel.rangeCount && !sel.isCollapsed) return;
+      let fig = [...ned.querySelectorAll("figure.nfig, img:not(figure img)")].find((f) => { const r = f.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom && (e.clientX < r.left || e.clientX > r.right); });
+      if (!fig) return;
+      const r0 = fig.getBoundingClientRect(), right = e.clientX > r0.right;
+      if (fig.tagName === "IMG") fig = toFig(fig);
+      const r = fig.getBoundingClientRect();
+      if (sel.rangeCount && ned.contains(sel.anchorNode)) {
+        const rg = sel.getRangeAt(0); let cr = rg.getClientRects()[0];
+        if (!cr) { const a = sel.anchorNode, el = a.nodeType === 1 ? a : a.parentElement; if (el && el !== ned) cr = el.getBoundingClientRect(); }
+        if (cr && cr.top >= r.top - 4 && cr.top <= r.bottom && (cr.left >= r.right - 2 || cr.right <= r.left + 2)) return; // Cursor steht schon neben dem Bild
+      }
+      if (!/\bp-[lr]\b/.test(fig.className)) fig.className = fig.className.replace(/\s*\bp-c\b/g, "") + (right ? " p-l" : " p-r");
+      const f2 = fig.getBoundingClientRect();
+      ned.focus();
+      // Stelle unter dem Mauszeiger (nach dem Umstellen des Bildes); liegt dort Text neben dem Bild, dort schreiben
+      let rg = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+      if (!rg && document.caretPositionFromPoint) { const cp = document.caretPositionFromPoint(e.clientX, e.clientY); if (cp) { rg = document.createRange(); rg.setStart(cp.offsetNode, cp.offset); } }
+      if (rg) {
+        const n = rg.startContainer, cr = rg.getClientRects()[0] || ((n.nodeType === 1 ? n : n.parentElement) || ned).getBoundingClientRect();
+        const ok = ned.contains(n) && n !== ned && !fig.contains(n) && Math.abs(cr.top + cr.height / 2 - e.clientY) < 30 && (cr.left >= f2.right - 2 || cr.right <= f2.left + 2);
+        if (!ok) rg = null;
+      }
+      if (!rg) {
+        // sonst: neue Zeile neben dem Bild (nach dem letzten Absatz, der noch neben dem Bild steht)
+        const box = fig.parentElement.closest(".ncol") || ned; let u = fig; while (u.parentElement && u.parentElement !== box) u = u.parentElement;
+        let last = null, empty = null;
+        for (let k = u.nextSibling; k; k = k.nextSibling) {
+          if (k.nodeType === 3 || k.nodeName === "BR") continue;
+          if (k.nodeType !== 1 || k.matches("figure.nfig") || k.getBoundingClientRect().top >= f2.bottom - 2) break;
+          last = k; if (!empty && k.tagName === "DIV" && !k.textContent.trim() && !k.querySelector("img,figure")) empty = k;
+        }
+        let tgt = empty;
+        if (!tgt) { tgt = document.createElement("div"); tgt.innerHTML = "<br>"; (last || u).after(tgt); }
+        rg = document.createRange(); rg.setStart(tgt, 0);
+      }
+      rg.collapse(true);
+      sel.removeAllRanges(); sel.addRange(rg); save();
+    };
     ned.addEventListener("click", (e) => {
-      const img = e.target.closest("img"); if (!img) return;
+      const img = e.target.closest("img"); if (!img) { besideFig(e); return; }
       e.preventDefault();
       const fig = img.closest("figure.nfig") || toFig(img);
       figPop(fig);
@@ -6931,11 +6976,33 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     main.classList.toggle("split", on);
     const b = $("#lk-plan"); if (b) b.setAttribute("aria-pressed", String(on));
     if (!on) return;
-    const body = lessonPrintHtml(r, x.u.i, x.u.ln ? 1 : x.u.s || 1).replace(/^<section>|<\/section>$/g, "");
+    const planOf = (q) => lessonPrintHtml(q, x.u.i, x.u.ln ? 1 : x.u.s || 1).replace(/^<section>|<\/section>$/g, "");
+    const hasPlanHtml = (h) => /<(table|h3|div)/.test(h.replace(/^<h2>[\s\S]*?<\/h2>/, ""));
+    let body = planOf(r), from = null;
+    // Kopie in der Klasse noch leer (z. B. vor dem Planen kopiert): Planung aus der Reihe in der Planung zeigen
+    const src = r.src && U.reihen[r.src];
+    if (!hasPlanHtml(body) && src && !x.u.ln) { const b2 = planOf(src); if (hasPlanHtml(b2)) { body = b2; from = r.src; } }
+    LK.planFrom = from;
     const box = document.createElement("aside"); box.className = "lk-planbox"; box.id = "lk-planbox";
     box.innerHTML = '<div class="lk-shead"><span class="lbl">Lektionsplanung</span><span><button type="button" class="btn ghost" id="lk-planedit" title="Lernziele, Ablauf und Notizen dieser Lektion bearbeiten">✎ Bearbeiten</button><button type="button" class="lk-fold" id="lk-planx" title="Planung schliessen">✕</button></span></div>' +
-      '<div class="lk-plantext">' + (/<(table|h3|div)/.test(body.replace(/^<h2>[\s\S]*?<\/h2>/, "")) ? body : body + '<p class="help">Für diese Lektion ist noch keine Planung erfasst. Mit «✎ Bearbeiten» können Sie Lernziele und Ablauf eintragen.</p>') + "</div>";
+      (from ? '<p class="help lk-pfrom">Aus der Reihe in der Planung (die Kopie in dieser Klasse ist für diese Lektion noch leer).</p>' : "") +
+      '<div class="lk-plantext">' + (hasPlanHtml(body) ? body : body + '<p class="help">Für diese Lektion ist noch keine Planung erfasst. Mit «✎ Bearbeiten» können Sie Lernziele und Ablauf eintragen.</p>') + "</div>";
     main.appendChild(box);
+    // Bilder aus den Notizen in die Seite übernehmen (an der Stelle, wo zuletzt der Cursor in der Seite stand)
+    box.querySelectorAll(".lk-plantext img").forEach((img) => {
+      const m = /^\/_blob\/([0-9a-f]{8,64})$/.exec(img.getAttribute("src") || ""); if (!m) return;
+      let host = img.closest("figure.nfig");
+      if (!host) { host = document.createElement("span"); host.className = "lk-pimg"; img.replaceWith(host); host.appendChild(img); }
+      const b = document.createElement("button"); b.type = "button"; b.className = "lk-ptake"; b.dataset.take = m[1]; b.textContent = "⇥ In die Seite"; b.title = "Dieses Bild in die Unterrichtsseite übernehmen – dort, wo der Cursor zuletzt stand";
+      host.appendChild(b);
+    });
+    box.addEventListener("pointerdown", () => { const pg = $("#lk-page"), sl = getSelection(); if (pg && sl.rangeCount && pg.contains(sl.anchorNode)) lkKeepRange(); });
+    box.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-take]"); if (!b) return;
+      const fc = b.parentElement.querySelector("figcaption"), cap = fc ? fc.textContent.trim() : "";
+      lkInsertAtRange(lkFigHtml(b.dataset.take) + (cap ? '<p class="fs-2">' + esc(cap) + "</p>" : "<p><br></p>"));
+      LK.range = null; lkStat("Bild in die Seite übernommen. Rechtsklick bzw. lange drücken aufs Bild: Grösse und Lage.");
+    });
   }
   function lkSave(typing) {
     const pg = $("#lk-page"); if (!pg || !LK.pid) return;
@@ -8255,7 +8322,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (!b) return;
     if (b.id === "lk-sidefold" || b.id === "lk-sideopen") { if (lkIsProj()) LK.pside = b.id === "lk-sideopen"; else { LK.side = b.id === "lk-sideopen"; lkSaveSel(); } lkLayout(); return; }
     if (b.id === "lk-plan" || b.id === "lk-planx") { LK.plan = b.id === "lk-plan" ? !LK.plan : false; lkSaveSel(); lkPlanRender(); return; }
-    if (b.id === "lk-planedit") { const x = lkLessons(LK.kid).find((y) => y.key === LK.sel); if (x) openLessonDetail(x.u.i, x.u.rid, lkPlanRender); return; }
+    if (b.id === "lk-planedit") { const x = lkLessons(LK.kid).find((y) => y.key === LK.sel); if (x) openLessonDetail(x.u.i, LK.planFrom || x.u.rid, lkPlanRender); return; }
     if (b.id === "lk-docsfold" || b.id === "lk-docsopen") { if (lkIsProj()) LK.pdocs = b.id === "lk-docsopen"; else { LK.docs = b.id === "lk-docsopen"; lkSaveSel(); } lkLayout(); return; }
     if (b.closest(".lk-showmenu")) lkPopsClose();
     if (b.id === "lk-proj") { lkSave(); lkProj(true); return; }
