@@ -1533,6 +1533,7 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .nb.sw-x { font-family: inherit; font-size: 0.8rem; color: var(--muted); }
 .nb.nimg { font-family: inherit; font-size: 0.85rem; font-weight: 600; }
 .nlh { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted); padding: 0 4px; }
+#d-ntab { width: 4.6em; }
 .nlh select { font: inherit; font-size: 0.8rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); }
 .nb svg { display: block; }
 .notes-ed .al-c, .notes-ed [style*="text-align: center"] { text-align: center; } .notes-ed .al-r { text-align: right; } .notes-ed .al-j { text-align: justify; }
@@ -1563,6 +1564,10 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .lk-plantext img { max-width: 100%; height: auto; }
 .lk-plantext .lk-pimg, .lk-plantext .nfig { position: relative; display: inline-block; max-width: 100%; }
 .lk-plantext .nfig { display: block; }
+.lk-plantext .lk-ptab { position: relative; margin: 6px 0; padding-top: 26px; } .lk-plantext .lk-ptab .lk-ptake { top: 0; right: 0; }
+.notes-ed table.ntab, .notes table.ntab { border-collapse: collapse; width: 100%; margin: 6px 0; }
+.notes-ed table.ntab :is(td, th), .notes table.ntab :is(td, th) { border: 1px solid color-mix(in srgb, var(--muted) 55%, transparent); padding: 4px 8px; vertical-align: top; text-align: left; min-width: 2em; height: 1.6em; }
+.notes-ed table.ntab th, .notes table.ntab th { background: var(--accent-soft); font-weight: 700; }
 .lk-ptake { position: absolute; top: 6px; right: 6px; white-space: nowrap; font: inherit; font-size: 0.75rem; font-weight: 600; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--accent); padding: 3px 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 .lk-ptake:hover { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lk-figpop input.nf-cap { width: 100%; font: inherit; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: var(--bg); color: var(--ink); }
@@ -2463,6 +2468,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (tag === "FIGURE") { const im = n.querySelector("img"), src = (im && im.getAttribute("src")) || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) { const c = n.className || "", w = /\bw(25|33|50|75|100)\b/.exec(c), ps = /\bp-([lrc])\b/.exec(c), fc = n.querySelector("figcaption"), cap = fc ? fc.textContent.replace(/[\u00a0\u200b]/g, " ").trim() : ""; out += '<figure class="nfig' + (w ? " w" + w[1] : "") + (ps ? " p-" + ps[1] : "") + '"><img src="' + src + '" alt="">' + (cap ? "<figcaption>" + esc(cap) + "</figcaption>" : "") + "</figure>"; } continue; }
         if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) { const w = /\bw(25|33|50|75)\b/.exec(n.className || ""); out += '<img src="' + src + '"' + (w ? ' class="w' + w[1] + '"' : "") + ' alt="">'; } continue; }
         if (tag === "STYLE" || tag === "SCRIPT" || tag === "META" || tag === "TITLE") continue;
+        if (tag === "TABLE") {
+          const rows = [...n.querySelectorAll(":scope > tr, :scope > tbody > tr, :scope > thead > tr, :scope > tfoot > tr")].filter((tr) => [...tr.children].some((c) => /^T[DH]$/.test(c.tagName)));
+          if (!rows.length) { walk(n); continue; }
+          out += '<table class="ntab"><tbody>';
+          rows.forEach((tr) => { out += "<tr>"; [...tr.children].forEach((c) => { if (!/^T[DH]$/.test(c.tagName)) return; const t2 = c.tagName.toLowerCase(); out += "<" + t2 + ">"; const m0 = out.length; walk(c); if (!out.slice(m0).replace(/<[^>]*>|\s/g, "")) out = out.slice(0, m0) + "<br>"; out += "</" + t2 + ">"; }); out += "</tr>"; });
+          out += "</tbody></table>"; continue;
+        }
         const st = n.style || {};
         if (tag === "UL" || tag === "OL") { const t = tag.toLowerCase(); out += "<" + t + ">"; walk(n); out += "</" + t + ">"; continue; }
         const isBlock = /^(DIV|P|H[1-6]|BLOCKQUOTE|LI)$/.test(tag);
@@ -2493,7 +2505,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   // Links aus den Notizen (ohne Bildunterschriften: eine Quelle unter einem Bild erscheint nicht nochmals unten)
   const notesLinkText = (h) => htmlToPlain(String(h || "").replace(/<figcaption>[\s\S]*?<\/figcaption>/g, "").replace(/<img[^>]*>/g, ""));
-  const notesPlain = (h) => htmlToPlain(String(h || "").replace(/<img[^>]*>/g, "[Bild]").replace(/<figcaption>/g, " (").replace(/<\/figcaption>/g, ")"));
+  const notesPlain = (h) => htmlToPlain(String(h || "").replace(/<\/t[dh]>/g, " $&").replace(/<img[^>]*>/g, "[Bild]").replace(/<figcaption>/g, " (").replace(/<\/figcaption>/g, ")"));
   const sfx = (part) => (part > 1 ? String(part) : "");
   const richOf = (x, part) => { const h = x["html" + sfx(part)], t = x["text" + sfx(part)]; return h != null ? sanitize(h) : plainToHtml(t); };
   const PART_NAMES = ["", "", " (zweiter Teil)", " (dritter Teil)", " (vierter Teil)"];
@@ -3522,6 +3534,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       NB("size", "2", '<span style="font-size:11px">A</span>', "Kleine Schrift") + NB("size", "3", '<span style="font-size:14px">A</span>', "Normale Schrift") + NB("size", "4", '<span style="font-size:17px">A</span>', "Grosse Schrift") + NB("size", "5", '<span style="font-size:20px">A</span>', "Sehr grosse Schrift") + '<span class="nsep"></span>' +
       NB("justifyLeft", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg>', "Linksbündig") + NB("justifyCenter", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8"/></svg>', "Zentriert") + NB("justifyRight", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg>', "Rechtsbündig") + NB("justifyFull", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h12"/></svg>', "Blocksatz") + '<span class="nsep"></span>' + NB("insertUnorderedList", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="3" cy="4" r="1" fill="currentColor"/><circle cx="3" cy="8" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><path d="M6 4h8M6 8h8M6 12h8"/></svg>', "Aufzählung") + NB("insertOrderedList", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><text x="0.5" y="5.5" font-size="5" fill="currentColor" stroke="none">1</text><text x="0.5" y="9.5" font-size="5" fill="currentColor" stroke="none">2</text><text x="0.5" y="13.5" font-size="5" fill="currentColor" stroke="none">3</text></svg>', "Nummerierte Liste") + '<span class="nsep"></span>' +
       '<label class="nlh" title="Spalten einfügen, z. B. Fragen links, Antworten rechts">Spalten <select id="d-ncols"><option value="">–</option><option value="2">2 Spalten</option><option value="3">3 Spalten</option><option value="0">Spalten aufheben</option></select></label>' + '<span class="nsep"></span>' +
+      '<label class="nlh" title="Tabelle einfügen oder ändern (Cursor in eine Zelle setzen). Tab springt in die nächste Zelle. Kopieren mit Strg+C und in die Unterrichtsseite einfügen – oder dort in der Planung «⇥ In die Seite»">Tabelle <select id="d-ntab"><option value="">–</option><optgroup label="Neue Tabelle">' + [[2, 2], [3, 2], [3, 3], [4, 3], [5, 4]].map(([r, c]) => '<option value="new:' + r + "x" + c + '">' + c + " Spalten × " + r + " Zeilen</option>").join("") + '</optgroup><optgroup label="In der Tabelle"><option value="trow">+ Zeile darunter</option><option value="tcol">+ Spalte rechts</option><option value="tdelrow">Zeile löschen</option><option value="tdelcol">Spalte löschen</option><option value="thead">Kopfzeile ein/aus</option><option value="tdel">Tabelle löschen</option></optgroup></select></label>' + '<span class="nsep"></span>' +
       '<label class="nlh" title="Zeilenabstand">Zeilenabstand <select id="d-nlh">' + [[1.15, "eng"], [1.5, "normal"], [1.8, "weit"], [2.2, "sehr weit"]].map(([v, l]) => '<option value="' + v + '"' + ((x.notesLh || 1.5) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" + '<span class="nsep"></span>' +
       '<label class="nb nimg" title="Bild oder Screenshot einfügen (auch mit Strg+V)">🖼 Bild<input type="file" id="d-nimg" accept="image/*" multiple hidden></label><span class="msg" id="d-nmsg"></span></div>' +
       '<div class="notes-ed" style="line-height:' + (x.notesLh || 1.5) + '" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notizen" id="d-notes" data-ph="Fragen, Hinweise, Tafelbild, Lösungen … Screenshots mit Strg+V einfügen.">' + sanitizeNotes(x.notesHtml || "") + '</div><div class="links" id="d-links">' + linkify(x.notesHtml ? notesLinkText(x.notesHtml) : x.details || "") + "</div></div>";
@@ -3675,13 +3688,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       e.preventDefault(); e.stopPropagation();
       if (imgs.length) { insertImgs(imgs); return; }
       const h = cd.getData("text/html"), tx = cd.getData("text/plain");
-      if (h) document.execCommand("insertHTML", false, sanitizeNotes(h.replace(/<img[^>]*>/gi, "")));
+      if (h) { document.execCommand("insertHTML", false, sanitizeNotes(h.replace(/<img[^>]*>/gi, ""))); tabTail(); }
       else document.execCommand("insertText", false, tx || "");
     }, true);
     ned.addEventListener("dragover", (e) => { if ([...(e.dataTransfer.items || [])].some((i) => i.kind === "file")) e.preventDefault(); });
     ned.addEventListener("drop", (e) => { const f = [...(e.dataTransfer.files || [])]; if (f.length) { e.preventDefault(); insertImgs(f); } });
     $("#d-nimg").addEventListener("change", (e) => { const f = [...e.target.files]; e.target.value = ""; insertImgs(f); });
     // Bilder: im Text nicht bearbeitbar (ganzer Block), ein Klick öffnet Grösse, Lage, Bildunterschrift/Quelle
+    // nach einer Tabelle ganz am Ende eine leere Zeile, damit man darunter weiterschreiben kann
+    function tabTail() { const l = ned.lastElementChild; if (l && l.tagName === "TABLE") { const d = document.createElement("div"); d.innerHTML = "<br>"; ned.appendChild(d); } }
     const figLock = () => ned.querySelectorAll("figure.nfig").forEach((f) => { f.contentEditable = "false"; });
     figLock();
     let fp = null;
@@ -3825,6 +3840,33 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const c0 = document.getElementById(id + "c");
       if (c0) { const rg = document.createRange(); rg.selectNodeContents(c0); rg.collapse(false); sl.removeAllRanges(); sl.addRange(rg); c0.removeAttribute("id"); }
       $("#d-nmsg").textContent = "Spalten eingefügt. Unterhalb geht der Text normal weiter."; save();
+    });
+    // Tabellen: einfügen, Zeilen/Spalten, Tab springt in die nächste Zelle
+    tabTail();
+    const nCell = () => { const sl = getSelection(), an = sl.rangeCount ? sl.anchorNode : null, el = an && (an.nodeType === 1 ? an : an.parentElement), c = el && el.closest("td, th"); return c && ned.contains(c) ? c : null; };
+    $("#d-ntab").addEventListener("change", (e) => {
+      const v = e.target.value; e.target.value = ""; if (!v) return;
+      const m = /^new:(\d)x(\d)$/.exec(v);
+      if (!m) { const c = nCell(); if (!c) { $("#d-nmsg").textContent = "Setzen Sie den Cursor zuerst in eine Zelle der Tabelle."; return; } const f = tableOp(c, v); ned.focus(); if (f) caretIn(f); save(); return; }
+      const nr = +m[1], nc = +m[2], row = (t) => "<tr>" + Array.from({ length: nc }, () => "<" + t + "><br></" + t + ">").join("") + "</tr>";
+      const tpl = document.createElement("template"); tpl.innerHTML = '<table class="ntab"><tbody>' + row("th") + Array.from({ length: nr - 1 }, () => row("td")).join("") + "</tbody></table>";
+      const t = tpl.content.firstChild;
+      ned.focus();
+      const sl = getSelection(); let top = sl.rangeCount && ned.contains(sl.anchorNode) ? sl.anchorNode : null;
+      const col = top && (top.nodeType === 1 ? top : top.parentElement).closest(".ncol"), box = col && ned.contains(col) ? col : ned;
+      while (top && top !== box && top.parentNode !== box) top = top.parentNode;
+      if (top === box) top = null;
+      if (top && top.nodeType === 1 && top.tagName === "DIV" && !top.textContent.trim() && !top.querySelector("img,figure,table")) top.replaceWith(t); else if (top) top.after(t); else box.appendChild(t);
+      if (!t.nextElementSibling) { const d = document.createElement("div"); d.innerHTML = "<br>"; t.after(d); }
+      caretIn(t.querySelector("th, td"));
+      $("#d-nmsg").textContent = "Tabelle eingefügt. Tab springt in die nächste Zelle, in der letzten Zelle gibt Tab eine neue Zeile."; save();
+    });
+    ned.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const c = nCell(); if (!c) return;
+      e.preventDefault();
+      const all = [...c.closest("table").querySelectorAll("td, th")], i = all.indexOf(c) + (e.shiftKey ? -1 : 1);
+      if (i >= all.length) { const f = tableOp(c, "trow"); if (f) caretIn(f.parentElement.firstElementChild); save(); } else if (i >= 0) caretIn(all[i]);
     });
     $("#d-nlh").addEventListener("change", (e) => { const v = +e.target.value; x.notesLh = v === 1.5 ? 0 : v; ned.style.lineHeight = String(v); changed(); });
     bar.addEventListener("click", (e) => {
@@ -7661,8 +7703,16 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const b = document.createElement("button"); b.type = "button"; b.className = "lk-ptake"; b.dataset.take = m[1]; b.textContent = "⇥ In die Seite"; b.title = "Dieses Bild in die Unterrichtsseite übernehmen – dort, wo der Cursor zuletzt stand";
       host.appendChild(b);
     });
+    // Tabellen (Ablauf und Tabellen aus den Notizen) ebenso
+    box.querySelectorAll(".lk-plantext table").forEach((tb) => {
+      const host = document.createElement("div"); host.className = "lk-ptab"; tb.replaceWith(host); host.appendChild(tb);
+      const b = document.createElement("button"); b.type = "button"; b.className = "lk-ptake"; b.dataset.taketab = "1"; b.textContent = "⇥ In die Seite"; b.title = "Diese Tabelle in die Unterrichtsseite übernehmen – dort, wo der Cursor zuletzt stand";
+      host.appendChild(b);
+    });
     box.addEventListener("pointerdown", () => { const pg = $("#lk-page"), sl = getSelection(); if (pg && sl.rangeCount && pg.contains(sl.anchorNode)) lkKeepRange(); });
     box.addEventListener("click", (e) => {
+      const bt = e.target.closest("[data-taketab]");
+      if (bt) { lkInsertBlocks(lkSanitize(bt.parentElement.querySelector("table").outerHTML), LK.range); LK.range = null; lkStat("Tabelle in die Seite übernommen. Unter «▦ Tabelle» lassen sich Zeilen und Spalten ändern."); return; }
       const b = e.target.closest("[data-take]"); if (!b) return;
       const fc = b.parentElement.querySelector("figcaption"), cap = fc ? fc.textContent.trim() : "";
       lkInsertAtRange(lkFigHtml(b.dataset.take) + (cap ? '<p class="fs-2">' + esc(cap) + "</p>" : "<p><br></p>"));
@@ -7953,6 +8003,22 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const s = getSelection(); s.removeAllRanges();
     if (LK.range && pg.contains(LK.range.commonAncestorContainer)) s.addRange(LK.range); else { const r = document.createRange(); r.selectNodeContents(pg); r.collapse(false); s.addRange(r); }
     document.execCommand("insertHTML", false, html); lkWrapStray(pg); lkSave();
+  }
+  // Blöcke (z. B. eine Tabelle) als eigene Absätze nach dem Absatz mit dem Cursor einfügen, nicht mitten hinein
+  function lkInsertBlocks(html, range) {
+    const pg = $("#lk-page"); if (!pg) return;
+    const tpl = document.createElement("template"); tpl.innerHTML = html; const nodes = [...tpl.content.childNodes]; if (!nodes.length) return;
+    let top = range && pg.contains(range.commonAncestorContainer) ? range.startContainer : null;
+    while (top && top !== pg && top.parentNode !== pg) top = top.parentNode;
+    if (top === pg) top = top.childNodes[range.startOffset - 1] || null;
+    const last = nodes[nodes.length - 1];
+    if (top && top.nodeType === 1 && top.tagName === "P" && !top.textContent.trim() && !top.querySelector("img")) top.replaceWith(tpl.content); else if (top) top.after(tpl.content); else pg.appendChild(tpl.content);
+    lkWrapStray(pg);
+    let after = last.nodeType === 1 && last.parentNode === pg ? last : null;
+    if (after && after.tagName === "TABLE" && !after.nextElementSibling) { const p2 = document.createElement("p"); p2.innerHTML = "<br>"; after.after(p2); }
+    pg.focus(); const t0 = nodes.find((n) => n.nodeType === 1 && n.tagName === "TABLE"), c0 = t0 && t0.querySelector("th, td");
+    if (c0) lkCaretIn(c0);
+    lkSave();
   }
   const lkFigHtml = (id) => '<figure class="lk-fig" contenteditable="false"><img src="/_blob/' + id + '" alt=""></figure>';
   async function lkPick(f) {
@@ -8316,7 +8382,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function lkTableOp(cmd) {
     const pg = $("#lk-page"), an = getSelection().anchorNode, el = an && (an.nodeType === 1 ? an : an.parentElement), cell = el && el.closest("td, th"), tb = cell && cell.closest("table");
     if (!tb || !pg.contains(tb)) { lkStat("Bitte zuerst in eine Zelle der Tabelle klicken."); return; }
-    const tr = cell.parentElement, ci = [...tr.children].indexOf(cell), rows = [...tb.rows];
+    const focus = tableOp(cell, cmd);
+    if (focus) lkCaretIn(focus);
+  }
+  // Zeilen/Spalten einer Tabelle ändern (Unterrichtsseite und Notizen); gibt die Zelle für den Cursor zurück
+  function tableOp(cell, cmd) {
+    const tb = cell.closest("table"), tr = cell.parentElement, ci = [...tr.children].indexOf(cell), rows = [...tb.rows];
     const mk = (tag) => { const c = document.createElement(tag); c.innerHTML = "<br>"; return c; };
     let focus = null;
     if (cmd === "trow") { const n = document.createElement("tr"); [...tr.children].forEach(() => n.appendChild(mk("td"))); tr.after(n); focus = n.children[Math.max(0, ci)]; }
@@ -8325,8 +8396,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     else if (cmd === "tdelcol") { if (tr.children.length <= 1) tb.remove(); else rows.forEach((r) => r.children[ci] && r.children[ci].remove()); }
     else if (cmd === "thead") { const r0 = rows[0], toTh = !(r0.children[0] && r0.children[0].tagName === "TH"); [...r0.children].forEach((c) => { const n = document.createElement(toTh ? "th" : "td"); while (c.firstChild) n.appendChild(c.firstChild); c.replaceWith(n); }); }
     else if (cmd === "tdel") tb.remove();
-    if (focus) lkCaretIn(focus);
+    return focus;
   }
+  function caretIn(el) { const r = document.createRange(); r.selectNodeContents(el); r.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(r); }
   const lkCaretIn = (el) => { const r = document.createRange(); r.selectNodeContents(el); r.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(r); };
   // ---------- Timer, Zufall, QR-Code, Umfrage: schwebende Karten, verschiebbar, gross/klein ----------
   const LKW = {}; let lkwZ = 1;
@@ -9021,6 +9093,18 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const lbl = g.parentNode.querySelector(".lk-tsize"); if (lbl) lbl.textContent = r + " Zeilen × " + k + " Spalten";
   });
   document.getElementById("view-lektion").addEventListener("input", (e) => { if (e.target.id === "lk-page") lkSave(true); });
+  // Eingefügte Tabellen (z. B. aus den Notizen der Lektion, Word oder Excel) kommen als Tabelle der Seite herein
+  document.getElementById("view-lektion").addEventListener("paste", (e) => {
+    if (e.target.closest && !e.target.closest("#lk-page")) return;
+    const h = e.clipboardData && e.clipboardData.getData("text/html"); if (!h || !/<table/i.test(h)) return;
+    const pg = $("#lk-page"), sl = getSelection(); if (!pg) return;
+    const an = sl.rangeCount ? sl.anchorNode : null, el = an && (an.nodeType === 1 ? an : an.parentElement);
+    if (el && el.closest("td, th") && pg.contains(el)) { e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain").replace(/\s*\n\s*/g, " ").trim()); return; }
+    e.preventDefault();
+    const frag = h.replace(/^[\s\S]*<!--StartFragment-->|<!--EndFragment-->[\s\S]*$/g, "");
+    lkInsertBlocks(lkSanitize(/<table/i.test(frag) ? frag : h), sl.rangeCount ? sl.getRangeAt(0) : null);
+    lkStat("Tabelle eingefügt.");
+  });
   document.getElementById("view-lektion").addEventListener("keydown", (e) => {
     if (e.target.id !== "lk-page" || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === "Tab") {
