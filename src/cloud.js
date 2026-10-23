@@ -55,7 +55,7 @@
     const r = await _fetch("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: CFG.clientId, scope: scope || SCOPES, ...body }) });
     const j = await r.json();
     if (!r.ok || !j.access_token) { const x = new Error(j.error_description || j.error || "Anmeldung fehlgeschlagen"); x.code = j.error || ""; throw x; }
-    if (scope) { const old = ls.get("zp-tok-" + acc) || {}; if (j.refresh_token) { old.refresh = j.refresh_token; ls.set("zp-tok-" + acc, old); } return { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000 }; }
+    if (scope) { const old = ls.get("zp-tok-" + acc) || {}; if (j.refresh_token) { old.refresh = j.refresh_token; ls.set("zp-tok-" + acc, old); } return { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, scope: j.scope || "" }; }
     const old = ls.get("zp-tok-" + acc) || {};
     const t = { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, refresh: j.refresh_token || old.refresh, user: old.user };
     ls.set("zp-tok-" + acc, t); return t;
@@ -95,8 +95,12 @@
     if (t && t.access && t.exp > Date.now()) return t.access;
     const p = ls.get("zp-tok-privat");
     if (!p || !p.refresh) { const x = new Error("Nicht angemeldet"); x.consent = true; throw x; }
-    try { const n = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: p.refresh }, TODO_SCOPE); ls.set("zp-tok-todo", n); return n.access; }
+    let n;
+    try { n = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: p.refresh }, TODO_SCOPE); }
     catch (e) { if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; } e.consent = true; throw e; }
+    // Microsoft gibt manchmal einen Schlüssel ohne To-Do-Recht zurück, solange nicht zugestimmt wurde
+    if (n.scope && !/tasks\.readwrite/i.test(n.scope)) { const x = new Error("Keine Zustimmung für To Do"); x.consent = true; throw x; }
+    ls.set("zp-tok-todo", n); return n.access;
   }
   window.ZTODO = {
     async api(path, opts) {

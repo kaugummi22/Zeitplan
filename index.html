@@ -68,7 +68,7 @@
     const r = await _fetch("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: CFG.clientId, scope: scope || SCOPES, ...body }) });
     const j = await r.json();
     if (!r.ok || !j.access_token) { const x = new Error(j.error_description || j.error || "Anmeldung fehlgeschlagen"); x.code = j.error || ""; throw x; }
-    if (scope) { const old = ls.get("zp-tok-" + acc) || {}; if (j.refresh_token) { old.refresh = j.refresh_token; ls.set("zp-tok-" + acc, old); } return { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000 }; }
+    if (scope) { const old = ls.get("zp-tok-" + acc) || {}; if (j.refresh_token) { old.refresh = j.refresh_token; ls.set("zp-tok-" + acc, old); } return { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, scope: j.scope || "" }; }
     const old = ls.get("zp-tok-" + acc) || {};
     const t = { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, refresh: j.refresh_token || old.refresh, user: old.user };
     ls.set("zp-tok-" + acc, t); return t;
@@ -108,8 +108,12 @@
     if (t && t.access && t.exp > Date.now()) return t.access;
     const p = ls.get("zp-tok-privat");
     if (!p || !p.refresh) { const x = new Error("Nicht angemeldet"); x.consent = true; throw x; }
-    try { const n = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: p.refresh }, TODO_SCOPE); ls.set("zp-tok-todo", n); return n.access; }
+    let n;
+    try { n = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: p.refresh }, TODO_SCOPE); }
     catch (e) { if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; } e.consent = true; throw e; }
+    // Microsoft gibt manchmal einen Schlüssel ohne To-Do-Recht zurück, solange nicht zugestimmt wurde
+    if (n.scope && !/tasks\.readwrite/i.test(n.scope)) { const x = new Error("Keine Zustimmung für To Do"); x.consent = true; throw x; }
+    ls.set("zp-tok-todo", n); return n.access;
   }
   window.ZTODO = {
     async api(path, opts) {
@@ -9082,6 +9086,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (Object.keys(c.map).length && JSON.stringify({ l: c.listId, m: c.map }) !== before) { const cur = tdCfg(); tdSaveCfg({ ...cur, listId: c.listId, map: c.map }); }
     } finally {
       TD.busy = false; tdBadge(); tdPaint();
+      if (TD.err === "consent" && !TD.asked && !$("#ov")) tdAsk();
       if (TD.again) tdKick(1500);
     }
   }
@@ -9091,6 +9096,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const base = "/me/todo/lists/" + encodeURIComponent(c.listId) + "/tasks";
     for (const m of Object.values(c.map)) { if (m.done || m.gone) continue; try { await window.ZTODO.api(base + "/" + m.id, { method: "DELETE" }); } catch (e) {} }
     c.map = {};
+  }
+  // Hinweis unten, wenn Microsoft noch zustimmen muss (einmal pro Öffnen)
+  function tdAsk() {
+    TD.asked = true;
+    let t = $("#sv-toast"); if (!t) { t = document.createElement("div"); t.id = "sv-toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+    t.className = "sv-toast warn"; t.innerHTML = "Für die Erinnerungen aufs Handy muss Microsoft einmal zustimmen." + '<button type="button" class="btn primary" data-tdok>Jetzt erlauben</button><button type="button" class="btn ghost" data-svclose aria-label="Schliessen">×</button>';
+    t.querySelector("[data-tdok]").onclick = () => window.ZTODO.connect();
   }
   function tdBadge() { const b = $("#tdBtn"); if (!b) return; b.classList.toggle("on", !!(TD.cfg && TD.cfg.on)); b.classList.toggle("warn", !!(TD.cfg && TD.cfg.on && TD.err === "consent")); }
   const tdStatusTxt = () => {
@@ -9129,7 +9141,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
             TD.at = 0; TD.err = ""; await tdSaveCfg({ ...tdCfg(), map: {} });
           }
           tdPaint();
-          if (on) { if (!cur.on && !(await window.ZTODO.ready().catch(() => true))) { TD.err = "consent"; tdPaint(); return; } tdKick(300); }
+          if (on) { if (!(await window.ZTODO.ready().catch(() => true))) { TD.err = "consent"; tdPaint(); window.ZTODO.connect(); return; } tdKick(300); }
         };
         q("#td-on").onchange = () => { show(); apply(); };
         ["#td-at", "#td-vt", "#td-lead", "#td-tm"].forEach((s) => (q(s).onchange = apply));
