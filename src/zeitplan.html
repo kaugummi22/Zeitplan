@@ -408,7 +408,7 @@ html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; ma
 :is(.lk-page, .lk-slide, #lk-printbox) ul.lk-check > li.done::after { content: "✓"; position: absolute; left: 0.22em; top: -0.12em; font-weight: 700; font-size: 1.1em; color: var(--accent); pointer-events: none; }
 :is(.lk-page, .lk-slide) ul.lk-check > li.done { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
 .lk-slide ul.lk-check > li.done { color: #888; }
-:is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: calc(1em * var(--fs, 1)); }
+:is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab { border-collapse: collapse; width: 100%; table-layout: fixed; overflow-wrap: anywhere; margin: 0.5em 0; font-size: calc(1em * var(--fs, 1)); }
 :is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab :is(td, th) { border: 1px solid color-mix(in srgb, var(--muted) 55%, transparent); padding: 0.3em 0.55em; vertical-align: top; text-align: left; height: 1.5em; min-width: 2em; }
 :is(.lk-page, .lk-slide, #lk-printbox) table.lk-tab th { background: var(--accent-soft); font-weight: 700; }
 :is(.lk-slide, #lk-printbox) table.lk-tab :is(td, th) { border-color: #999; } :is(.lk-slide, #lk-printbox) table.lk-tab th { background: #e9edf2; color: #111; }
@@ -416,6 +416,8 @@ html.lk-proj .lk-side, html.lk-proj .lk-docs, html.lk-proj .lk-rail { top: 0; ma
 .lk-tgrid button { width: 22px; height: 18px; padding: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 3px; cursor: pointer; }
 .lk-tgrid button.hov { background: var(--accent-soft); border-color: var(--accent); }
 .lk-tsize { font-size: 0.8rem; color: var(--muted); min-height: 1.1em; }
+.lk-tnum { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); padding: 4px 0; }
+.lk-tnum input { width: 3.4em; font: inherit; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); }
 /* Hilfsmittel beim Projizieren: Spotlight, Zoom, Stift auf Folien, Timer, Zufall, QR-Code, Umfrage */
 .lk-ctl { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 100006; display: flex; gap: 6px; align-items: center; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 4px 5px 4px 14px; font: 600 14px var(--font-body); box-shadow: 0 6px 22px rgba(0,0,0,0.3); max-width: calc(100vw - 20px); }
 .lk-ctl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1020,7 +1022,6 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .nb.sw-x { font-family: inherit; font-size: 0.8rem; color: var(--muted); }
 .nb.nimg { font-family: inherit; font-size: 0.85rem; font-weight: 600; }
 .nlh { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted); padding: 0 4px; }
-#d-ntab { width: 4.6em; }
 .nlh select { font: inherit; font-size: 0.8rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); }
 .nb svg { display: block; }
 .notes-ed .al-c, .notes-ed [style*="text-align: center"] { text-align: center; } .notes-ed .al-r { text-align: right; } .notes-ed .al-j { text-align: justify; }
@@ -1052,8 +1053,33 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .lk-plantext .lk-pimg, .lk-plantext .nfig { position: relative; display: inline-block; max-width: 100%; }
 .lk-plantext .nfig { display: block; }
 .lk-plantext .lk-ptab { position: relative; margin: 6px 0; padding-top: 26px; } .lk-plantext .lk-ptab .lk-ptake { top: 0; right: 0; }
-.notes-ed table.ntab, .notes table.ntab { border-collapse: collapse; width: 100%; margin: 6px 0; }
+.notes-ed table.ntab, .notes table.ntab { border-collapse: collapse; width: 100%; margin: 6px 0; table-layout: fixed; overflow-wrap: anywhere; }
 .notes-ed table.ntab :is(td, th), .notes table.ntab :is(td, th) { border: 1px solid color-mix(in srgb, var(--muted) 55%, transparent); padding: 4px 8px; vertical-align: top; text-align: left; min-width: 2em; height: 1.6em; }
+table:is(.ntab, .lk-tab).tp-l { float: left; margin: 3px 16px 8px 0; } table:is(.ntab, .lk-tab).tp-r { float: right; margin: 3px 0 8px 16px; } table:is(.ntab, .lk-tab).tp-c { margin-left: auto; margin-right: auto; }
+.lk-slide table.lk-tab { float: none; margin-left: auto; margin-right: auto; }
+.ntab-w { position: relative; display: inline-flex; }
+.ntab-pop { position: absolute; top: 100%; left: 0; z-index: 20; margin-top: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); padding: 10px; width: max-content; font-family: inherit; }
+.ntab-grid { display: grid; grid-template-columns: repeat(8, 18px); gap: 3px; }
+.ntab-c { width: 18px; height: 18px; border: 1px solid var(--line); border-radius: 2px; background: var(--bg); padding: 0; cursor: pointer; }
+.ntab-c.hov { background: var(--accent-soft); border-color: var(--accent); }
+.ntab-lbl { font-size: 0.8rem; color: var(--muted); margin: 6px 0; }
+.ntab-num { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 8px; }
+.ntab-num input { width: 3.6em; font: inherit; padding: 3px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); }
+.tt { position: fixed; inset: 0; pointer-events: none; z-index: 2000; }
+.tt-frame { position: fixed; border: 2px dashed var(--accent); border-radius: 4px; pointer-events: none; }
+.tt-mv, .tt-mn { position: fixed; pointer-events: auto; height: 24px; border: 1px solid var(--accent); border-radius: 5px; background: var(--surface); color: var(--accent); font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0 7px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); touch-action: none; }
+.tt-mv { width: 24px; padding: 0; cursor: grab; font-size: 0.95rem; } .tt-mn[aria-expanded="true"], .tt-mv:hover, .tt-mn:hover { background: var(--accent); color: var(--surface); }
+.tt-bar[hidden] { display: none; }
+.tt-bar { position: fixed; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; max-width: min(330px, calc(100vw - 8px)); padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); pointer-events: auto; font-size: 0.8rem; }
+.tt-bar button { font: inherit; font-weight: 600; border: 1px solid transparent; border-radius: 5px; background: none; color: var(--ink); padding: 3px 7px; cursor: pointer; touch-action: none; }
+.tt-bar button:hover { border-color: var(--line); background: var(--bg); }
+.tt-sep { width: 1px; height: 18px; background: var(--line); margin: 0 2px; }
+.tt-w, .tt-h, .tt-c { position: fixed; pointer-events: auto; touch-action: none; }
+.tt-w { width: 8px; height: 32px; margin-left: -2px; border-radius: 4px; background: var(--accent); cursor: ew-resize; }
+.tt-h { width: 32px; height: 8px; margin-top: -2px; border-radius: 4px; background: var(--accent); cursor: ns-resize; }
+.tt-c { width: 8px; cursor: col-resize; } .tt-c:hover { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.tt-drop { position: fixed; z-index: 2001; background: var(--accent); border-radius: 2px; pointer-events: none; }
+table.tt-moving { opacity: 0.45; }
 .notes-ed table.ntab th, .notes table.ntab th { background: var(--accent-soft); font-weight: 700; }
 .lk-ptake { position: absolute; top: 6px; right: 6px; white-space: nowrap; font: inherit; font-size: 0.75rem; font-weight: 600; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--accent); padding: 3px 9px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 .lk-ptake:hover { background: var(--accent); color: var(--surface); border-color: var(--accent); }
@@ -1956,11 +1982,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (tag === "IMG") { const src = n.getAttribute("src") || ""; if (/^\/_blob\/[0-9a-f]{8,64}$/.test(src)) { const w = /\bw(25|33|50|75)\b/.exec(n.className || ""); out += '<img src="' + src + '"' + (w ? ' class="w' + w[1] + '"' : "") + ' alt="">'; } continue; }
         if (tag === "STYLE" || tag === "SCRIPT" || tag === "META" || tag === "TITLE") continue;
         if (tag === "TABLE") {
-          const rows = [...n.querySelectorAll(":scope > tr, :scope > tbody > tr, :scope > thead > tr, :scope > tfoot > tr")].filter((tr) => [...tr.children].some((c) => /^T[DH]$/.test(c.tagName)));
-          if (!rows.length) { walk(n); continue; }
-          out += '<table class="ntab"><tbody>';
-          rows.forEach((tr) => { out += "<tr>"; [...tr.children].forEach((c) => { if (!/^T[DH]$/.test(c.tagName)) return; const t2 = c.tagName.toLowerCase(); out += "<" + t2 + ">"; const m0 = out.length; walk(c); if (!out.slice(m0).replace(/<[^>]*>|\s/g, "")) out = out.slice(0, m0) + "<br>"; out += "</" + t2 + ">"; }); out += "</tr>"; });
-          out += "</tbody></table>"; continue;
+          const th = tabHtml(n, "ntab", (c) => { const m0 = out.length; walk(c); const r = out.slice(m0); out = out.slice(0, m0); return r; });
+          if (th) out += th; else walk(n);
+          continue;
         }
         const st = n.style || {};
         if (tag === "UL" || tag === "OL") { const t = tag.toLowerCase(); out += "<" + t + ">"; walk(n); out += "</" + t + ">"; continue; }
@@ -1990,6 +2014,153 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     out = out.replace(/<div( class="al-[crj]")?><\/div>/g, "<div><br></div>").replace(/<div class="ncol"><\/div>/g, '<div class="ncol"><br></div>').replace(/<div class="ncols"><\/div>/g, "").replace(/<(ul|ol)><\/\1>/g, "");
     return out.replace(/(<br>)+$/, "");
   }
+  // ---------- Tabellen (Notizen und Unterrichtsseite): Breite, Höhe, Spaltenbreiten, Lage, Verschieben ----------
+  // gespeichert: Lage als Klasse tp-l/tp-r/tp-c, Breite in %, Höhe in em, Spaltenbreiten in % in der ersten Zeile
+  const TAB_POS = ["tp-l", "tp-r", "tp-c"];
+  function tabHtml(n, base, inner) {
+    const rows = [...n.querySelectorAll(":scope > tr, :scope > tbody > tr, :scope > thead > tr, :scope > tfoot > tr")].filter((tr) => [...tr.children].some((c) => /^T[DH]$/.test(c.tagName)));
+    if (!rows.length) return null;
+    const st = n.style || {}, pct = (v, lo, hi) => { const f = parseFloat(v); return /%$/.test(v || "") && f >= lo && f <= hi ? Math.round(f * 10) / 10 : 0; };
+    const pos = TAB_POS.find((c) => n.classList.contains(c)) || "", w = pct(st.width, 10, 100), hf = parseFloat(st.height), h = /em$/.test(st.height || "") && hf > 0 && hf <= 300 ? Math.round(hf * 10) / 10 : 0;
+    const cw = [...rows[0].children].filter((c) => /^T[DH]$/.test(c.tagName)).map((c) => pct(c.style && c.style.width, 1, 100)), fixed = cw.some((x) => x);
+    const sty = (w ? "width:" + w + "%;" : "") + (h ? "height:" + h + "em;" : "") + (fixed ? "table-layout:fixed;" : "");
+    let out = '<table class="' + base + (pos ? " " + pos : "") + '"' + (sty ? ' style="' + sty + '"' : "") + "><tbody>";
+    rows.forEach((tr, ri) => {
+      out += "<tr>"; let ci = 0;
+      [...tr.children].forEach((c) => { if (!/^T[DH]$/.test(c.tagName)) return; const t = c.tagName.toLowerCase(), cs = ri === 0 && cw[ci] ? ' style="width:' + cw[ci] + '%"' : ""; ci++; let x = inner(c); if (!x.replace(/<[^>]*>|\s/g, "") && !/<img|<figure/.test(x)) x = "<br>"; out += "<" + t + cs + ">" + x + "</" + t + ">"; });
+      out += "</tr>";
+    });
+    return out + "</tbody></table>";
+  }
+  // Rahmen um die Tabelle mit dem Cursor: rechts ziehen = Breite, unten = Höhe, Linien zwischen den Spalten = Spaltenbreite, ✥ = verschieben
+  const TT = { el: null, tb: null, host: null, drag: false, raf: 0 };
+  const ttHostOf = (n) => n && n.closest && n.closest("#lk-page, #d-notes");
+  const ttChanged = () => { if (TT.host) TT.host.dispatchEvent(new Event("input", { bubbles: true })); };
+  function ttHide() { if (!TT.el) return; TT.el.remove(); TT.el = null; TT.tb = null; TT.host = null; cancelAnimationFrame(TT.raf); }
+  function ttShow(tb, host) {
+    if (TT.tb === tb && TT.el) return;
+    ttHide(); TT.tb = tb; TT.host = host;
+    const el = document.createElement("div"); el.className = "tt"; TT.el = el;
+    const B = (k, label, title) => '<button type="button" data-tt="' + k + '" title="' + title + '" aria-label="' + title + '">' + label + "</button>";
+    el.innerHTML = '<div class="tt-frame"></div><button type="button" class="tt-mv" data-tt="move" title="Gedrückt halten und ziehen: Tabelle an eine andere Stelle verschieben, z. B. neben ein Bild" aria-label="Tabelle verschieben">✥</button><button type="button" class="tt-mn" data-tt="menu" title="Lage, Zeilen und Spalten, Grösse zurücksetzen" aria-expanded="false">▦ Tabelle ▾</button><div class="tt-bar" hidden>' +
+      B("tp-l", "◧", "Links, Text rechts daneben") + B("tp-c", "▣", "In der Mitte") + B("tp-r", "◨", "Rechts, Text links daneben") + B("tp-", "▭", "Normal (allein auf der Zeile)") + '<span class="tt-sep"></span>' +
+      B("up", "↑", "Einen Absatz nach oben") + B("down", "↓", "Einen Absatz nach unten") + '<span class="tt-sep"></span>' +
+      B("trow", "+ Zeile", "Neue Zeile unter der Zeile mit dem Cursor") + B("tcol", "+ Spalte", "Neue Spalte rechts der Spalte mit dem Cursor") + B("tdelrow", "− Zeile", "Zeile mit dem Cursor löschen") + B("tdelcol", "− Spalte", "Spalte mit dem Cursor löschen") + B("thead", "Kopfzeile", "Erste Zeile hervorheben ein/aus") + '<span class="tt-sep"></span>' +
+      B("reset", "↺ Grösse", "Breite, Höhe und Spaltenbreiten zurücksetzen") + B("tdel", "🗑", "Ganze Tabelle löschen") + "</div>" +
+      '<div class="tt-w" data-ttd="w" title="Ziehen: Breite der Tabelle"></div><div class="tt-h" data-ttd="h" title="Ziehen: Höhe der Tabelle"></div><div class="tt-cols"></div>';
+    document.body.appendChild(el);
+    el.addEventListener("mousedown", (e) => e.preventDefault());
+    el.addEventListener("click", ttClick);
+    el.addEventListener("pointerdown", ttDown);
+    let last = "";
+    const loop = () => {
+      if (!TT.el || !TT.tb) return;
+      if (!TT.tb.isConnected || !TT.host.isConnected) { ttHide(); return; }
+      const r = TT.tb.getBoundingClientRect(), cells = TT.tb.rows[0] ? [...TT.tb.rows[0].cells] : [], key = [r.left, r.top, r.width, r.height, ...cells.map((c) => c.getBoundingClientRect().right)].map(Math.round).join(",");
+      if (key !== last) { last = key; ttPlace(r, cells); }
+      TT.raf = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+  function ttPlace(r, cells) {
+    const el = TT.el, f = el.querySelector(".tt-frame"), bar = el.querySelector(".tt-bar"), mv = el.querySelector(".tt-mv"), mn = el.querySelector(".tt-mn");
+    const top = r.top >= 30 ? r.top - 27 : r.top + 3;
+    Object.assign(mv.style, { left: Math.max(2, r.left - 26) + "px", top: top + "px" });
+    Object.assign(mn.style, { left: Math.max(2, r.right - mn.offsetWidth) + "px", top: top + "px" });
+    Object.assign(f.style, { left: r.left - 3 + "px", top: r.top - 3 + "px", width: r.width + 6 + "px", height: r.height + 6 + "px" });
+    Object.assign(el.querySelector(".tt-w").style, { left: r.right - 2 + "px", top: r.top + r.height / 2 - 16 + "px" });
+    Object.assign(el.querySelector(".tt-h").style, { left: r.left + r.width / 2 - 16 + "px", top: r.bottom - 2 + "px" });
+    Object.assign(bar.style, { left: Math.max(4, Math.min(innerWidth - bar.offsetWidth - 4, r.right - bar.offsetWidth)) + "px", top: Math.min(innerHeight - bar.offsetHeight - 4, top + 26) + "px" });
+    el.querySelector(".tt-cols").innerHTML = cells.slice(0, -1).map((c, i) => { const cr = c.getBoundingClientRect(); return '<div class="tt-c" data-ttd="c" data-ci="' + i + '" title="Ziehen: Spaltenbreite" style="left:' + (cr.right - 4) + "px;top:" + r.top + "px;height:" + r.height + 'px"></div>'; }).join("");
+  }
+  const ttCell = () => { const s = getSelection(), n = s.rangeCount ? s.anchorNode : null, el = n && (n.nodeType === 1 ? n : n.parentElement), c = el && el.closest("td, th"); return c && TT.tb && TT.tb.contains(c) ? c : null; };
+  const ttBoxW = (tb) => { const p = tb.parentElement, cs = getComputedStyle(p); return p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); };
+  const ttPctW = (tb) => Math.round(tb.getBoundingClientRect().width / ttBoxW(tb) * 100);
+  function ttClick(e) {
+    const b = e.target.closest("[data-tt]"); if (!b || !TT.tb) return;
+    const k = b.dataset.tt, tb = TT.tb, host = TT.host;
+    if (k === "move") return;
+    if (k === "menu") { const bar = TT.el.querySelector(".tt-bar"); bar.hidden = !bar.hidden; b.setAttribute("aria-expanded", String(!bar.hidden)); ttPlace(tb.getBoundingClientRect(), tb.rows[0] ? [...tb.rows[0].cells] : []); return; }
+    if (/^tp-/.test(k)) {
+      TAB_POS.forEach((c) => tb.classList.remove(c)); if (k !== "tp-") tb.classList.add(k);
+      if (k !== "tp-" && !tb.style.width && ttPctW(tb) > 85) tb.style.width = k === "tp-c" ? "70%" : "50%";
+    } else if (k === "up" || k === "down") {
+      let sib = k === "up" ? tb.previousElementSibling : tb.nextElementSibling;
+      while (sib && sib.dataset && sib.dataset.fill) sib = k === "up" ? sib.previousElementSibling : sib.nextElementSibling;
+      if (!sib) return;
+      if (k === "up") sib.before(tb); else sib.after(tb);
+      ttTail(tb);
+    } else if (k === "reset") { tb.style.removeProperty("width"); tb.style.removeProperty("height"); tb.style.removeProperty("table-layout"); if (tb.rows[0]) [...tb.rows[0].cells].forEach((c) => c.style.removeProperty("width")); }
+    else if (k === "tdel") { const p = tb.previousElementSibling || tb.nextElementSibling; tb.remove(); ttHide(); if (p) caretIn(p); host.dispatchEvent(new Event("input", { bubbles: true })); return; }
+    else { const c = ttCell() || tb.querySelector("td, th"); const f = tableOp(c, k); if (!tb.isConnected) { ttHide(); host.dispatchEvent(new Event("input", { bubbles: true })); return; } if (f) caretIn(f); else if (c && c.isConnected) caretIn(c); }
+    ttChanged();
+  }
+  // nach einer Tabelle am Ende braucht es eine leere Zeile, damit man darunter weiterschreiben kann
+  function ttTail(tb) { if (tb.nextElementSibling) return; const d = document.createElement(tb.parentElement.id === "lk-page" ? "p" : "div"); d.innerHTML = "<br>"; tb.after(d); }
+  function ttDown(e) {
+    const d = e.target.closest("[data-ttd], [data-tt='move']"); if (!d || !TT.tb) return;
+    e.preventDefault();
+    const tb = TT.tb, x0 = e.clientX, y0 = e.clientY, r0 = tb.getBoundingClientRect(), boxW = ttBoxW(tb), fs = parseFloat(getComputedStyle(tb).fontSize) || 16;
+    const kind = d.dataset.ttd || "move"; TT.drag = true; document.body.classList.add("col-resizing");
+    try { d.setPointerCapture(e.pointerId); } catch (err) {}
+    let move, ind = null, drop = null;
+    if (kind === "w") move = (ev) => { tb.style.width = Math.max(15, Math.min(100, Math.round((r0.width + ev.clientX - x0) / boxW * 100))) + "%"; };
+    else if (kind === "h") { const minH = [...tb.rows].reduce((s, row) => s + row.getBoundingClientRect().height, 0); move = (ev) => { const px = Math.max(r0.height + ev.clientY - y0, tb.rows.length * fs * 1.6); tb.style.height = Math.round(px / fs * 10) / 10 + "em"; }; void minH; }
+    else if (kind === "c") {
+      const cells = [...tb.rows[0].cells], ws = cells.map((c) => c.getBoundingClientRect().width), tw = ws.reduce((a, b) => a + b, 0), i = +d.dataset.ci;
+      cells.forEach((c, k) => { c.style.width = Math.round(ws[k] / tw * 1000) / 10 + "%"; }); tb.style.tableLayout = "fixed";
+      const pair = ws[i] + ws[i + 1], min = Math.max(24, fs * 1.8);
+      move = (ev) => { const a = Math.max(min, Math.min(pair - min, ws[i] + ev.clientX - x0)); cells[i].style.width = Math.round(a / tw * 1000) / 10 + "%"; cells[i + 1].style.width = Math.round((pair - a) / tw * 1000) / 10 + "%"; };
+    } else {
+      ind = document.createElement("div"); ind.className = "tt-drop"; document.body.appendChild(ind);
+      tb.classList.add("tt-moving");
+      move = (ev) => { drop = ttDropAt(ev.clientX, ev.clientY); if (!drop) { ind.hidden = true; return; } ind.hidden = false; Object.assign(ind.style, drop.ind); };
+    }
+    const up = () => {
+      d.removeEventListener("pointermove", move); d.removeEventListener("pointerup", up); d.removeEventListener("pointercancel", up);
+      document.body.classList.remove("col-resizing"); TT.drag = false;
+      if (ind) { ind.remove(); tb.classList.remove("tt-moving"); if (drop) ttDrop(tb, drop); }
+      ttChanged();
+    };
+    d.addEventListener("pointermove", move); d.addEventListener("pointerup", up); d.addEventListener("pointercancel", up);
+  }
+  // Wohin die Tabelle beim Loslassen kommt: zwischen zwei Absätze oder neben ein Bild
+  function ttDropAt(x, y) {
+    const host = TT.host, tb = TT.tb, hr = host.getBoundingClientRect();
+    if (x < hr.left - 40 || x > hr.right + 40 || y < hr.top - 40 || y > hr.bottom + 40) return null;
+    let box = host; const under = document.elementFromPoint(x, y), col = under && under.closest && under.closest(".ncol"); if (col && host.contains(col)) box = col;
+    const kids = [...box.children].filter((k) => k !== tb && !(k.dataset && k.dataset.fill));
+    const fig = kids.find((k) => k.matches("figure.nfig, figure.lk-fig") && (() => { const r = k.getBoundingClientRect(); return y >= r.top && y <= r.bottom && (x > r.right || x < r.left); })());
+    if (fig) { const r = fig.getBoundingClientRect(), side = x > r.right ? "r" : "l"; return { box, fig, side, ind: { left: (side === "r" ? r.right + 6 : r.left - 9) + "px", top: r.top + "px", width: "3px", height: r.height + "px" } }; }
+    const br = box.getBoundingClientRect();
+    let ref = kids.find((k) => { const r = k.getBoundingClientRect(); return r.top + r.height / 2 > y; }) || null;
+    const ry = ref ? ref.getBoundingClientRect().top - 2 : (kids.length ? kids[kids.length - 1].getBoundingClientRect().bottom + 2 : br.top + 4);
+    return { box, ref, ind: { left: br.left + "px", top: ry + "px", width: br.width + "px", height: "3px" } };
+  }
+  function ttDrop(tb, d) {
+    if (d.fig) {
+      const fig = d.fig, notes = fig.classList.contains("nfig");
+      // Bild auf die eine Seite, Tabelle daneben
+      if (notes) {
+        fig.className = fig.className.replace(/\s*\bp-[lrc]\b/g, "") + (d.side === "r" ? " p-l" : " p-r");
+        if (!/\bw(25|33|50)\b/.test(fig.className)) fig.className = fig.className.replace(/\s*\bw\d+\b/g, "") + " w50";
+      } else {
+        LK_FIGPOS.forEach((c) => fig.classList.remove(c)); fig.classList.add(d.side === "r" ? "fl-l" : "fl-r");
+        if (lkFigGet(fig).w > 60) fig.style.width = "50%";
+      }
+      TAB_POS.forEach((c) => tb.classList.remove(c));
+      fig.after(tb);
+      const fw = Math.round(fig.getBoundingClientRect().width / ttBoxW(tb) * 100), room = Math.max(20, 100 - fw - 5);
+      if (!tb.style.width || parseFloat(tb.style.width) > room) tb.style.width = room + "%";
+    } else if (d.ref) d.box.insertBefore(tb, d.ref); else d.box.appendChild(tb);
+    ttTail(tb);
+    const c = tb.querySelector("td, th"); if (c) { TT.host.focus(); caretIn(c); }
+  }
+  document.addEventListener("selectionchange", () => {
+    if (TT.drag) return;
+    const s = getSelection(), n = s.rangeCount ? s.anchorNode : null, el = n && (n.nodeType === 1 ? n : n.parentElement), tb = el && el.closest && el.closest("table.ntab, table.lk-tab"), host = tb && ttHostOf(tb);
+    if (tb && host && host.isContentEditable) ttShow(tb, host); else ttHide();
+  });
   // Links aus den Notizen (ohne Bildunterschriften: eine Quelle unter einem Bild erscheint nicht nochmals unten)
   const notesLinkText = (h) => htmlToPlain(String(h || "").replace(/<figcaption>[\s\S]*?<\/figcaption>/g, "").replace(/<img[^>]*>/g, ""));
   const notesPlain = (h) => htmlToPlain(String(h || "").replace(/<\/t[dh]>/g, " $&").replace(/<img[^>]*>/g, "[Bild]").replace(/<figcaption>/g, " (").replace(/<\/figcaption>/g, ")"));
@@ -2680,7 +2851,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
 
   // ---------- Drucken: eine Datei, die sich im Browser öffnet und gleich das Druckfenster zeigt ----------
-  const PRINT_CSS = "@page{size:A4;margin:10mm 11mm}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;line-height:1.3;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1{font-size:13pt;margin:0 0 4px}h2{font-size:11pt;margin:10px 0 4px;padding-bottom:2px;border-bottom:1.2px solid #333}h3{font-size:8.5pt;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.04em;color:#444}.meta{color:#444;margin:0 0 10px}.box{border:1px solid #bbb;border-radius:4px;padding:6px 8px;margin:4px 0}table{width:100%;border-collapse:collapse;margin:4px 0;table-layout:fixed}th,td{border:1px solid #999;padding:4px 6px;vertical-align:top;text-align:left;overflow-wrap:break-word}th{background:#eee;font-size:9.5pt}.pre{white-space:pre-wrap}tr{break-inside:avoid}.notes img{max-width:100%;max-height:120mm}.notes img.w50{max-width:50%}.notes img.w33{max-width:33%}.notes img.w25{max-width:25%}.notes img.w75{max-width:75%}.notes{display:flow-root}.nfig{margin:4px 0;width:fit-content;max-width:100%;break-inside:avoid}.nfig img{display:block;max-width:100%;max-height:120mm}.nfig[class*=\" w\"] img{width:100%}.nfig.w25{width:25%}.nfig.w33{width:33%}.nfig.w50{width:50%}.nfig.w75{width:75%}.nfig.w100{width:100%}.nfig figcaption{contain:inline-size;font-size:8pt;font-style:italic;color:#555;margin-top:2px}.nfig.p-l{float:left;margin:2px 10px 6px 0}.nfig.p-r{float:right;margin:2px 0 6px 10px}.nfig.p-c{margin-left:auto;margin-right:auto}.nfig.p-c figcaption{text-align:center}mark.hl-y{background:#fff1a6}mark.hl-g{background:#d3f2c4}mark.hl-b{background:#cfe4ff}mark{color:inherit}.fs-s{font-size:85%}.fs-l{font-size:125%}.fs-xl{font-size:150%}.one h1{border-bottom:1.2px solid #333;padding-bottom:2px}.al-c{text-align:center}.al-r{text-align:right}.al-j{text-align:justify}.notes ul,.notes ol{margin:2px 0;padding-left:20px}.ncols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin:4px 0;break-inside:avoid}.ncol{padding:2px 8px}.ncol+.ncol{border-left:1px solid #999}.phase{font-weight:400;color:#555}ul{margin:2px 0;padding-left:18px}@media screen{body{max-width:190mm;margin:20px auto;padding:0 12px}}";
+  const PRINT_CSS = "@page{size:A4;margin:10mm 11mm}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;line-height:1.3;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}h1{font-size:13pt;margin:0 0 4px}h2{font-size:11pt;margin:10px 0 4px;padding-bottom:2px;border-bottom:1.2px solid #333}h3{font-size:8.5pt;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.04em;color:#444}.meta{color:#444;margin:0 0 10px}.box{border:1px solid #bbb;border-radius:4px;padding:6px 8px;margin:4px 0}table{width:100%;border-collapse:collapse;margin:4px 0;table-layout:fixed}th,td{border:1px solid #999;padding:4px 6px;vertical-align:top;text-align:left;overflow-wrap:break-word}th{background:#eee;font-size:9.5pt}.pre{white-space:pre-wrap}tr{break-inside:avoid}.notes img{max-width:100%;max-height:120mm}.notes img.w50{max-width:50%}.notes img.w33{max-width:33%}.notes img.w25{max-width:25%}.notes img.w75{max-width:75%}.notes{display:flow-root}.nfig{margin:4px 0;width:fit-content;max-width:100%;break-inside:avoid}.nfig img{display:block;max-width:100%;max-height:120mm}.nfig[class*=\" w\"] img{width:100%}.nfig.w25{width:25%}.nfig.w33{width:33%}.nfig.w50{width:50%}.nfig.w75{width:75%}.nfig.w100{width:100%}.nfig figcaption{contain:inline-size;font-size:8pt;font-style:italic;color:#555;margin-top:2px}.nfig.p-l{float:left;margin:2px 10px 6px 0}.nfig.p-r{float:right;margin:2px 0 6px 10px}.nfig.p-c{margin-left:auto;margin-right:auto}.nfig.p-c figcaption{text-align:center}table.tp-l{float:left;margin:2px 10px 6px 0}table.tp-r{float:right;margin:2px 0 6px 10px}table.tp-c{margin-left:auto;margin-right:auto}mark.hl-y{background:#fff1a6}mark.hl-g{background:#d3f2c4}mark.hl-b{background:#cfe4ff}mark{color:inherit}.fs-s{font-size:85%}.fs-l{font-size:125%}.fs-xl{font-size:150%}.one h1{border-bottom:1.2px solid #333;padding-bottom:2px}.al-c{text-align:center}.al-r{text-align:right}.al-j{text-align:justify}.notes ul,.notes ol{margin:2px 0;padding-left:20px}.ncols{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);margin:4px 0;break-inside:avoid}.ncol{padding:2px 8px}.ncol+.ncol{border-left:1px solid #999}.phase{font-weight:400;color:#555}ul{margin:2px 0;padding-left:18px}@media screen{body{max-width:190mm;margin:20px auto;padding:0 12px}}";
   const safeName = (t) => String(t || "Planung").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120);
   async function inlineImgs(body) {
     const ids = [...new Set([...body.matchAll(/src="\/_blob\/([0-9a-f]+)"/g)].map((m) => m[1]))];
@@ -3021,7 +3192,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       NB("size", "2", '<span style="font-size:11px">A</span>', "Kleine Schrift") + NB("size", "3", '<span style="font-size:14px">A</span>', "Normale Schrift") + NB("size", "4", '<span style="font-size:17px">A</span>', "Grosse Schrift") + NB("size", "5", '<span style="font-size:20px">A</span>', "Sehr grosse Schrift") + '<span class="nsep"></span>' +
       NB("justifyLeft", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg>', "Linksbündig") + NB("justifyCenter", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8"/></svg>', "Zentriert") + NB("justifyRight", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg>', "Rechtsbündig") + NB("justifyFull", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h12"/></svg>', "Blocksatz") + '<span class="nsep"></span>' + NB("insertUnorderedList", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="3" cy="4" r="1" fill="currentColor"/><circle cx="3" cy="8" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><path d="M6 4h8M6 8h8M6 12h8"/></svg>', "Aufzählung") + NB("insertOrderedList", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><text x="0.5" y="5.5" font-size="5" fill="currentColor" stroke="none">1</text><text x="0.5" y="9.5" font-size="5" fill="currentColor" stroke="none">2</text><text x="0.5" y="13.5" font-size="5" fill="currentColor" stroke="none">3</text></svg>', "Nummerierte Liste") + '<span class="nsep"></span>' +
       '<label class="nlh" title="Spalten einfügen, z. B. Fragen links, Antworten rechts">Spalten <select id="d-ncols"><option value="">–</option><option value="2">2 Spalten</option><option value="3">3 Spalten</option><option value="0">Spalten aufheben</option></select></label>' + '<span class="nsep"></span>' +
-      '<label class="nlh" title="Tabelle einfügen oder ändern (Cursor in eine Zelle setzen). Tab springt in die nächste Zelle. Kopieren mit Strg+C und in die Unterrichtsseite einfügen – oder dort in der Planung «⇥ In die Seite»">Tabelle <select id="d-ntab"><option value="">–</option><optgroup label="Neue Tabelle">' + [[2, 2], [3, 2], [3, 3], [4, 3], [5, 4]].map(([r, c]) => '<option value="new:' + r + "x" + c + '">' + c + " Spalten × " + r + " Zeilen</option>").join("") + '</optgroup><optgroup label="In der Tabelle"><option value="trow">+ Zeile darunter</option><option value="tcol">+ Spalte rechts</option><option value="tdelrow">Zeile löschen</option><option value="tdelcol">Spalte löschen</option><option value="thead">Kopfzeile ein/aus</option><option value="tdel">Tabelle löschen</option></optgroup></select></label>' + '<span class="nsep"></span>' +
+      '<span class="ntab-w"><button type="button" class="nb nimg" id="d-ntabb" aria-expanded="false" title="Tabelle einfügen: Grösse im Raster wählen oder Spalten und Zeilen eingeben">▦ Tabelle</button><div class="ntab-pop" id="d-ntabp" hidden><div class="ntab-grid">' + Array.from({ length: 64 }, (_, k) => '<button type="button" class="ntab-c" data-r="' + (Math.floor(k / 8) + 1) + '" data-c="' + (k % 8 + 1) + '"></button>').join("") + '</div><div class="ntab-lbl">Grösse im Raster wählen</div><div class="ntab-num"><label>Spalten <input type="number" id="d-ntc" min="1" max="20" value="3"></label><label>Zeilen <input type="number" id="d-ntr" min="1" max="60" value="3"></label><button type="button" class="btn primary" id="d-ntok">Einfügen</button></div></div></span>' + '<span class="nsep"></span>' +
       '<label class="nlh" title="Zeilenabstand">Zeilenabstand <select id="d-nlh">' + [[1.15, "eng"], [1.5, "normal"], [1.8, "weit"], [2.2, "sehr weit"]].map(([v, l]) => '<option value="' + v + '"' + ((x.notesLh || 1.5) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" + '<span class="nsep"></span>' +
       '<label class="nb nimg" title="Bild oder Screenshot einfügen (auch mit Strg+V)">🖼 Bild<input type="file" id="d-nimg" accept="image/*" multiple hidden></label><span class="msg" id="d-nmsg"></span></div>' +
       '<div class="notes-ed" style="line-height:' + (x.notesLh || 1.5) + '" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notizen" id="d-notes" data-ph="Fragen, Hinweise, Tafelbild, Lösungen … Screenshots mit Strg+V einfügen.">' + sanitizeNotes(x.notesHtml || "") + '</div><div class="links" id="d-links">' + linkify(x.notesHtml ? notesLinkText(x.notesHtml) : x.details || "") + "</div></div>";
@@ -3252,7 +3423,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     };
     ned.addEventListener("blur", () => { const n = ned.querySelectorAll("div[data-fill]").length; dropFill(null); if (n !== ned.querySelectorAll("div[data-fill]").length) save(); });
     const besideFig = (e) => {
-      if (e.target.closest("figure.nfig")) return;
+      if (e.target.closest("figure.nfig") || e.target.closest("table")) return;
       dropFill(e.target.closest && e.target.closest("div[data-fill]"));
       const sel = getSelection(); if (sel.rangeCount && !sel.isCollapsed) return;
       let fig = [...ned.querySelectorAll("figure.nfig, img:not(figure img)")].find((f) => { const r = f.getBoundingClientRect(); return e.clientY >= r.top && e.clientY <= r.bottom && (e.clientX < r.left || e.clientX > r.right); });
@@ -3300,7 +3471,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       figPop(fig);
     });
     const bar = root.querySelector(".nbar");
-    bar.addEventListener("mousedown", (e) => { if (!e.target.closest("label,select")) e.preventDefault(); });
+    bar.addEventListener("mousedown", (e) => { if (!e.target.closest("label,select,input")) e.preventDefault(); });
     $("#d-ncols").addEventListener("change", (e) => {
       const v = e.target.value; e.target.value = ""; if (v === "") return;
       ned.focus();
@@ -3331,23 +3502,33 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     // Tabellen: einfügen, Zeilen/Spalten, Tab springt in die nächste Zelle
     tabTail();
     const nCell = () => { const sl = getSelection(), an = sl.rangeCount ? sl.anchorNode : null, el = an && (an.nodeType === 1 ? an : an.parentElement), c = el && el.closest("td, th"); return c && ned.contains(c) ? c : null; };
-    $("#d-ntab").addEventListener("change", (e) => {
-      const v = e.target.value; e.target.value = ""; if (!v) return;
-      const m = /^new:(\d)x(\d)$/.exec(v);
-      if (!m) { const c = nCell(); if (!c) { $("#d-nmsg").textContent = "Setzen Sie den Cursor zuerst in eine Zelle der Tabelle."; return; } const f = tableOp(c, v); ned.focus(); if (f) caretIn(f); save(); return; }
-      const nr = +m[1], nc = +m[2], row = (t) => "<tr>" + Array.from({ length: nc }, () => "<" + t + "><br></" + t + ">").join("") + "</tr>";
-      const tpl = document.createElement("template"); tpl.innerHTML = '<table class="ntab"><tbody>' + row("th") + Array.from({ length: nr - 1 }, () => row("td")).join("") + "</tbody></table>";
+    let nRange = null;
+    const keepR = () => { const sl = getSelection(); if (sl.rangeCount && ned.contains(sl.anchorNode)) nRange = sl.getRangeAt(0).cloneRange(); };
+    const insTable = (nr, nc) => {
+      nr = Math.max(1, Math.min(60, nr | 0)); nc = Math.max(1, Math.min(20, nc | 0));
+      const row = (t) => "<tr>" + Array.from({ length: nc }, () => "<" + t + "><br></" + t + ">").join("") + "</tr>";
+      const tpl = document.createElement("template"); tpl.innerHTML = '<table class="ntab"><tbody>' + row(nr > 1 ? "th" : "td") + Array.from({ length: nr - 1 }, () => row("td")).join("") + "</tbody></table>";
       const t = tpl.content.firstChild;
       ned.focus();
-      const sl = getSelection(); let top = sl.rangeCount && ned.contains(sl.anchorNode) ? sl.anchorNode : null;
+      const sl = getSelection(); if (nRange && ned.contains(nRange.startContainer)) { sl.removeAllRanges(); sl.addRange(nRange); }
+      let top = sl.rangeCount && ned.contains(sl.anchorNode) ? sl.anchorNode : null;
       const col = top && (top.nodeType === 1 ? top : top.parentElement).closest(".ncol"), box = col && ned.contains(col) ? col : ned;
       while (top && top !== box && top.parentNode !== box) top = top.parentNode;
       if (top === box) top = null;
       if (top && top.nodeType === 1 && top.tagName === "DIV" && !top.textContent.trim() && !top.querySelector("img,figure,table")) top.replaceWith(t); else if (top) top.after(t); else box.appendChild(t);
       if (!t.nextElementSibling) { const d = document.createElement("div"); d.innerHTML = "<br>"; t.after(d); }
       caretIn(t.querySelector("th, td"));
-      $("#d-nmsg").textContent = "Tabelle eingefügt. Tab springt in die nächste Zelle, in der letzten Zelle gibt Tab eine neue Zeile."; save();
-    });
+      $("#d-nmsg").textContent = "Tabelle eingefügt. Am Rahmen ziehen: Breite (rechts), Höhe (unten), Spalten (Linien dazwischen). ✥ ziehen = verschieben, auch neben ein Bild. «Tabelle ▾» = Lage, Zeilen, Spalten."; save();
+    };
+    const tPop = $("#d-ntabp"), tBtn = $("#d-ntabb");
+    const tClose = () => { tPop.hidden = true; tBtn.setAttribute("aria-expanded", "false"); document.removeEventListener("pointerdown", tOut, true); };
+    const tOut = (e) => { if (!e.target.closest(".ntab-w")) tClose(); };
+    tBtn.addEventListener("click", () => { if (!tPop.hidden) { tClose(); return; } keepR(); tPop.hidden = false; tBtn.setAttribute("aria-expanded", "true"); document.addEventListener("pointerdown", tOut, true); });
+    tPop.addEventListener("mousedown", (e) => { if (!e.target.closest("input")) e.preventDefault(); });
+    tPop.addEventListener("mouseover", (e) => { const c = e.target.closest(".ntab-c"); if (!c) return; const r = +c.dataset.r, k = +c.dataset.c; tPop.querySelectorAll(".ntab-c").forEach((x) => x.classList.toggle("hov", +x.dataset.r <= r && +x.dataset.c <= k)); tPop.querySelector(".ntab-lbl").textContent = k + " Spalten × " + r + " Zeilen"; });
+    tPop.addEventListener("click", (e) => { const c = e.target.closest(".ntab-c"); if (c) { tClose(); insTable(+c.dataset.r, +c.dataset.c); } });
+    $("#d-ntok").addEventListener("click", () => { const r = +$("#d-ntr").value, c = +$("#d-ntc").value; tClose(); insTable(r, c); });
+    tPop.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#d-ntok").click(); } if (e.key === "Escape") { e.stopPropagation(); tClose(); } });
     ned.addEventListener("keydown", (e) => {
       if (e.key !== "Tab" || e.ctrlKey || e.metaKey || e.altKey) return;
       const c = nCell(); if (!c) return;
@@ -7009,9 +7190,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (tag === "A" && n.dataset.doc) { out += '<a class="lk-doc" data-doc="' + esc(n.dataset.doc) + '" contenteditable="false">📄 ' + esc(n.textContent.replace(/^📄\s*/, "")) + "</a>"; continue; }
         if (/^(STYLE|SCRIPT|META|TITLE)$/.test(tag)) continue;
         if (tag === "TABLE") {
-          out += '<table class="lk-tab"><tbody>';
-          n.querySelectorAll(":scope > tr, :scope > tbody > tr, :scope > thead > tr, :scope > tfoot > tr").forEach((tr) => { out += "<tr>"; [...tr.children].forEach((c) => { if (!/^T[DH]$/.test(c.tagName)) return; const t2 = c.tagName.toLowerCase(); out += "<" + t2 + ">"; walk(c); out += "</" + t2 + ">"; }); out += "</tr>"; });
-          out += "</tbody></table>"; continue;
+          const th = tabHtml(n, "lk-tab", (c) => { const m0 = out.length; walk(c); const r = out.slice(m0); out = out.slice(0, m0); return r; });
+          if (th) out += th; else walk(n);
+          continue;
         }
         if (/^(TBODY|THEAD|TFOOT|TR|TD|TH|CAPTION)$/.test(tag)) { walk(n); continue; }
         if (tag === "SPAN" || tag === "FONT") {
@@ -7141,7 +7322,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const colPop = '<span class="lbl">Schriftfarbe</span><div class="lk-sws">' + Object.keys(LK_TC).map((c) => SW("tc", "t-", c)).join("") + '</div><span class="lbl">Marker</span><div class="lk-sws">' + Object.keys(LK_HL).map((c) => SW("hl", "h-", c)).join("") + "</div>";
     const checkPop = TB("check", "", "☑ Checkliste ein / aus", "Markierte Zeilen werden zu Punkten zum Abhaken – ein Klick aufs Kästchen setzt das Häkchen, auch beim Projizieren") + TB("uncheck", "", "Alle Häkchen entfernen", "Alle Häkchen dieser Seite wieder entfernen, z. B. für die nächste Klasse");
     let tgrid = ""; for (let r = 1; r <= 6; r++) for (let c = 1; c <= 6; c++) tgrid += '<button type="button" class="lk-tcell" data-lkcmd="table" data-arg="' + r + "x" + c + '" data-r="' + r + '" data-c="' + c + '" title="' + r + " Zeilen × " + c + ' Spalten"></button>';
-    const tabPop = '<span class="lbl">Neue Tabelle</span><div class="lk-tgrid">' + tgrid + '</div><span class="lk-tsize">Zeilen × Spalten wählen</span><span class="lbl">In der Tabelle</span>' + TB("trow", "", "+ Zeile darunter", "Neue Zeile unter der Zeile mit der Schreibmarke (auch: Tab in der letzten Zelle)") + TB("tcol", "", "+ Spalte rechts", "Neue Spalte rechts") + TB("tdelrow", "", "− Zeile löschen", "Zeile mit der Schreibmarke löschen") + TB("tdelcol", "", "− Spalte löschen", "Spalte mit der Schreibmarke löschen") + TB("thead", "", "Kopfzeile ein / aus", "Erste Zeile hervorheben") + TB("tdel", "", "Tabelle löschen", "Ganze Tabelle entfernen");
+    const tabPop = '<span class="lbl">Neue Tabelle</span><div class="lk-tgrid">' + tgrid + '</div><span class="lk-tsize">Zeilen × Spalten wählen</span><div class="lk-tnum"><label>Spalten <input type="number" id="lk-tc" min="1" max="20" value="3"></label><label>Zeilen <input type="number" id="lk-tr" min="1" max="60" value="3"></label>' + TB("tablenum", "", "Einfügen", "Tabelle mit dieser Anzahl Spalten und Zeilen einfügen") + '</div><span class="lbl">In der Tabelle</span>' + TB("trow", "", "+ Zeile darunter", "Neue Zeile unter der Zeile mit der Schreibmarke (auch: Tab in der letzten Zelle)") + TB("tcol", "", "+ Spalte rechts", "Neue Spalte rechts") + TB("tdelrow", "", "− Zeile löschen", "Zeile mit der Schreibmarke löschen") + TB("tdelcol", "", "− Spalte löschen", "Spalte mit der Schreibmarke löschen") + TB("thead", "", "Kopfzeile ein / aus", "Erste Zeile hervorheben") + TB("tdel", "", "Tabelle löschen", "Ganze Tabelle entfernen");
     const lhPop = TB("lh", "1", "Eng", "Zeilenabstand eng") + TB("lh", "", "Normal", "Zeilenabstand normal") + TB("lh", "3", "Weit", "Zeilenabstand weit") + TB("lh", "4", "Sehr weit", "Zeilenabstand sehr weit");
     main.innerHTML = '<div class="lk-head"><div><div class="lk-meta"><i class="kdot f-' + kColor(LK.kid) + '"></i> ' + esc(k.name || "Klasse") + (d ? " · " + TAGE[d.getDay()] + ", " + fmt(d) + " · " + esc(x.slot.from) : "") + "</div><h2>" + esc(x.u.label) + (x.u.phase ? " · " + esc(x.u.phase) : "") + "</h2><div class=\"lk-meta\">" + esc(r.title || "") + "</div></div>" +
       '<div class="lk-acts" id="lk-acts"></div></div>' +
@@ -8520,6 +8701,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (!t.nextElementSibling) { const p2 = document.createElement("p"); p2.innerHTML = "<br>"; t.after(p2); }
       lkCaretIn(t.querySelector("th, td"));
     }
+    else if (cmd === "tablenum") {
+      const r = Math.max(1, Math.min(60, +($("#lk-tr") || {}).value || 3)), c = Math.max(1, Math.min(20, +($("#lk-tc") || {}).value || 3));
+      pg.focus(); if (LK.range && pg.contains(LK.range.commonAncestorContainer)) { getSelection().removeAllRanges(); getSelection().addRange(LK.range); } LK.range = null;
+      lkCmd("table", r + "x" + c); return;
+    }
     else if (/^t(row|col|delrow|delcol|head|del)$/.test(cmd)) lkTableOp(cmd);
     else if (cmd === "tc") document.execCommand("foreColor", false, LK_TC[arg]);
     else if (cmd === "hl") { if (getSelection().isCollapsed) return; document.execCommand("hiliteColor", false, LK_HL[arg]) || document.execCommand("backColor", false, LK_HL[arg]); }
@@ -8573,7 +8759,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.lkins && pg) { const f = lkAllDocs()[b.dataset.lkins]; if (!f) return; if (!pg.contains(getSelection().anchorNode)) pg.focus(); document.execCommand("insertHTML", false, '<a class="lk-doc" data-doc="' + esc(f.id) + '" contenteditable="false">📄 ' + esc(f.name) + "</a>&nbsp;"); lkSave(); return; }
     if (b.dataset.lkcmd && pg) { lkCmd(b.dataset.lkcmd, b.dataset.arg || ""); if (b.closest(".lk-pop") && b.dataset.lkcmd !== "lh") lkPopsClose(); else if (b.dataset.lkcmd === "lh") lkPopsClose(); }
   });
-  document.getElementById("view-lektion").addEventListener("mousedown", (e) => { if (e.target.closest(".lk-tb, .lk-sw, .lk-ins, [data-lkpick]")) e.preventDefault(); });
+  document.getElementById("view-lektion").addEventListener("mousedown", (e) => { if (e.target.closest(".lk-tnum input")) { const s = getSelection(); if (s.rangeCount && $("#lk-page") && $("#lk-page").contains(s.anchorNode)) lkKeepRange(); return; } if (e.target.closest(".lk-tb, .lk-sw, .lk-ins, [data-lkpick]")) e.preventDefault(); });
+  document.getElementById("view-lektion").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.closest && e.target.closest(".lk-tnum input")) { e.preventDefault(); const b = e.target.closest(".lk-tnum").querySelector("[data-lkcmd]"); if (b) b.click(); } });
   document.getElementById("view-lektion").addEventListener("mouseover", (e) => {
     const c = e.target.closest(".lk-tcell"); if (!c) return; const g = c.parentNode, r = +c.dataset.r, k = +c.dataset.c;
     g.querySelectorAll(".lk-tcell").forEach((x) => x.classList.toggle("hov", +x.dataset.r <= r && +x.dataset.c <= k));
