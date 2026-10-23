@@ -2465,6 +2465,39 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     host.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   }
+  // ganze Zelle in Lehrerschrift (oder wieder normal); gibt true zurück, wenn sie jetzt Lehrerschrift ist
+  const lsAll = (el) => { const t = el.textContent.replace(/\s/g, ""); if (!t) return false; let ls = ""; el.querySelectorAll(".ls").forEach((x) => { if (!x.parentElement.closest(".ls")) ls += x.textContent; }); return ls.replace(/\s/g, "") === t; };
+  function lsCell(el, on) {
+    el.querySelectorAll(".ls").forEach((x) => { const p = x.parentNode; while (x.firstChild) p.insertBefore(x.firstChild, x); x.remove(); });
+    if (!on || !el.textContent.trim()) return;
+    const sp = document.createElement("span"); sp.className = "ls"; while (el.firstChild) sp.appendChild(el.firstChild); el.appendChild(sp);
+  }
+  const lsStr = (h, on) => { const x = String(h || "").replace(/<span class="ls">|<\/span>/g, ""); return on && htmlToPlain(x).trim() ? '<span class="ls">' + x + "</span>" : x; };
+  const lsStrAll = (h) => { const t = document.createElement("div"); t.innerHTML = h || ""; return lsAll(t); };
+  // Pfeil ↓/↑ in Tabellen: aus der untersten/obersten Zeile einer Zelle in die Zelle darunter/darüber (wie in Word)
+  document.addEventListener("keydown", (e) => {
+    if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    const s = getSelection(); if (!s.rangeCount) return;
+    const n = s.focusNode, el = n && (n.nodeType === 1 ? n : n.parentElement), cell = el && el.closest && el.closest("td, th"); if (!cell) return;
+    const tb = cell.closest("table.ntab, table.lk-tab, table.ptable"); if (!tb || !el.isContentEditable) return;
+    const down = e.key === "ArrowDown", box = cell.querySelector(".pcell") || cell, cs = getComputedStyle(box), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4 || 20;
+    const r = s.getRangeAt(0).cloneRange(); r.collapse(!down);
+    let rc = r.getClientRects()[0]; if (!rc || (!rc.height && !rc.width)) rc = (n.nodeType === 1 ? n : el).getBoundingClientRect();
+    const br = box.getBoundingClientRect(), top = br.top + parseFloat(cs.paddingTop), bot = br.bottom - parseFloat(cs.paddingBottom);
+    if (down ? rc.bottom + lh * 0.6 < bot : rc.top - lh * 0.6 > top) return; // noch weitere Zeilen in der Zelle
+    const rows = [...tb.rows], tr = cell.parentElement, ri = rows.indexOf(tr), ci = [...tr.cells].indexOf(cell), nr = rows[ri + (down ? 1 : -1)];
+    if (!nr) { // aus der Tabelle hinaus: Absatz darunter bzw. darüber
+      const sib = down ? tb.nextElementSibling : tb.previousElementSibling; if (!sib || !sib.isContentEditable || tb.classList.contains("ptable")) return;
+      e.preventDefault(); const rg = document.createRange(); rg.selectNodeContents(sib); rg.collapse(down); s.removeAllRanges(); s.addRange(rg); return;
+    }
+    const tgt = nr.cells[Math.min(ci, nr.cells.length - 1)]; if (!tgt || tgt.classList.contains("rm")) return;
+    const ed = tgt.querySelector(".pcell") || tgt; e.preventDefault();
+    if (ed !== tgt || ed.contentEditable === "true") ed.focus();
+    const tr2 = ed.getBoundingClientRect(), cs2 = getComputedStyle(ed), y = down ? tr2.top + parseFloat(cs2.paddingTop) + lh / 2 : tr2.bottom - parseFloat(cs2.paddingBottom) - lh / 2;
+    let rg = document.caretRangeFromPoint ? document.caretRangeFromPoint(Math.max(tr2.left + 2, Math.min(tr2.right - 2, rc.left)), y) : null;
+    if (!rg || !ed.contains(rg.startContainer)) { rg = document.createRange(); rg.selectNodeContents(ed); rg.collapse(down); }
+    s.removeAllRanges(); s.addRange(rg);
+  }, true);
   function sanitize(html) {
     const tpl = document.createElement("template"); tpl.innerHTML = html || "";
     let out = "";
@@ -2590,7 +2623,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       B("up", "↑", "Einen Absatz nach oben") + B("down", "↓", "Einen Absatz nach unten") + '<span class="tt-sep"></span>' +
       B("trow", "+ Zeile", "Neue Zeile unter der Zeile mit dem Cursor") + B("tcol", "+ Spalte", "Neue Spalte rechts der Spalte mit dem Cursor") + B("tdelrow", "− Zeile", "Zeile mit dem Cursor löschen") + B("tdelcol", "− Spalte", "Spalte mit dem Cursor löschen") + B("thead", "Kopfzeile", "Erste Zeile hervorheben ein/aus") + '<span class="tt-sep"></span>' +
       B("tleft", "◀ Spalte", "Spalte mit dem Cursor nach links verschieben") + B("tright", "Spalte ▶", "Spalte mit dem Cursor nach rechts verschieben") + B("tup", "▲ Zeile", "Zeile mit dem Cursor nach oben verschieben") + B("tdown", "▼ Zeile", "Zeile mit dem Cursor nach unten verschieben") + '<span class="tt-sep"></span>' +
-      B("cap", "Quelle", "Quellenangabe bzw. Beschriftung unter der Tabelle (wie bei Bildern)") + B("reset", "↺ Grösse", "Breite, Höhe und Spaltenbreiten zurücksetzen") + B("tdel", "🗑", "Ganze Tabelle löschen") + "</div>" +
+      B("lscol", "✎ Spalte", "Spalte mit dem Cursor in Lehrerschrift setzen bzw. wieder normal (Kopfzeile bleibt)") + B("cap", "Quelle", "Quellenangabe bzw. Beschriftung unter der Tabelle (wie bei Bildern)") + B("reset", "↺ Grösse", "Breite, Höhe und Spaltenbreiten zurücksetzen") + B("tdel", "🗑", "Ganze Tabelle löschen") + "</div>" +
       '<div class="tt-w" data-ttd="w" title="Ziehen: Breite der Tabelle"></div><div class="tt-h" data-ttd="h" title="Ziehen: Höhe der Tabelle"></div><div class="tt-cols"></div>';
     document.body.appendChild(el);
     el.addEventListener("mousedown", (e) => e.preventDefault());
@@ -2635,6 +2668,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (!sib) return;
       if (k === "up") sib.before(tb); else sib.after(tb);
       ttTail(tb);
+    } else if (k === "lscol") {
+      const c = ttCell() || tb.querySelector("td"), ci = c ? [...c.parentElement.cells].indexOf(c) : 0;
+      const cells = [...tb.rows].map((r) => r.cells[ci]).filter((x) => x && x.tagName === "TD"), on = !cells.filter((x) => x.textContent.trim()).every(lsAll);
+      cells.forEach((x) => lsCell(x, on)); if (c) caretIn(c);
     } else if (k === "cap") {
       let cp = tb.querySelector(":scope > caption");
       if (!cp) { cp = document.createElement("caption"); cp.innerHTML = "<br>"; tb.prepend(cp); }
@@ -2721,13 +2758,19 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px"; m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
     setTimeout(() => document.addEventListener("pointerdown", out, true), 0);
   }
-  const TAB_MENU = [["tleft", "◀ Spalte nach links"], ["tright", "Spalte nach rechts ▶"], ["tup", "▲ Zeile nach oben"], ["tdown", "▼ Zeile nach unten"], "-", ["trow", "+ Zeile darunter"], ["tcol", "+ Spalte rechts"], ["tdelrow", "− Zeile löschen", 1], ["tdelcol", "− Spalte löschen", 1]];
+  const TAB_MENU = [["lscell", "✎ Zelle in Lehrerschrift / normal"], ["lscol", "✎ Spalte in Lehrerschrift / normal"], "-", ["tleft", "◀ Spalte nach links"], ["tright", "Spalte nach rechts ▶"], ["tup", "▲ Zeile nach oben"], ["tdown", "▼ Zeile nach unten"], "-", ["trow", "+ Zeile darunter"], ["tcol", "+ Spalte rechts"], ["tdelrow", "− Zeile löschen", 1], ["tdelcol", "− Spalte löschen", 1]];
   document.addEventListener("contextmenu", (e) => {
     const c = e.target.closest && e.target.closest("table.ntab td, table.ntab th, table.lk-tab td, table.lk-tab th"), host = c && ttHostOf(c);
     if (!c || !host || !host.isContentEditable) return;
     e.preventDefault();
     host.focus(); caretIn(c);
     cellMenu(e.clientX, e.clientY, "Tabelle", TAB_MENU, (op) => {
+      if (op === "lscell" || op === "lscol") {
+        const tb0 = c.closest("table"), ci = [...c.parentElement.cells].indexOf(c);
+        const cells = op === "lscell" ? [c] : [...tb0.rows].map((r) => r.cells[ci]).filter((x) => x && x.tagName === "TD");
+        const on = !cells.filter((x) => x.textContent.trim()).every(lsAll);
+        cells.forEach((x) => lsCell(x, on)); caretIn(c); host.dispatchEvent(new Event("input", { bubbles: true })); return;
+      }
       const tb = c.closest("table"), f = tableOp(c, op);
       if (tb.isConnected) caretIn(f && f.isConnected ? f : (tb.querySelector("td, th"))); else ttHide();
       host.dispatchEvent(new Event("input", { bubbles: true }));
@@ -3434,6 +3477,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const items = [];
       if (j > 0) items.push(["cl", "◀ Spalte nach links"]); if (j < n - 1) items.push(["cr", "Spalte nach rechts ▶"]);
       if (ri > 0) items.push(["ru", "▲ Zeile nach oben"]); if (ri >= 0 && ri < p.rows.length - 1) items.push(["rd", "▼ Zeile nach unten"]);
+      items.push("-", ["lc", "✎ Spalte in Lehrerschrift / normal"]); if (ri >= 0) items.push(["lz", "✎ Zelle in Lehrerschrift / normal"]);
       items.push("-", ["ca", "+ Spalte rechts einfügen"]); if (ri >= 0) items.push(["ra", "+ Zeile darunter einfügen"]);
       if (n > 1) items.push(["cx", "Spalte «" + (p.cols[j] || "") + "» löschen", 1]);
       cellMenu(cx, cy, "Spalte «" + (p.cols[j] || "") + "»", items, (op) => {
@@ -3442,6 +3486,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         else if (op === "ru" || op === "rd") swap(p.rows, ri, op === "ru" ? ri - 1 : ri + 1);
         else if (op === "ca") { const w = p.widths[j] / 2; p.widths[j] = +w.toFixed(1); p.widths.splice(j + 1, 0, +w.toFixed(1)); p.cols.splice(j + 1, 0, "Neue Spalte"); p.rows.forEach((r) => r.splice(j + 1, 0, "")); }
         else if (op === "ra") p.rows.splice(ri + 1, 0, p.cols.map(() => ""));
+        else if (op === "lc") { const on = !p.rows.filter((r) => htmlToPlain(r[j] || "").trim()).every((r) => lsStrAll(r[j])); p.rows.forEach((r) => { r[j] = lsStr(r[j], on); }); }
+        else if (op === "lz") p.rows[ri][j] = lsStr(p.rows[ri][j], !lsStrAll(p.rows[ri][j]));
         else if (op === "cx") {
           if (p.rows.some((r) => filled(r[j])) && !confirm("Die Spalte «" + (p.cols[j] || "") + "» enthält Text. Trotzdem löschen? (Mit «Rückgängig» lässt es sich wiederherstellen.)")) return;
           const w = p.widths[j]; p.cols.splice(j, 1); p.widths.splice(j, 1); p.rows.forEach((r) => r.splice(j, 1)); p.widths[Math.max(0, j - 1)] = +(p.widths[Math.max(0, j - 1)] + w).toFixed(1);
