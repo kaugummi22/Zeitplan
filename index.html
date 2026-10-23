@@ -2016,6 +2016,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .ms-mark { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .ms-of { color: color-mix(in srgb, var(--accent) 70%, var(--ink)) !important; }
 .lesson.m-drop-before { box-shadow: inset 0 3px 0 var(--accent); }
+.ln-add.l-drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
+.ms-matadd { margin-left: 10px; font-size: 0.8rem; }
 .lesson.m-drop-after, .ln-add.m-drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
 .k-vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
 .dp-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
@@ -3966,6 +3968,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const matNo = (r, k) => (r.lnItems || []).slice(0, k + 1).filter((m) => m && m.mat).length;
   const lnLabel = (r, i) => { const it = lnItemOf(r, i), n = it.name; return (it.mat ? "M" + matNo(r, lnIdx(i)) + " Materialsammlung" : "Leistungsnachweis") + (n ? " · " + n : ""); };
   const keyOfLesson = (v) => (String(v).startsWith("ln") ? String(v) : +v);
+  // Zu welcher Reihe ein Feld gehört: Materialsammlungen einer Unterreihe in der Masterreihe tragen data-mrid
+  const mrOf = (el) => { const m = el && el.closest && el.closest("[data-mrid]"); return m ? m.dataset.mrid : U.sel; };
   const metaOf = (r, i) => (isLN(i) ? lnItemOf(r, i) : ((r.meta || {})[i] || {}));
   const htmlOf = (r, i) => (isLN(i) ? (lnItemOf(r, i).html || "") : ((r.lessons || [])[i] || ""));
   const phaseOf = (r, i) => (r.phases && typeof r.phases[i] === "string" ? r.phases[i] : defaultPhase(i));
@@ -4509,7 +4513,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function chPos(r, c, bl) { bl = bl || blocksOf(r); if (c.after == null) return 1e9; if (c.after === -1) return -1; const b = bl.find(([a, s]) => c.after >= a && c.after < a + s); return b ? b[0] : 1e9; }
   const chOrdered = (r) => { const bl = blocksOf(r); return shownChildren(r).map((c, j) => [c, j]).sort((x, y) => chPos(r, x[0], bl) - chPos(r, y[0], bl) || x[1] - y[1]).map((x) => x[0]); };
   // Reihenfolge der Masterreihe: an jeder Position (-1 = vor L1, Blockanfang, 1e9 = Ende) die Unterreihen-Abschnitte und einzeln verschobene Lektionen
-  function masterAt(r) {
+  // withMats: auch die Materialsammlungen der Unterreihen (in ihrem Abschnitt, nach ihrer Lektion)
+  function masterAt(r, withMats) {
     const bl = blocksOf(r), ord = chOrdered(r), at = {};
     const P = (v) => (v == null ? 1e9 : v === -1 ? -1 : v >= 1e9 ? 1e9 : ((bl.find(([a, s]) => v >= a && v < a + s) || [1e9])[0]));
     const moved = (c, i) => (c.place && c.place[i] != null ? P(c.place[i]) : null);
@@ -4517,7 +4522,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     ord.forEach((c, n) => {
       const L = CH_LET(n), ch = U.reihen[c.rid], p = chPos(r, c, bl), cbl = blocksOf(ch);
       push(p, { t: "chead", c, L, empty: !cbl.length });
-      cbl.forEach(([i, sp]) => { if (moved(c, i) == null) push(p, { t: "cl", c, L, i, s: sp }); });
+      const mp = withMats ? matPlace(ch, cbl) : { at: {}, placed: new Set() }, mats = (t) => (mp.at[t] || []).forEach((k) => push(p, { t: "cm", c, L, k }));
+      mats(-1);
+      cbl.forEach(([i, sp]) => { if (moved(c, i) == null) push(p, { t: "cl", c, L, i, s: sp }); mats(i); });
+      if (withMats) (ch.lnItems || []).forEach((m, k) => { if (m && m.mat && !mp.placed.has(k)) push(p, { t: "cm", c, L, k }); });
     });
     ord.forEach((c, n) => blocksOf(U.reihen[c.rid]).forEach(([i, sp]) => { const q = moved(c, i); if (q != null) push(q, { t: "cl", c, L: CH_LET(n), i, s: sp, moved: true }); }));
     return at;
@@ -4527,19 +4535,36 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (it.t === "chead") {
       const mf = ch.mainFiles || [];
       return '<div class="lesson ms-head" data-crid="' + esc(c.rid) + '"><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cdrag="' + esc(c.rid) + '" title="Ziehen, um die ganze Unterreihe zu verschieben"') + ">" + it.L + '</b></div><span class="ms-tag">Unterreihe</span></div>' +
-        '<div class="ms-title"><button type="button" class="linkbtn" data-goto="' + esc(c.rid) + '" title="Unterreihe öffnen und bearbeiten">↳ ' + esc(ch.title || "Ohne Titel") + "</button><small>" + totalL(ch) + " L</small></div>" +
+        '<div class="ms-title"><button type="button" class="linkbtn" data-goto="' + esc(c.rid) + '" title="Unterreihe öffnen und bearbeiten">↳ ' + esc(ch.title || "Ohne Titel") + "</button><small>" + totalL(ch) + " L</small>" + (r.klasse ? "" : '<button type="button" class="linkbtn ms-matadd" data-matadd data-mrid="' + esc(c.rid) + '" title="Eine Materialsammlung in dieser Unterreihe anlegen">+ Materialsammlung</button>') + "</div>" +
         '<div class="ldocs">' + mf.map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + '" title="Hauptdokument der Unterreihe ansehen"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>" +
         (it.empty ? '<div class="lesson ms-l" data-crid="' + esc(c.rid) + '"><div class="lh"></div><div class="cell ro"><span class="help">Noch keine Lektionen in dieser Unterreihe.</span></div><div class="ldocs"></div></div>' : "");
     }
+    if (it.t === "cm") return childMatHtml(r, it);
     const i = it.i, x = chLessonX(c, i), ov = (c.ov || {})[i], conflict = ov && ov.base !== chBase(ch, i);
     const more = !!(x.details || filled(x.notesHtml) || (x.files && x.files.length) || hasPlan(x.plan));
-    return '<div class="lesson ms-l' + (it.moved ? " ms-moved" : "") + (ov ? " ms-ov" : "") + '" data-crid="' + esc(c.rid) + '" data-clid="' + i + '"' + (it.moved ? ' data-cmoved="1"' : "") + '><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cldrag="' + esc(c.rid) + "|" + i + '" title="Ziehen, um diese Lektion an eine andere Stelle der Masterreihe zu verschieben"') + ">" + it.L + "·" + lessonLabel(i, it.s) + "</b>" +
+    return '<div class="lesson ms-l' + (it.moved ? " ms-moved" : "") + (ov ? " ms-ov" : "") + '" data-crid="' + esc(c.rid) + '" data-clid="' + i + '"' + (it.moved ? ' data-cmoved="1"' : "") + '><div class="lh"><div class="lh-top"><b' + (r.klasse ? "" : ' class="l-drag" draggable="true" data-cldrag="' + esc(c.rid) + "|" + i + '" title="Ziehen: an eine andere Stelle, in eine andere Unterreihe oder zwischen die Lektionen der Masterreihe (dann gehört sie zur Masterreihe) · Rechtsklick (lange drücken): Menü"') + ">" + it.L + "·" + lessonLabel(i, it.s) + "</b>" +
       '<button type="button" class="lexp' + (more ? " on" : "") + '" data-clexp="' + esc(c.rid) + "|" + i + '" title="Gross öffnen – Anpassungen gelten nur in dieser Masterreihe" aria-label="Lektion gross öffnen">+</button></div>' +
       '<div class="ph ro">' + esc(phaseOf(ch, i)) + (it.moved ? ' <span class="ms-from">aus ' + esc(ch.title || "Unterreihe") + "</span>" : "") + "</div>" +
       (ov ? '<span class="ms-ovtag">angepasst<button type="button" class="ms-reset" data-cvtake="' + esc(c.rid) + "|" + i + '" title="Anpassung verwerfen und wieder die Fassung der Unterreihe zeigen">↺</button></span>' : "") +
       (conflict ? '<div class="cv-note">Die Unterreihe hat diese Lektion geändert.<button type="button" data-cvtake="' + esc(c.rid) + "|" + i + '">Neue Fassung übernehmen</button><button type="button" data-cvkeep="' + esc(c.rid) + "|" + i + '">Meine behalten</button></div>' : "") + "</div>" +
       cellHtml2('data-rf="cov.' + esc(c.rid) + "." + i + '" aria-label="' + it.L + "·" + lessonLabel(i, it.s) + '"', x.html, { color: x.color, more }) +
       '<div class="ldocs">' + (x.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(c.rid) + "|" + esc(f.id) + "|" + i + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>";
+  }
+  // Materialsammlung einer Unterreihe in der Masterreihe: wird direkt in der Unterreihe gespeichert
+  function childMatHtml(r, it) {
+    const rid = it.c.rid, ch = U.reihen[rid], k = it.k, m = (ch.lnItems || [])[k] || {}, key = "ln" + k, ro = !!r.klasse;
+    const more = !!(m.details || filled(m.notesHtml) || (m.files && m.files.length) || hasPlan(m.plan)), lk = m.rid && U.reihen[m.rid];
+    const slim = typeof m.slim === "boolean" ? m.slim : (m.files || []).length > 6 && !filled(m.html);
+    return '<div class="lesson ln-row mat-row ms-mat' + (slim ? " mat-slim" : "") + '" data-crid="' + esc(rid) + '" data-mrid="' + esc(rid) + '" data-cmat="' + k + '"><div class="lh"><div class="lh-top"><b>' + it.L + "·M" + matNo(ch, k) + "</b>" +
+      '<button type="button" class="lexp' + (more ? " on" : "") + '" data-lexp="' + key + '" title="Gross öffnen: Kommentare, Notizen, Dokumente (gilt für die Unterreihe)" aria-label="Materialsammlung gross öffnen">+</button>' +
+      (ro ? "" : '<button type="button" class="ln-rm" data-lnrm="' + k + '" title="Diese Materialsammlung aus der Unterreihe entfernen" aria-label="Materialsammlung entfernen">×</button>') + "</div>" +
+      '<input type="text" class="ln-name" data-lnname="' + k + '" value="' + esc(m.name || "") + '" placeholder="Name, z. B. Bilder" aria-label="Name der Materialsammlung"' + (ro ? " readonly" : "") + ">" +
+      '<button type="button" class="linkbtn mat-slim-tog" data-matslim="' + k + '" title="' + (slim ? "Notizfeld wieder breit zeigen" : "Notizfeld klein machen, Dokumente in Spalten über die ganze Breite") + '">' + (slim ? "▸ Notiz zeigen" : "◂ Notiz klein") + (slim && filled(m.html) ? " •" : "") + "</button>" +
+      (lk ? '<span class="mat-link"><button type="button" class="linkbtn" data-goto="' + esc(m.rid) + '" title="Verknüpfte Reihe öffnen">↗ ' + esc(lk.title || "Reihe") + "</button>" + (ro ? "" : '<button type="button" class="x" data-matunlink="' + k + '" title="Verknüpfung lösen" aria-label="Verknüpfung lösen">×</button>') + "</span>"
+        : ro ? "" : '<button type="button" class="linkbtn mat-pick" data-matlink="' + k + '" title="Eine Reihe (z. B. eine Materialsammlung) verknüpfen">+ Reihe verknüpfen</button>') +
+      '<span class="ms-from">aus ' + esc(ch.title || "Unterreihe") + "</span></div>" +
+      cellHtml2('data-rf="cln.' + esc(rid) + "." + k + '" aria-label="Kurzzusammenfassung der Materialsammlung"', m.html || "", { color: m.color, more, cellAttrs: ' data-lesson="' + key + '"' }) +
+      '<div class="ldocs">' + (m.files || []).map((f) => '<button type="button" class="doc" data-open-cfile="' + esc(rid) + "|" + esc(f.id) + '"><span class="tag">' + typeTag(f) + "</span><span>" + esc(f.name) + "</span></button>").join("") + "</div></div>";
   }
   // Abfolge für Klassenkopie und Drucken
   function masterSeq(r) {
@@ -4549,11 +4574,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   function lessonsHtml(r) {
     const bl = blocksOf(r);
-    if (!bl.length && shownChildren(r).length) { const at0 = masterAt(r); return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + [-1, 1e9].map((p) => (at0[p] || []).map((x) => msItemHtml(r, x)).join("")).join("") + lnRowHtml(r); }
+    if (!bl.length && shownChildren(r).length) { const at0 = masterAt(r, true); return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + [-1, 1e9].map((p) => (at0[p] || []).map((x) => msItemHtml(r, x)).join("")).join("") + lnRowHtml(r); }
     if (!bl.length) return ((r.lnItems || []).some((m) => m && m.mat) ? "" : '<div class="empty">Keine Lektionen: Diese Reihe ist eine <b>Sammlung</b>. Legen Sie unten Materialsammlungen M1, M2 … an – oder tragen Sie oben die Anzahl Lektionen ein.</div>') + lnRowHtml(r);
     const links = r.links || {};
     const dates = r.klasse && typeof classSchedule === "function" ? lessonDates(r.klasse) : null;
-    const mAt = r.master ? masterAt(r) : {}, mp = matPlace(r, bl), chAt = (t) => (mAt[t] || []).map((x) => msItemHtml(r, x)).join(""), matAt = (t) => chAt(t) + (mp.at[t] || []).map((k) => matRowHtml(r, r.lnItems[k], k)).join("");
+    const mAt = r.master ? masterAt(r, true) : {}, mp = matPlace(r, bl), chAt = (t) => (mAt[t] || []).map((x) => msItemHtml(r, x)).join(""), matAt = (t) => chAt(t) + (mp.at[t] || []).map((k) => matRowHtml(r, r.lnItems[k], k)).join("");
     return '<div class="lessons-head"><span>Lektion</span><span>Planung</span><span>Dokumente</span></div>' + matAt(-1) + bl.map(([i, s], k) => {
       const m = (r.meta || {})[i] || {};
       const more = !!(m.details || filled(m.notesHtml) || /<img/.test(m.notesHtml || "") || (m.files && m.files.length) || hasPlan(m.plan));
@@ -5120,14 +5145,17 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   });
   uEl.addEventListener("click", (e) => {
     const t = e.target.closest(".ucell .inp"); if (t && uLastPointer === "touch") uStart(t);
-    const lx = e.target.closest("[data-lexp]"); if (lx) { openLessonDetail(keyOfLesson(lx.dataset.lexp)); return; }
+    const lx = e.target.closest("[data-lexp]"); if (lx) { openLessonDetail(keyOfLesson(lx.dataset.lexp), mrOf(lx)); return; }
     const clx = e.target.closest("[data-clexp]"); if (clx) { const [rid, ci] = clx.dataset.clexp.split("|"); openChildLessonDetail(rid, +ci); return; }
     const ex = e.target.closest(".ucell .exp");
-    if (ex) { const c = ex.closest("[data-lesson]"); if (c) openLessonDetail(keyOfLesson(c.dataset.lesson)); }
+    if (ex) { const c = ex.closest("[data-lesson]"); if (c) openLessonDetail(keyOfLesson(c.dataset.lesson), mrOf(c)); }
   });
   uEl.addEventListener("contextmenu", (e) => {
     const it = e.target.closest(".jp-item");
     if (it) { e.preventDefault(); prioMenu(e.clientX, e.clientY, it.dataset.open, +it.dataset.from, +it.dataset.from); return; }
+    // Rechtsklick auf eine Unterreihen-Lektion in der Masterreihe: herausnehmen oder verschieben
+    const clh = e.target.closest(".ms-l[data-clid] .lh");
+    if (clh && !e.target.closest("button:not(.l-drag)") && msDragOn()) { const row = clh.closest(".ms-l"); e.preventDefault(); childLessonMenu({ x: e.clientX, y: e.clientY }, row.dataset.crid, +row.dataset.clid); return; }
     // Rechtsklick auf L1, L2 … (Kopf der Lektion): Menü mit Lösen, Verschieben, Gruppieren
     const lh = e.target.closest(".lesson[data-li] .lh");
     if (lh && !e.target.closest(".ph,.l-name,input,select") && /^\d+$/.test(lh.closest(".lesson").dataset.li) && U.reihen[U.sel]) { e.preventDefault(); lessonMenu({ x: e.clientX, y: e.clientY }, U.reihen[U.sel], +lh.closest(".lesson").dataset.li); return; }
@@ -5213,6 +5241,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const r = U.reihen[U.sel]; if (!r) return;
     const f = t.dataset.rf;
     if (f && f.startsWith("cov.")) { const parts = f.split("."), ci = +parts.pop(), rid = parts.slice(1).join("."); const c = (r.children || []).find((q) => q.rid === rid); if (!c) return; const x = chLessonX(c, ci); x.html = val; putChOv(U.sel, rid, ci, x); saveReihe(U.sel); return; }
+    if (f && f.startsWith("cln.")) { const parts = f.split("."), k = +parts.pop(), rid = parts.slice(1).join("."), ch = U.reihen[rid]; if (!ch) return; ch.lnItems = (ch.lnItems || []).slice(); ch.lnItems[k] = { ...(ch.lnItems[k] || {}), html: val }; saveReihe(rid); return; }
     if (/^lnItems\.\d+\.html$/.test(f)) { const k = +f.split(".")[1]; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), html: val }; saveReihe(U.sel); return; }
     if (f.startsWith("lessons.")) {
       const i = +f.split(".")[1];
@@ -5237,7 +5266,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (t.id === "r-home") { const r = U.reihen[U.sel]; if (!r) return; r.home = +t.value; saveReihe(U.sel, 0); U.year = r.home; renderU(); return; }
     if (t.id === "r-status") { const r = U.reihen[U.sel]; if (!r) return; if (t.value === "progress") delete r.status; else r.status = t.value; t.className = "st-sel st-" + t.value; saveReihe(U.sel, 0); t.blur(); renderRSide(); return; }
     if (t.dataset && t.dataset.lnlekt != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +t.dataset.lnlekt; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), lekt: +t.value || 0 }; if (!r.lnItems[k].lekt) delete r.lnItems[k].lekt; saveReihe(U.sel, 0); t.blur(); const ls = $("#r-lnsum"); if (ls) ls.textContent = lnSumText(r); renderRSide(); return; }
-    if (t.dataset && t.dataset.lnname != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +t.dataset.lnname; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), name: t.value.trim() }; saveReihe(U.sel, 0); t.blur(); return; }
+    if (t.dataset && t.dataset.lnname != null) { const id = mrOf(t), r = U.reihen[id]; if (!r) return; const k = +t.dataset.lnname; r.lnItems = (r.lnItems || []).slice(); r.lnItems[k] = { ...(r.lnItems[k] || {}), name: t.value.trim() }; saveReihe(id, 0); t.blur(); return; }
     if (t.dataset && t.dataset.rflink) { const r = U.reihen[U.sel]; if (!r) return; const v = t.value.trim(); if (v && !/^https?:\/\//.test(v)) { t.value = ""; return; } r.files = (r.files || []).map((f) => (f.id === t.dataset.rflink ? { ...f, link: v || undefined } : f)); if (r.mainFiles) r.mainFiles = r.mainFiles.map((f) => (f.id === t.dataset.rflink ? { ...f, link: v || undefined } : f)); saveReihe(U.sel, 0); t.blur(); renderU(); return; }
     if (t.id === "rf-file") {
       const r = U.reihen[U.sel], files = [...t.files], msg = $("#rf-msg"); t.value = ""; if (!r) return;
@@ -5418,6 +5447,51 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const kid = childrenOf(r).some((c) => c.rid === tid);
     lnDo(nLek(starts.length) + " nach «" + (t.title || "Reihe") + "» verschoben (am Ende angehängt" + (kid ? "; " + (starts.length === 1 ? "sie bleibt" : "sie bleiben") + " in der Masterreihe sichtbar" : "") + ").", (touch) => { touch(rid); touch(tid); addBlocks(t, takeBlocks(r, starts)); });
   }
+  // Blöcke einer Reihe neu setzen (list: [{ b: Blockdaten, from: alter Anfang oder null für neu }]).
+  // Verweise wandern mit: Materialsammlungen, Plätze der Unterreihen und in jeder Masterreihe die Anpassungen (ov) dieser Unterreihe.
+  function setBlocks(id, list, touch) {
+    const r = U.reihen[id], bl = blocksOf(r), map = {}, gone = new Set();
+    let pos = 0; list.forEach((x) => { if (x.from != null) map[x.from] = pos; pos += x.b.s; });
+    let prev = -1; bl.forEach(([a]) => { if (a in map) prev = map[a]; else { map[a] = prev; gone.add(a); } });
+    const re = (v) => { if (v == null || v === -1 || v >= 1e9) return v; const blk = bl.find(([a, s]) => v >= a && v < a + s); return blk ? map[blk[0]] : v; };
+    writeBlocks(r, list.map((x) => x.b));
+    if (!pos && !(r.lessons || []).some(filled)) r.lektionen = null;
+    r.lnItems = (r.lnItems || []).map((m) => (m && m.mat && m.after != null ? { ...m, after: re(m.after) } : m));
+    if (Array.isArray(r.children)) r.children = r.children.map((c) => { if (!c) return c; const n = { ...c }; if (c.after != null) n.after = re(c.after); if (c.place) { n.place = {}; for (const [j, v] of Object.entries(c.place)) n.place[j] = re(v); } return n; });
+    const rekey = (o) => { if (!o) return o; const n = {}; for (const [j, v] of Object.entries(o)) { const blk = bl.find(([a]) => a === +j); if (blk && !gone.has(blk[0])) n[map[blk[0]]] = v; } return Object.keys(n).length ? n : undefined; };
+    mastersOf(id).forEach(([mid, m]) => {
+      touch(mid);
+      m.children = (m.children || []).map((c) => { if (!c || c.rid !== id) return c; const n = { ...c }; ["ov", "place"].forEach((f) => { if (!c[f]) return; const v = rekey(c[f]); if (v) n[f] = v; else delete n[f]; }); return n; });
+      if (mid !== id) saveReihe(mid, 0);
+    });
+  }
+  // In der Masterreihe: eine Lektion (eigene oder aus einer Unterreihe) an Stelle «at» (0 … Anzahl Blöcke) der Reihe «dst» setzen
+  function lnPlace(src, start, dst, at) {
+    const mid = U.sel, M = U.reihen[mid], S = U.reihen[src], D = U.reihen[dst]; if (!M || !S || !D || S.klasse || D.klasse) return;
+    const sbl = blocksOf(S), k = sbl.findIndex(([a]) => a === start); if (k < 0) return;
+    if (src === dst && (at === k || at === k + 1)) return;
+    const lab = (src === mid ? "" : chLetterOf(M, src) + "·") + lessonLabel(start, sbl[k][1]), name = (id, w) => (id === mid ? w + " Masterreihe" : "«" + (U.reihen[id].title || "Unterreihe") + "»");
+    lnDo(src === dst ? lab + " verschoben." : lab + " aus " + name(src, "der") + " in " + name(dst, "die") + " verschoben.", (touch) => {
+      touch(mid); touch(src); touch(dst); [src, dst].forEach((id) => mastersOf(id).forEach(([x]) => touch(x)));
+      const sd = blocksData(S), b = { ...sd[k], me: sd[k].me.map((m) => (m ? clone(m) : m)) };
+      if (src !== mid) { // so übernehmen, wie sie in dieser Masterreihe zu sehen war (mit Anpassung)
+        const c = (M.children || []).find((q) => q.rid === src);
+        if (c && (c.ov || {})[start]) { const x = chLessonX(c, start), me = { ...(b.me[0] || {}), color: x.color, details: x.details, files: x.files }; if (filled(x.notesHtml) || /<img/.test(x.notesHtml || "")) me.notesHtml = x.notesHtml; else delete me.notesHtml; if (x.notesLh) me.notesLh = x.notesLh; if (hasPlan(x.plan)) me.plan = clone(x.plan); else delete me.plan; b.les = b.les.slice(); b.les[0] = x.html; b.me = b.me.slice(); b.me[0] = me; }
+      }
+      // ein früher nur in der Anzeige versetzter Platz gilt nicht mehr: die Lektion steht jetzt dort, wo sie hingezogen wurde
+      M.children = (M.children || []).map((c) => { if (!c || c.rid !== src || !c.place || c.place[start] == null) return c; const n = { ...c, place: { ...c.place } }; delete n.place[start]; if (!Object.keys(n.place).length) delete n.place; return n; });
+      if (src === dst) {
+        const list = sbl.map(([a], j) => ({ b: sd[j], from: a })), [x] = list.splice(k, 1);
+        list.splice(at > k ? at - 1 : at, 0, x); setBlocks(src, list, touch); return;
+      }
+      b.link = false;
+      setBlocks(src, sbl.map(([a], j) => ({ b: sd[j], from: a })).filter((_, j) => j !== k), touch);
+      const dd = blocksData(D), list = blocksOf(D).map(([a], j) => ({ b: dd[j], from: a }));
+      list.splice(Math.max(0, Math.min(at, list.length)), 0, { b, from: null });
+      if (list[0]) list[0].b = { ...list[0].b, link: false };
+      setBlocks(dst, list, touch);
+    });
+  }
   function lnGroupFrom(rid, starts, title, year) {
     const r = U.reihen[rid]; if (!r || !starts.length) return;
     lnDo("Neue Reihe «" + title + "» mit " + nLek(starts.length) + " in " + YEAR_SHORT[year] + ".", (touch) => { touch(rid); reiheFromBlocks(takeBlocks(r, starts), { year, title, prio: prioOf(r) }, touch); });
@@ -5532,26 +5606,6 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const bi = bl.findIndex(([a]) => a === +li); if (bi < 0) return null;
     return before ? (bi > 0 ? bl[bi - 1][0] : -1) : bl[bi][0];
   }
-  (function childLessonDrag() {
-    let d = null;
-    const clear = () => uEl.querySelectorAll(".m-drop-before,.m-drop-after").forEach((el) => el.classList.remove("m-drop-before", "m-drop-after"));
-    uEl.addEventListener("dragstart", (e) => { const h = e.target.closest && e.target.closest("[data-cldrag]"); if (!h) return; d = h.dataset.cldrag; try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", h.textContent); } catch (err) {} });
-    uEl.addEventListener("dragover", (e) => {
-      if (d == null) return; const row = e.target.closest && (e.target.closest(".lesson") || e.target.closest(".ln-add")); if (!row) return;
-      e.preventDefault(); clear(); const rc = row.getBoundingClientRect();
-      row.classList.add(row.classList.contains("ln-add") || e.clientY >= rc.top + rc.height / 2 ? "m-drop-after" : "m-drop-before");
-    });
-    uEl.addEventListener("drop", (e) => {
-      if (d == null) return; const tb = uEl.querySelector(".m-drop-before"), ta = uEl.querySelector(".m-drop-after"); clear();
-      const [rid, li] = d.split("|"); d = null; const r = U.reihen[U.sel]; if (!r) return; const t = tb || ta; if (!t) return; e.preventDefault();
-      let v;
-      if (t.dataset.crid === rid && !t.dataset.cmoved) v = null; // zurück in den eigenen Abschnitt
-      else { const a = dropAfter(r, t, !!tb); if (a === null) return; v = a === undefined ? 1e9 : a; }
-      r.children = (r.children || []).map((c) => { if (c.rid !== rid) return c; const pl = { ...(c.place || {}) }; if (v == null) delete pl[li]; else pl[li] = v; const n = { ...c, place: pl }; if (!Object.keys(pl).length) delete n.place; return n; });
-      saveReihe(U.sel, 0); renderU();
-    });
-    uEl.addEventListener("dragend", () => { clear(); d = null; });
-  })();
   (function childDrag() {
     let d = null;
     const clear = () => uEl.querySelectorAll(".m-drop-before,.m-drop-after").forEach((el) => el.classList.remove("m-drop-before", "m-drop-after"));
@@ -5598,6 +5652,74 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     });
     uEl.addEventListener("dragend", () => { clear(); d = null; });
   })();
+  // In einer Masterreihe frei ziehen: eigene Lektionen und Lektionen der Unterreihen an jede Stelle,
+  // in eine Unterreihe hinein, in eine andere Unterreihe oder aus der Unterreihe heraus in die Masterreihe
+  // Nach welchem Block etwas steht (Materialsammlung, Unterreihe) → Einfügestelle dahinter
+  const idxAfter = (r, v) => { const bl = blocksOf(r); if (v == null || v >= 1e9) return bl.length; if (v === -1) return 0; const k = bl.findIndex(([a, s]) => v >= a && v < a + s); return k < 0 ? bl.length : k + 1; };
+  // Menü einer Unterreihen-Lektion in der Masterreihe (Rechtsklick, lange drücken): ohne Ziehen herausnehmen oder verschieben
+  function childLessonMenu(pos, cid, i) {
+    closeMenu();
+    const M = U.reihen[U.sel], ch = U.reihen[cid]; if (!M || !ch || M.klasse) return;
+    const bl = blocksOf(ch), k = bl.findIndex(([a]) => a === i); if (k < 0) return;
+    const c = (M.children || []).find((q) => q.rid === cid) || {}, others = shownChildren(M).filter((q) => q.rid !== cid);
+    const m = document.createElement("div");
+    m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu");
+    m.innerHTML = '<div class="cm-title">' + chLetterOf(M, cid) + "·" + lessonLabel(i, bl[k][1]) + " aus «" + esc(ch.title || "Unterreihe") + "»</div>" +
+      '<button type="button" role="menuitem" data-cl="out">In die Masterreihe nehmen</button>' +
+      (k > 0 ? '<button type="button" role="menuitem" data-cl="up">▲ Nach oben</button>' : "") +
+      (k < bl.length - 1 ? '<button type="button" role="menuitem" data-cl="down">▼ Nach unten</button>' : "") +
+      (others.length ? "<hr>" + others.map((q) => '<button type="button" role="menuitem" data-clto="' + esc(q.rid) + '">In «' + esc(U.reihen[q.rid].title || "Unterreihe") + "» verschieben</button>").join("") : "");
+    m.addEventListener("mousedown", (ev) => ev.preventDefault());
+    m.addEventListener("click", (ev) => {
+      const b = ev.target.closest("button"); if (!b) return; closeMenu();
+      if (b.dataset.clto) { lnPlace(cid, i, b.dataset.clto, blocksOf(U.reihen[b.dataset.clto]).length); return; }
+      const op = b.dataset.cl;
+      if (op === "out") lnPlace(cid, i, U.sel, idxAfter(M, c.after));
+      else if (op === "up") lnPlace(cid, i, cid, k - 1);
+      else if (op === "down") lnPlace(cid, i, cid, k + 2);
+    });
+    document.body.appendChild(m);
+    const mr = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(pos.x, innerWidth - mr.width - 8)) + "px";
+    m.style.top = Math.max(8, Math.min(pos.y + 4, innerHeight - mr.height - 8)) + "px";
+  }
+  const msDragOn = () => { const r = U.reihen[U.sel]; return !!(r && r.master && !r.klasse); };
+  (function masterDrag() {
+    let d = null;
+    const clear = () => uEl.querySelectorAll("#r-lessons .l-drop-before, #r-lessons .l-drop-after").forEach((el) => el.classList.remove("l-drop-before", "l-drop-after"));
+    // Nach welchem Block eine Materialsammlung steht → Einfügestelle dahinter
+    const spot = (row, before) => {
+      const mid = U.sel, M = U.reihen[mid];
+      if (row.classList.contains("ln-add")) return { dst: mid, at: blocksOf(M).length };
+      const crid = row.dataset.crid;
+      if (crid && U.reihen[crid]) {
+        const ch = U.reihen[crid];
+        if (row.dataset.clid != null) { const k = blocksOf(ch).findIndex(([a]) => a === +row.dataset.clid); return k < 0 ? null : { dst: crid, at: before ? k : k + 1 }; }
+        if (row.dataset.cmat != null) { const m = (ch.lnItems || [])[+row.dataset.cmat]; return { dst: crid, at: idxAfter(ch, m && m.after) }; }
+        return { dst: crid, at: 0 }; // Kopf der Unterreihe oder leere Unterreihe: an den Anfang
+      }
+      const li = row.dataset.li; if (li == null) return null;
+      if (/^ln\d+$/.test(li)) { const m = (M.lnItems || [])[+li.slice(2)]; return { dst: mid, at: m && m.mat ? idxAfter(M, m.after) : blocksOf(M).length }; }
+      const k = blocksOf(M).findIndex(([a]) => a === +li); return k < 0 ? null : { dst: mid, at: before ? k : k + 1 };
+    };
+    uEl.addEventListener("dragstart", (e) => {
+      if (!msDragOn()) return; const h = e.target.closest && e.target.closest("[data-ldrag],[data-cldrag]"); if (!h) return;
+      if (h.dataset.cldrag) { const p = h.dataset.cldrag.split("|"), i = +p.pop(); d = { src: p.join("|"), start: i }; try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", h.textContent); } catch (err) {} const row = h.closest(".lesson"); if (row) row.classList.add("l-dragging"); }
+      else d = { src: U.sel, start: +h.dataset.ldrag };
+    });
+    uEl.addEventListener("dragover", (e) => {
+      if (!d || !msDragOn()) return; const row = e.target.closest && e.target.closest("#r-lessons .lesson, #r-lessons .ln-add"); if (!row) return;
+      e.preventDefault(); clear(); const rc = row.getBoundingClientRect();
+      const after = row.classList.contains("ln-add") || row.classList.contains("ms-head") || row.dataset.cmat != null || /^ln/.test(row.dataset.li || "") || e.clientY >= rc.top + rc.height / 2;
+      row.classList.add(after ? "l-drop-after" : "l-drop-before");
+    });
+    uEl.addEventListener("drop", (e) => {
+      if (!d || !msDragOn()) return; const tb = uEl.querySelector("#r-lessons .l-drop-before"), ta = uEl.querySelector("#r-lessons .l-drop-after"); clear();
+      const x = d; d = null; const t = tb || ta; if (!t) return; e.preventDefault(); e.stopPropagation();
+      const sp = spot(t, !!tb); if (sp) lnPlace(x.src, x.start, sp.dst, sp.at);
+    });
+    uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".l-dragging").forEach((el) => el.classList.remove("l-dragging")); d = null; });
+  })();
   (function lessonDrag() {
     let d = null;
     const clear = () => uEl.querySelectorAll(".l-drop-before,.l-drop-after,.l-drop-in").forEach((el) => el.classList.remove("l-drop-before", "l-drop-after", "l-drop-in"));
@@ -5607,18 +5729,14 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", h.textContent); } catch (err) {}
     });
     uEl.addEventListener("dragover", (e) => {
-      if (d == null) return;
-      // auf eine Unterreihe (Kopf oder ihre Lektionen in der Masterreihe): Lektion in die Unterreihe verschieben
-      const cr = e.target.closest && e.target.closest(".ms-head[data-crid], .ms-l[data-crid]");
-      if (cr) { const r = U.reihen[U.sel]; if (!r || r.klasse || !U.reihen[cr.dataset.crid]) return; e.preventDefault(); clear(); uEl.querySelectorAll('[data-crid="' + cr.dataset.crid + '"]').forEach((el) => el.classList.add("l-drop-in")); return; }
+      if (d == null || msDragOn()) return;
       const row = e.target.closest && e.target.closest(".lesson:not(.ln-row)"); if (!row) return;
       e.preventDefault(); clear(); const rc = row.getBoundingClientRect();
       row.classList.add(e.clientY < rc.top + rc.height / 2 ? "l-drop-before" : "l-drop-after");
     });
     uEl.addEventListener("drop", (e) => {
-      if (d == null) return; const tb = uEl.querySelector(".l-drop-before"), ta = uEl.querySelector(".l-drop-after"), ti2 = uEl.querySelector(".l-drop-in"); clear();
+      if (d == null || msDragOn()) return; const tb = uEl.querySelector(".l-drop-before"), ta = uEl.querySelector(".l-drop-after"); clear();
       const from = d; d = null; const r = U.reihen[U.sel]; if (!r) return;
-      if (ti2) { e.preventDefault(); lnMoveTo(U.sel, [from], ti2.dataset.crid, true); return; }
       const t = tb || ta; if (!t) return; e.preventDefault();
       const bl = blocksOf(r), ti = bl.findIndex(([a]) => a === +t.dataset.li); if (ti < 0) return;
       if (lessonOp(r, from, "move", tb ? ti : ti + 1)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); renderU(); }
@@ -5633,6 +5751,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       rlBox.addEventListener("drop", (e) => { const t = rlBox.querySelector(".drop-in"); if (d == null || !t) return; e.preventDefault(); e.stopPropagation(); t.classList.remove("drop-in"); const from = d; d = null; lnMoveTo(U.sel, [from], t.dataset.subgo || t.dataset.rid); });
     }
     longPress(uEl, ".lesson[data-li] .l-drag[data-ldrag]", (h, x, y) => { const r = U.reihen[U.sel]; if (r) lessonMenu({ x, y }, r, +h.dataset.ldrag); });
+    longPress(uEl, ".ms-l .l-drag[data-cldrag]", (h, x, y) => { const p = h.dataset.cldrag.split("|"), i = +p.pop(); childLessonMenu({ x, y }, p.join("|"), i); });
   })();
   // Ordner auf dem Computer: Pfad hinterlegen und kopieren (Browser dürfen den Explorer nicht selbst öffnen)
   function folderSuggest(r) {
@@ -5838,7 +5957,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (st) { e.preventDefault(); e.stopPropagation(); const id = st.dataset.subtog; UP.subOpen = { ...(UP.subOpen || {}), [id]: !subsOpen(id) }; saveUP(); renderU(); return; }
     const b = e.target.closest("button"); if (!b || !uEl.contains(b)) return;
     if (b.dataset.arbtog != null) { const row = b.closest(".r-lfrow"), on = !row.classList.contains("arb-open"); row.classList.toggle("arb-open", on); ARB[U.sel] = on; try { localStorage.setItem("zeitplan-arb", JSON.stringify(ARB)); } catch (err) {} if (on) { const inp = row.querySelector("#r-arbnotiz"); if (inp) inp.focus(); } return; }
-    if (b.dataset.matslim != null) { const r = U.reihen[U.sel]; if (!r) return; const k = +b.dataset.matslim, m = (r.lnItems || [])[k]; if (!m) return; const row = b.closest(".lesson"); r.lnItems = r.lnItems.slice(); r.lnItems[k] = { ...m, slim: !row.classList.contains("mat-slim") }; saveReihe(U.sel, 0); renderLessonsOnly(r); return; }
+    if (b.dataset.matslim != null) { const id = mrOf(b), r = U.reihen[id]; if (!r) return; const k = +b.dataset.matslim, m = (r.lnItems || [])[k]; if (!m) return; const row = b.closest(".lesson"); r.lnItems = r.lnItems.slice(); r.lnItems[k] = { ...m, slim: !row.classList.contains("mat-slim") }; saveReihe(id, 0); renderLessonsOnly(U.reihen[U.sel]); return; }
     if (b.id === "u-legend") { prioFilterMenu(b); return; }
     if (b.id === "u-subs") { UP.subs = !UP.subs; UP.subOpen = {}; saveUP(); renderU(); return; }
     if (b.dataset.sopen) {
@@ -5880,7 +5999,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.openCfile) {
       const [rid, fid, ci] = b.dataset.openCfile.split("|"), ch = U.reihen[rid]; if (!ch) return;
       const c = (r0 && (r0.children || []).find((q) => q.rid === rid)) || {}, x = ci != null ? chLessonX(c, +ci) : null;
-      const f = [...(x ? x.files : []), ...Object.values(ch.meta || {}).flatMap((m) => m.files || []), ...(ch.mainFiles || []), ...(ch.files || [])].find((ff) => ff.id === fid);
+      const f = [...(x ? x.files : []), ...Object.values(ch.meta || {}).flatMap((m) => m.files || []), ...(ch.mainFiles || []), ...(ch.files || []), ...(ch.lnItems || []).flatMap((m) => (m && m.files) || [])].find((ff) => ff.id === fid);
       if (f) { setCopyCtx(U.sel, rid, f); openViewer(window.__vctx ? window.__vctx.view : f); } return;
     }
     if (b.dataset.openFile && r0) {
@@ -5908,15 +6027,17 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.id === "r-print" && r0) { printPicker(r0); return; }
     if (b.id === "r-master" && r0) { r0.master = true; r0.children = r0.children || []; saveReihe(U.sel, 0); renderU(); setTimeout(() => { const mb = $("#r-mlist"); if (mb) masterMenu(mb); }, 50); return; }
     if (b.id === "r-mlist" && r0) { masterMenu(b); return; }
-    if (b.dataset.matadd != null && r0) { r0.lnItems = [...(r0.lnItems || []), { mat: true, name: "", html: "" }]; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
-    if (b.dataset.matlink != null && r0) { const k = +b.dataset.matlink; const sid = U.sel; reihePicker(sid, (rid) => { const rr = U.reihen[sid]; if (!rr) return; rr.lnItems = (rr.lnItems || []).slice(); rr.lnItems[k] = { ...(rr.lnItems[k] || {}), rid }; saveReihe(sid, 0); renderU(); }); return; }
-    if (b.dataset.matunlink != null && r0) { const k = +b.dataset.matunlink; r0.lnItems = (r0.lnItems || []).slice(); const it = { ...(r0.lnItems[k] || {}) }; delete it.rid; r0.lnItems[k] = it; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
+    // Materialsammlungen: in der eigenen Reihe oder (data-mrid) in einer Unterreihe, die in der Masterreihe gezeigt wird
+    const mid0 = mrOf(b), m0 = U.reihen[mid0];
+    if (b.dataset.matadd != null && m0) { m0.lnItems = [...(m0.lnItems || []), { mat: true, name: "", html: "" }]; saveReihe(mid0, 0); renderLessonsOnly(r0); if (mid0 !== U.sel) { const n = uEl.querySelectorAll('.ms-mat[data-mrid="' + mid0 + '"] .ln-name'); if (n.length) n[n.length - 1].focus(); } return; }
+    if (b.dataset.matlink != null && m0) { const k = +b.dataset.matlink; const sid = mid0; reihePicker(sid, (rid) => { const rr = U.reihen[sid]; if (!rr) return; rr.lnItems = (rr.lnItems || []).slice(); rr.lnItems[k] = { ...(rr.lnItems[k] || {}), rid }; saveReihe(sid, 0); renderU(); }); return; }
+    if (b.dataset.matunlink != null && m0) { const k = +b.dataset.matunlink; m0.lnItems = (m0.lnItems || []).slice(); const it = { ...(m0.lnItems[k] || {}) }; delete it.rid; m0.lnItems[k] = it; saveReihe(mid0, 0); renderLessonsOnly(r0); return; }
     if (b.dataset.sublink != null) { const sid = U.sel; if (!U.reihen[sid]) return; reihePicker(sid, (rid) => { const r = U.reihen[sid]; if (!r) return; r.subs = [...(Array.isArray(r.subs) ? r.subs : []), "@" + rid]; saveReihe(U.sel, 0); $("#r-subs").innerHTML = subsEdHtml(r); renderRSide(); }); return; }
     if (b.dataset.lnadd != null && r0) { r0.lnItems = [...(r0.lnItems || []), { name: (r0.lnItems || []).length ? "" : r0.ln || "", html: "" }]; saveReihe(U.sel, 0); renderLessonsOnly(r0); return; }
-    if (b.dataset.lnrm != null && r0) {
-      const k = +b.dataset.lnrm, it = (r0.lnItems || [])[k] || {}, used = filled(it.html) || hasPlan(it.plan) || filled(it.notesHtml) || (it.files || []).length;
+    if (b.dataset.lnrm != null && m0) {
+      const k = +b.dataset.lnrm, it = (m0.lnItems || [])[k] || {}, used = filled(it.html) || hasPlan(it.plan) || filled(it.notesHtml) || (it.files || []).length;
       if (used && !b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Wirklich?"; b.classList.add("armed"); return; }
-      r0.lnItems = r0.lnItems.filter((_, j) => j !== k); saveReihe(U.sel, 0); renderLessonsOnly(r0); return;
+      m0.lnItems = m0.lnItems.filter((_, j) => j !== k); saveReihe(mid0, 0); renderLessonsOnly(r0); return;
     }
     if (b.dataset.rfmenu && r0) { rfMenu(b, r0, b.dataset.rfmenu); return; }
     if (b.dataset.lmenu != null && r0) { lessonMenu(b, r0, +b.dataset.lmenu); return; }
