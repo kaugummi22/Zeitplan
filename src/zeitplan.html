@@ -1075,6 +1075,9 @@ table:is(.ntab, .lk-tab) caption { caption-side: bottom; text-align: left; font-
 .tt-mv, .tt-mn { position: fixed; pointer-events: auto; height: 24px; border: 1px solid var(--accent); border-radius: 5px; background: var(--surface); color: var(--accent); font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0 7px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); touch-action: none; }
 .tt-mv { width: 24px; padding: 0; cursor: grab; font-size: 0.95rem; } .tt-mn[aria-expanded="true"], .tt-mv:hover, .tt-mn:hover { background: var(--accent); color: var(--surface); }
 .tt-bar[hidden] { display: none; }
+.tt.tt-min > :not(.tt-dot) { display: none !important; }
+.tt-dot { position: fixed; pointer-events: auto; width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 2px solid var(--surface); background: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,0.3); cursor: pointer; }
+.tt-dot:hover, .tt-dot[aria-expanded="true"] { transform: scale(1.25); }
 .tt-bar { position: fixed; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; max-width: min(330px, calc(100vw - 8px)); padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); pointer-events: auto; font-size: 0.8rem; }
 .tt-bar button { font: inherit; font-weight: 600; border: 1px solid transparent; border-radius: 5px; background: none; color: var(--ink); padding: 3px 7px; cursor: pointer; touch-action: none; }
 .tt-bar button:hover { border-color: var(--line); background: var(--bg); }
@@ -2103,9 +2106,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function ttShow(tb, host) {
     if (TT.tb === tb && TT.el) return;
     ttHide(); TT.tb = tb; TT.host = host;
-    const el = document.createElement("div"); el.className = "tt"; TT.el = el;
+    const el = document.createElement("div"); el.className = "tt tt-min"; TT.el = el;
     const B = (k, label, title) => '<button type="button" data-tt="' + k + '" title="' + title + '" aria-label="' + title + '">' + label + "</button>";
-    el.innerHTML = '<div class="tt-frame"></div><button type="button" class="tt-mv" data-tt="move" title="Gedrückt halten und ziehen: Tabelle an eine andere Stelle verschieben, z. B. neben ein Bild" aria-label="Tabelle verschieben">✥</button><button type="button" class="tt-mn" data-tt="menu" title="Lage, Zeilen und Spalten, Grösse zurücksetzen" aria-expanded="false">▦ Tabelle ▾</button><div class="tt-bar" hidden>' +
+    el.innerHTML = '<button type="button" class="tt-dot" data-tt="dot" title="Tabelle bearbeiten: Grösse, Lage, Verschieben, Zeilen und Spalten" aria-label="Tabelle bearbeiten" aria-expanded="false"></button><div class="tt-frame"></div><button type="button" class="tt-mv" data-tt="move" title="Gedrückt halten und ziehen: Tabelle an eine andere Stelle verschieben, z. B. neben ein Bild" aria-label="Tabelle verschieben">✥</button><button type="button" class="tt-mn" data-tt="menu" title="Lage, Zeilen und Spalten, Grösse zurücksetzen" aria-expanded="false">▦ Tabelle ▾</button><div class="tt-bar" hidden>' +
       B("tp-l", "◧", "Links, Text rechts daneben") + B("tp-c", "▣", "In der Mitte") + B("tp-r", "◨", "Rechts, Text links daneben") + B("tp-", "▭", "Normal (allein auf der Zeile)") + '<span class="tt-sep"></span>' +
       B("up", "↑", "Einen Absatz nach oben") + B("down", "↓", "Einen Absatz nach unten") + '<span class="tt-sep"></span>' +
       B("trow", "+ Zeile", "Neue Zeile unter der Zeile mit dem Cursor") + B("tcol", "+ Spalte", "Neue Spalte rechts der Spalte mit dem Cursor") + B("tdelrow", "− Zeile", "Zeile mit dem Cursor löschen") + B("tdelcol", "− Spalte", "Spalte mit dem Cursor löschen") + B("thead", "Kopfzeile", "Erste Zeile hervorheben ein/aus") + '<span class="tt-sep"></span>' +
@@ -2129,7 +2132,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function ttPlace(r, cells) {
     const el = TT.el, f = el.querySelector(".tt-frame"), bar = el.querySelector(".tt-bar"), mv = el.querySelector(".tt-mv"), mn = el.querySelector(".tt-mn");
     const top = r.top >= 30 ? r.top - 27 : r.top + 3;
-    Object.assign(mv.style, { left: Math.max(2, r.left - 26) + "px", top: top + "px" });
+    Object.assign(el.querySelector(".tt-dot").style, { left: Math.max(2, r.left - 9) + "px", top: Math.max(2, r.top - 9) + "px" });
+    Object.assign(mv.style, { left: Math.max(2, r.left + 14) + "px", top: top + "px" });
     Object.assign(mn.style, { left: Math.max(2, r.right - mn.offsetWidth) + "px", top: top + "px" });
     Object.assign(f.style, { left: r.left - 3 + "px", top: r.top - 3 + "px", width: r.width + 6 + "px", height: r.height + 6 + "px" });
     Object.assign(el.querySelector(".tt-w").style, { left: r.right - 2 + "px", top: r.top + r.height / 2 - 16 + "px" });
@@ -2145,6 +2149,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.tt !== "menu" && b.dataset.tt !== "move") HIST.brk = true;
     const k = b.dataset.tt, tb = TT.tb, host = TT.host;
     if (k === "move") return;
+    if (k === "dot") { const min = TT.el.classList.toggle("tt-min"); b.setAttribute("aria-expanded", String(!min)); if (min) TT.el.querySelector(".tt-bar").hidden = true; ttPlace(tb.getBoundingClientRect(), tb.rows[0] ? [...tb.rows[0].cells] : []); return; }
     if (k === "menu") { const bar = TT.el.querySelector(".tt-bar"); bar.hidden = !bar.hidden; b.setAttribute("aria-expanded", String(!bar.hidden)); ttPlace(tb.getBoundingClientRect(), tb.rows[0] ? [...tb.rows[0].cells] : []); return; }
     if (/^tp-/.test(k)) {
       TAB_POS.forEach((c) => tb.classList.remove(c)); if (k !== "tp-") tb.classList.add(k);
