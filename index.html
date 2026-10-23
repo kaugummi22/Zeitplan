@@ -1599,7 +1599,11 @@ table.tt-moving { opacity: 0.45; }
 .lk-figpop input.nf-cap { width: 100%; font: inherit; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; background: var(--bg); color: var(--ink); }
 .lk-fpg.four { grid-template-columns: repeat(5, 1fr); }
 /* Lektion: Lektionsplanung links, Notizen rechts */
-.d-toggles .d-side { margin-left: auto; }
+.d-toggles .d-side { margin-left: 0; }
+.d-ur { margin-left: auto; display: inline-flex; gap: 4px; }
+.d-ur button { font: inherit; font-size: 0.85rem; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.d-ur button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.d-ur button:disabled { opacity: 0.4; cursor: default; }
 .d-toggles .d-side::before { content: "◫ "; }
 .d-toggles .d-side[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 .panel.wide.side { width: min(1760px, 100%); }
@@ -2559,6 +2563,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       B("tp-l", "◧", "Links, Text rechts daneben") + B("tp-c", "▣", "In der Mitte") + B("tp-r", "◨", "Rechts, Text links daneben") + B("tp-", "▭", "Normal (allein auf der Zeile)") + '<span class="tt-sep"></span>' +
       B("up", "↑", "Einen Absatz nach oben") + B("down", "↓", "Einen Absatz nach unten") + '<span class="tt-sep"></span>' +
       B("trow", "+ Zeile", "Neue Zeile unter der Zeile mit dem Cursor") + B("tcol", "+ Spalte", "Neue Spalte rechts der Spalte mit dem Cursor") + B("tdelrow", "− Zeile", "Zeile mit dem Cursor löschen") + B("tdelcol", "− Spalte", "Spalte mit dem Cursor löschen") + B("thead", "Kopfzeile", "Erste Zeile hervorheben ein/aus") + '<span class="tt-sep"></span>' +
+      B("tleft", "◀ Spalte", "Spalte mit dem Cursor nach links verschieben") + B("tright", "Spalte ▶", "Spalte mit dem Cursor nach rechts verschieben") + B("tup", "▲ Zeile", "Zeile mit dem Cursor nach oben verschieben") + B("tdown", "▼ Zeile", "Zeile mit dem Cursor nach unten verschieben") + '<span class="tt-sep"></span>' +
       B("reset", "↺ Grösse", "Breite, Höhe und Spaltenbreiten zurücksetzen") + B("tdel", "🗑", "Ganze Tabelle löschen") + "</div>" +
       '<div class="tt-w" data-ttd="w" title="Ziehen: Breite der Tabelle"></div><div class="tt-h" data-ttd="h" title="Ziehen: Höhe der Tabelle"></div><div class="tt-cols"></div>';
     document.body.appendChild(el);
@@ -2591,6 +2596,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const ttPctW = (tb) => Math.round(tb.getBoundingClientRect().width / ttBoxW(tb) * 100);
   function ttClick(e) {
     const b = e.target.closest("[data-tt]"); if (!b || !TT.tb) return;
+    if (b.dataset.tt !== "menu" && b.dataset.tt !== "move") HIST.brk = true;
     const k = b.dataset.tt, tb = TT.tb, host = TT.host;
     if (k === "move") return;
     if (k === "menu") { const bar = TT.el.querySelector(".tt-bar"); bar.hidden = !bar.hidden; b.setAttribute("aria-expanded", String(!bar.hidden)); ttPlace(tb.getBoundingClientRect(), tb.rows[0] ? [...tb.rows[0].cells] : []); return; }
@@ -2631,7 +2637,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     }
     const up = () => {
       d.removeEventListener("pointermove", move); d.removeEventListener("pointerup", up); d.removeEventListener("pointercancel", up);
-      document.body.classList.remove("col-resizing"); TT.drag = false;
+      document.body.classList.remove("col-resizing"); TT.drag = false; HIST.brk = true;
       if (ind) { ind.remove(); tb.classList.remove("tt-moving"); if (drop) ttDrop(tb, drop); }
       ttChanged();
     };
@@ -2669,6 +2675,33 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     ttTail(tb);
     const c = tb.querySelector("td, th"); if (c) { TT.host.focus(); caretIn(c); }
   }
+  // Rückgängig in der Lektion: Befehle (Spalte verschieben, Grösse …) sind je ein eigener Schritt, Tippen wird zusammengefasst
+  const HIST = { brk: false };
+  // kleines Rechtsklick-Menü (Tabellen)
+  function cellMenu(x, y, title, items, onPick) {
+    closeMenu();
+    const m = document.createElement("div"); m.className = "cmenu"; m.id = "cmenu"; m.setAttribute("role", "menu"); m.style.zIndex = "3000";
+    m.innerHTML = '<div class="cm-title">' + esc(title) + "</div>" + items.map((it) => (it === "-" ? "<hr>" : '<button type="button" role="menuitem" data-cm="' + it[0] + '"' + (it[2] ? ' class="cm-danger"' : "") + ">" + esc(it[1]) + "</button>")).join("");
+    const out = (e) => { if (!m.contains(e.target)) { m.remove(); document.removeEventListener("pointerdown", out, true); } };
+    m.addEventListener("mousedown", (e) => e.preventDefault());
+    m.addEventListener("click", (e) => { const b = e.target.closest("[data-cm]"); if (!b) return; m.remove(); document.removeEventListener("pointerdown", out, true); HIST.brk = true; onPick(b.dataset.cm); });
+    document.body.appendChild(m);
+    const r = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px"; m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+    setTimeout(() => document.addEventListener("pointerdown", out, true), 0);
+  }
+  const TAB_MENU = [["tleft", "◀ Spalte nach links"], ["tright", "Spalte nach rechts ▶"], ["tup", "▲ Zeile nach oben"], ["tdown", "▼ Zeile nach unten"], "-", ["trow", "+ Zeile darunter"], ["tcol", "+ Spalte rechts"], ["tdelrow", "− Zeile löschen", 1], ["tdelcol", "− Spalte löschen", 1]];
+  document.addEventListener("contextmenu", (e) => {
+    const c = e.target.closest && e.target.closest("table.ntab td, table.ntab th, table.lk-tab td, table.lk-tab th"), host = c && ttHostOf(c);
+    if (!c || !host || !host.isContentEditable) return;
+    e.preventDefault();
+    host.focus(); caretIn(c);
+    cellMenu(e.clientX, e.clientY, "Tabelle", TAB_MENU, (op) => {
+      const tb = c.closest("table"), f = tableOp(c, op);
+      if (tb.isConnected) caretIn(f && f.isConnected ? f : (tb.querySelector("td, th"))); else ttHide();
+      host.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  });
   document.addEventListener("selectionchange", () => {
     if (TT.drag) return;
     const s = getSelection(), n = s.rangeCount ? s.anchorNode : null, el = n && (n.nodeType === 1 ? n : n.parentElement), tb = el && el.closest && el.closest("table.ntab, table.lk-tab"), host = tb && ttHostOf(tb);
@@ -3322,7 +3355,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     ensurePlan(p);
     return '<div class="field"><span class="lbl">Lernziele</span><div class="rich rtfield" contenteditable="true" role="textbox" aria-multiline="true" id="p-ziele" data-ph="Die Lernenden können …">' + sanitize(p.ziele || "") + "</div></div>" +
       '<div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(p) + "</table></div>" +
-      '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div>';
+      '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern. Rechtsklick (Tablet: lange drücken auf den Titel): Spalten und Zeilen verschieben, einfügen, löschen.</span></div></div>';
   }
   function bindPlan(root, p, changed) {
     const tbl = $("#p-table");
@@ -3360,6 +3393,30 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const up = () => { h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up); h.classList.remove("active"); tbl.classList.remove("resizing"); changed(); };
       h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
     });
+    // Rechtsklick (Tablet: lange drücken) auf eine Zelle oder einen Spaltentitel: Spalten und Zeilen verschieben, einfügen, löschen
+    const planMenu = (cx, cy, cell) => {
+      const th = cell.closest("th"), td = cell.closest("td"); if ((th || td).classList.contains("rm")) return;
+      const tr = cell.closest("tr"), j = [...tr.children].indexOf(th || td), ri = td ? [...tr.parentElement.children].indexOf(tr) : -1, n = p.cols.length;
+      const items = [];
+      if (j > 0) items.push(["cl", "◀ Spalte nach links"]); if (j < n - 1) items.push(["cr", "Spalte nach rechts ▶"]);
+      if (ri > 0) items.push(["ru", "▲ Zeile nach oben"]); if (ri >= 0 && ri < p.rows.length - 1) items.push(["rd", "▼ Zeile nach unten"]);
+      items.push("-", ["ca", "+ Spalte rechts einfügen"]); if (ri >= 0) items.push(["ra", "+ Zeile darunter einfügen"]);
+      if (n > 1) items.push(["cx", "Spalte «" + (p.cols[j] || "") + "» löschen", 1]);
+      cellMenu(cx, cy, "Spalte «" + (p.cols[j] || "") + "»", items, (op) => {
+        const swap = (a, i, k) => { const t = a[i]; a[i] = a[k]; a[k] = t; };
+        if (op === "cl" || op === "cr") { const k = op === "cl" ? j - 1 : j + 1; swap(p.cols, j, k); swap(p.widths, j, k); p.rows.forEach((r) => swap(r, j, k)); }
+        else if (op === "ru" || op === "rd") swap(p.rows, ri, op === "ru" ? ri - 1 : ri + 1);
+        else if (op === "ca") { const w = p.widths[j] / 2; p.widths[j] = +w.toFixed(1); p.widths.splice(j + 1, 0, +w.toFixed(1)); p.cols.splice(j + 1, 0, "Neue Spalte"); p.rows.forEach((r) => r.splice(j + 1, 0, "")); }
+        else if (op === "ra") p.rows.splice(ri + 1, 0, p.cols.map(() => ""));
+        else if (op === "cx") {
+          if (p.rows.some((r) => filled(r[j])) && !confirm("Die Spalte «" + (p.cols[j] || "") + "» enthält Text. Trotzdem löschen? (Mit «Rückgängig» lässt es sich wiederherstellen.)")) return;
+          const w = p.widths[j]; p.cols.splice(j, 1); p.widths.splice(j, 1); p.rows.forEach((r) => r.splice(j, 1)); p.widths[Math.max(0, j - 1)] = +(p.widths[Math.max(0, j - 1)] + w).toFixed(1);
+        }
+        tbl.innerHTML = planTableInner(p); changed();
+      });
+    };
+    tbl.addEventListener("contextmenu", (e) => { const c = e.target.closest("th, td"); if (!c) return; e.preventDefault(); planMenu(e.clientX, e.clientY, c); });
+    longPress(tbl, "th", (c, cx, cy) => planMenu(cx, cy, c));
     $("#p-addrow").onclick = () => { p.rows.push(p.cols.map(() => "")); tbl.innerHTML = planTableInner(p); changed(); const cells = tbl.querySelectorAll("tbody tr:last-child .pcell"); if (cells[0]) cells[0].focus(); };
   }
 
@@ -3725,10 +3782,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         ["kurz", "Kurzeintrag", textF, filled(richOf(x, 1))], ["farbe", "Farbe", colorF, !!x.color], ["docs", "Dokumente" + (x.files.length ? " (" + x.files.length + ")" : ""), docsF, x.files.length > 0]].concat(rfl.length ? [["rdocs", "Dokumente der Reihe (" + rfl.length + ")", rdocsF, true]] : []);
       const side = dSide();
       body = '<div class="d-toggles" role="group" aria-label="Weitere Angaben">' + secs.map(([k, l, , has]) => '<button type="button" class="d-tog' + (has ? " has" : "") + '" data-dtog="' + k + '" aria-expanded="' + !!openSet[k] + '">' + esc(l) + "</button>").join("") +
+        '<span class="d-ur"><button type="button" id="d-undo" disabled title="Rückgängig (Strg+Z): Lektionsplanung, Lernziele, Kurzeintrag und Notizen">↶ Rückgängig</button><button type="button" id="d-redo" disabled title="Wiederholen (Strg+Y)" aria-label="Wiederholen">↷</button></span>' +
         '<button type="button" class="d-tog d-side" id="d-side" aria-pressed="' + side + '" title="Lektionsplanung links und Notizen rechts nebeneinander zeigen (wird auf diesem Gerät gemerkt)">Nebeneinander</button></div>' +
         secs.map(([k, , h]) => '<div class="d-sec" data-dsec="' + k + '"' + (openSet[k] ? "" : " hidden") + ">" + h + "</div>").join("") +
         '<div class="d-split' + (side ? " on" : "") + '" id="d-split" style="--dl:' + dSideW() + '"><div class="d-sl"><div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
-        '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern.</span></div></div></div>' +
+        '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern. Rechtsklick (Tablet: lange drücken auf den Titel): Spalten und Zeilen verschieben, einfügen, löschen.</span></div></div></div>' +
         '<div class="d-gut" id="d-gut" title="Ziehen, um die Breite der beiden Seiten zu ändern" aria-hidden="true"></div><div class="d-sr">' + notesF + "</div></div>" + actionsF;
     } else body = textF + (opt.todo ? '<div class="field d-todof"><label class="dp-chk"><input type="checkbox" id="d-todo"' + (x.todo ? " checked" : "") + '> Als To-do (zum Abhaken)</label><label class="dp-chk"><input type="checkbox" id="d-done"' + (x.done ? " checked" : "") + (x.todo ? "" : " disabled") + "> erledigt</label></div>" : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
       (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, k) => { const n = k + 2; return '<div class="d-time" data-ptime="' + n + '"><input type="time" class="pf" value="' + esc(x["from" + n] || "") + '" aria-label="Teil ' + n + ' von"><span>bis</span><input type="time" class="pt" value="' + esc(x["to" + n] || "") + '" aria-label="Teil ' + n + ' bis"><button type="button" class="btn ghost pc" title="Zeit entfernen">×</button><span class="msg">(Teil ' + n + ")</span></div>"; }).join("") : "") + '</div>' : "") + colorF + notesF + docsF + actionsF;
@@ -3736,6 +3794,40 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
       (root) => {
         const tText = $("#d-text"), tDet = $("#d-details");
+        // Rückgängig/Wiederholen für die ganze Lektion (Planung, Lernziele, Kurzeintrag, Notizen)
+        if (opt.plan) {
+          const H = { undo: [], redo: [], cur: "", t: 0, busy: false }, oc = opt.changed;
+          const snap = () => JSON.stringify({ p: opt.plan, x: { html: x.html || "", text: x.text || "", color: x.color || "", notesHtml: x.notesHtml || "", notesLh: x.notesLh || 0 } });
+          const btns = () => { root.querySelector("#d-undo").disabled = !H.undo.length; root.querySelector("#d-redo").disabled = !H.redo.length; };
+          const rec = () => { if (H.busy) return; const sn = snap(); if (sn === H.cur) return; const now = Date.now(); const brk = HIST.brk; HIST.brk = false; if (brk || now - H.t > 1000 || !H.undo.length) { H.undo.push(H.cur); if (H.undo.length > 200) H.undo.shift(); } H.cur = sn; H.t = brk ? 0 : now; H.redo = []; btns(); };
+          const apply = (sn) => {
+            const o = JSON.parse(sn); H.busy = true;
+            Object.keys(opt.plan).forEach((k) => delete opt.plan[k]); Object.assign(opt.plan, o.p);
+            Object.assign(x, o.x); if (!x.notesLh) delete x.notesLh; if (x.notesHtml) x.details = notesPlain(x.notesHtml);
+            const tb = root.querySelector("#p-table"); if (tb) tb.innerHTML = planTableInner(opt.plan);
+            const z = root.querySelector("#p-ziele"); if (z) z.innerHTML = sanitize(opt.plan.ziele || "");
+            const t1 = root.querySelector("#d-text"); if (t1) t1.innerHTML = richOf(x, 1);
+            const nd = root.querySelector("#d-notes");
+            if (nd) { nd.innerHTML = sanitizeNotes(x.notesHtml || ""); nd.querySelectorAll("figure.nfig").forEach((f) => { f.contentEditable = "false"; }); nd.style.lineHeight = String(x.notesLh || 1.5); const lh = root.querySelector("#d-nlh"); if (lh) lh.value = String(x.notesLh || 1.5); const dl = root.querySelector("#d-links"); if (dl) dl.innerHTML = linkify(notesLinkText(x.notesHtml || "")); }
+            ttHide(); oc(); H.busy = false; H.t = 0; btns();
+          };
+          const step = (dir) => {
+            const nd = root.querySelector("#d-notes"); if (nd && nd.contains(document.activeElement || null)) { x.notesHtml = sanitizeNotes(nd.innerHTML); x.details = notesPlain(x.notesHtml); }
+            rec();
+            const from = dir < 0 ? H.undo : H.redo, to = dir < 0 ? H.redo : H.undo; if (!from.length) return;
+            to.push(H.cur); H.cur = from.pop(); apply(H.cur);
+          };
+          H.cur = snap();
+          opt.changed = () => { oc(); rec(); };
+          root.querySelector("#d-undo").addEventListener("click", () => step(-1));
+          root.querySelector("#d-redo").addEventListener("click", () => step(1));
+          root.querySelector(".d-ur").addEventListener("mousedown", (e) => e.preventDefault());
+          root.addEventListener("keydown", (e) => {
+            if (!(e.ctrlKey || e.metaKey) || e.altKey || (e.target.closest && e.target.closest("input, select, textarea"))) return;
+            const k = e.key.toLowerCase();
+            if (k === "z" && !e.shiftKey) { e.preventDefault(); step(-1); } else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); step(1); }
+          }, true);
+        }
         if (opt.plan) { root.querySelector(".panel").classList.add("wide"); root.querySelector(".panel").classList.toggle("side", dSide()); bindPlan(root, opt.plan, () => opt.changed()); bindSide(root); }
         const tdc = root.querySelector("#d-todo");
         if (tdc) tdc.addEventListener("change", () => { x.todo = tdc.checked; if (!tdc.checked) { delete x.todo; delete x.done; } const dd = root.querySelector("#d-done"); if (dd) { dd.disabled = !tdc.checked; if (!tdc.checked) dd.checked = false; } opt.changed(); });
@@ -8577,6 +8669,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     else if (cmd === "tdelcol") { if (tr.children.length <= 1) tb.remove(); else rows.forEach((r) => r.children[ci] && r.children[ci].remove()); }
     else if (cmd === "thead") { const r0 = rows[0], toTh = !(r0.children[0] && r0.children[0].tagName === "TH"); [...r0.children].forEach((c) => { const n = document.createElement(toTh ? "th" : "td"); while (c.firstChild) n.appendChild(c.firstChild); c.replaceWith(n); }); }
     else if (cmd === "tdel") tb.remove();
+    else if (cmd === "tleft" || cmd === "tright") {
+      const d = cmd === "tleft" ? -1 : 1, k = ci + d; if (k < 0 || k >= tr.children.length) return cell;
+      rows.forEach((r) => { const a = r.children[ci], b = r.children[k]; if (!a || !b) return; if (d < 0) b.before(a); else b.after(a); });
+      // Kopfzeile bleibt Kopfzeile, Spaltenbreiten wandern mit
+      focus = cell;
+    }
+    else if (cmd === "tup" || cmd === "tdown") { const sib = cmd === "tup" ? tr.previousElementSibling : tr.nextElementSibling; if (!sib) return cell; if (cmd === "tup") sib.before(tr); else sib.after(tr); focus = cell; }
     return focus;
   }
   function caretIn(el) { const r = document.createRange(); r.selectNodeContents(el); r.collapse(true); getSelection().removeAllRanges(); getSelection().addRange(r); }
