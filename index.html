@@ -1608,6 +1608,7 @@ table.tt-moving { opacity: 0.45; }
 .lk-fpg.four { grid-template-columns: repeat(5, 1fr); }
 /* Lektion: Lektionsplanung links, Notizen rechts */
 .d-toggles .d-side { margin-left: 0; }
+.file-drop { outline: 2px dashed var(--accent) !important; outline-offset: 2px; background: color-mix(in srgb, var(--accent) 8%, transparent) !important; }
 .d-ur { margin-left: auto; display: inline-flex; gap: 4px; }
 .d-ur button { font: inherit; font-size: 0.85rem; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
 .d-ur button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
@@ -4009,6 +4010,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         };
         $("#d-close").onclick = closeModal;
         onClose = opt.onClose || null;
+        // Dateien aus dem Explorer aufs Fenster ziehen (ausser in die Notizen, dort Bilder): Dokumente dieser Lektion
+        const dIn = $("#d-file"), pnl = root.querySelector(".panel");
+        const fdrag = (e) => [...((e.dataTransfer && e.dataTransfer.types) || [])].includes("Files") && !(e.target.closest && e.target.closest("#d-notes")) && state.assets && dIn;
+        pnl.addEventListener("dragover", (e) => { if (!fdrag(e)) return; e.preventDefault(); try { e.dataTransfer.dropEffect = "copy"; } catch (err) {} pnl.classList.add("file-drop"); });
+        pnl.addEventListener("dragleave", (e) => { if (!pnl.contains(e.relatedTarget)) pnl.classList.remove("file-drop"); });
+        pnl.addEventListener("drop", (e) => { pnl.classList.remove("file-drop"); if (!fdrag(e)) return; e.preventDefault(); try { dIn.files = e.dataTransfer.files; dIn.dispatchEvent(new Event("change")); } catch (err) {} const sec = root.querySelector('[data-dsec="docs"]'), tg = root.querySelector('[data-dtog="docs"]'); if (sec && sec.hidden && tg) tg.click(); });
         if (tDet) tDet.focus();
       });
   }
@@ -6337,6 +6344,33 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (moveDoc(r, dd.key, dd.fid, zz.key, bef ? bef.dataset.openFile : null)) { const ae = document.activeElement; if (ae && ae !== document.body && uEl.contains(ae)) ae.blur(); saveReihe(U.sel, 0); reDraw(); }
     });
     uEl.addEventListener("dragend", () => { clear(); uEl.querySelectorAll(".doc.dragging").forEach((el) => el.classList.remove("dragging")); d = null; justDragged = Date.now(); });
+    // Dateien aus dem Explorer (Finder) hineinziehen: auf eine Lektion = Dokument dieser Lektion, auf Hauptdokumente/Gruppe = dorthin, sonst Dokument der ganzen Reihe
+    const hasFiles = (e) => !d && [...((e.dataTransfer && e.dataTransfer.types) || [])].includes("Files");
+    const fileZone = (t) => {
+      if (!t || !t.closest || !U.reihen[U.sel]) return null;
+      const zz = zoneOf(t); if (zz && !(zz.z.closest(".lesson") || {}).dataset?.crid) return zz;
+      const l = t.closest(".lesson[data-li]"); if (l && uEl.contains(l) && !l.dataset.crid && !l.classList.contains("mat-row")) return { z: l, key: l.dataset.li };
+      const r = t.closest("#r-detail, .r-detail, #r-lessons, .rf-wrap"); return r && uEl.contains(r) ? { z: r, key: "reihe" } : null;
+    };
+    uEl.addEventListener("dragover", (e) => {
+      if (!hasFiles(e)) return; const zz = fileZone(e.target); uEl.querySelectorAll(".file-drop").forEach((x) => x !== (zz && zz.z) && x.classList.remove("file-drop"));
+      if (!zz || !state.assets) return; e.preventDefault(); try { e.dataTransfer.dropEffect = "copy"; } catch (err) {} zz.z.classList.add("file-drop");
+    });
+    uEl.addEventListener("dragleave", (e) => { if (hasFiles(e) && !uEl.contains(e.relatedTarget)) uEl.querySelectorAll(".file-drop").forEach((x) => x.classList.remove("file-drop")); });
+    uEl.addEventListener("drop", async (e) => {
+      if (!hasFiles(e)) return; uEl.querySelectorAll(".file-drop").forEach((x) => x.classList.remove("file-drop"));
+      const zz = fileZone(e.target), rid = U.sel, r = U.reihen[rid]; if (!zz || !r || !state.assets) return;
+      e.preventDefault(); e.stopPropagation();
+      const files = [...e.dataTransfer.files], where = zz.key === "reihe" ? "zur Reihe" : zz.key === "main" ? "zu den Hauptdokumenten" : /^g:/.test(zz.key) ? "zur Gruppe" : "zur Lektion " + (isLN(zz.key) ? "" : "L" + (+zz.key + 1));
+      let ok = 0, bad = [];
+      for (const file of files) {
+        uStatus("Lädt „" + file.name + "“ hoch …");
+        try { const rec = await vStore(file); if (/^g:/.test(zz.key)) rec.grp = zz.key.slice(2); setDocsAt(r, zz.key, [...docsAt(r, zz.key), rec]); ok++; }
+        catch (err) { bad.push(file.name + (err && err.code === "type" ? " (Dateiart geht nicht)" : err && err.code === "too_large" ? " (zu gross)" : "")); }
+      }
+      if (ok) { saveReihe(rid, 0); renderU(); }
+      uStatus((ok ? ok + (ok === 1 ? " Dokument" : " Dokumente") + " " + where + " hinzugefügt." : "") + (bad.length ? " Nicht möglich: " + bad.join(", ") : ""), !!bad.length);
+    });
     uEl.addEventListener("click", (e) => {
     const sg = e.target.closest && (e.target.closest("[data-subgo]") || e.target.closest("[data-msgo]")); if (!sg) return;
     e.stopPropagation(); e.preventDefault();
