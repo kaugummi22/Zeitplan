@@ -2201,6 +2201,44 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 .lkw select { font: inherit; font-size: 0.9em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
 </style>
 
+<!-- Startbild: ein Buch geht auf (ca. 1,7 s, Klick überspringt; bei «weniger Bewegung» und im Beamer-Fenster ausgelassen) -->
+<style>
+#zp-intro { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 22px; background: var(--bg); cursor: pointer; animation: zi-out 0.35s ease-in 1.4s forwards; }
+#zp-intro .zi-stage { perspective: 900px; }
+#zp-intro .zi-book { position: relative; width: 168px; height: 116px; transform-style: preserve-3d; transform: translateX(-42px) rotateX(14deg); animation: zi-center 0.75s cubic-bezier(.4,.1,.2,1) 0.15s forwards; }
+#zp-intro .zi-page, #zp-intro .zi-leaf, #zp-intro .zi-cover { position: absolute; top: 0; width: 50%; height: 100%; box-sizing: border-box; }
+#zp-intro .zi-page { background: var(--surface); border: 1px solid var(--line); }
+#zp-intro .zi-r { left: 50%; border-radius: 2px 6px 6px 2px; box-shadow: 5px 0 0 0 #1f5f8b, 0 5px 0 0 #1f5f8b, 0 -5px 0 0 #1f5f8b, 5px 5px 0 0 #1f5f8b, 5px -5px 0 0 #1f5f8b; }
+#zp-intro .zi-page::after { content: ""; position: absolute; left: 14%; right: 14%; top: 22%; height: 52%; background: repeating-linear-gradient(to bottom, var(--line) 0 2px, transparent 2px 11px); }
+#zp-intro .zi-leaf, #zp-intro .zi-cover { left: 50%; transform-origin: left center; transform-style: preserve-3d; transform: rotateY(0deg) translateZ(var(--z)); }
+#zp-intro .zi-leaf { background: var(--surface); border: 1px solid var(--line); border-radius: 2px 6px 6px 2px; }
+#zp-intro .zi-f1 { --z: 2px; animation: zi-flip 0.6s cubic-bezier(.45,.05,.3,1) 0.55s forwards; }
+#zp-intro .zi-f2 { --z: 1px; animation: zi-flip 0.6s cubic-bezier(.45,.05,.3,1) 0.7s forwards; }
+#zp-intro .zi-cover { --z: 3px; animation: zi-flip 0.7s cubic-bezier(.45,.05,.3,1) 0.15s forwards; }
+#zp-intro .zi-cover i { position: absolute; inset: -5px 0 -5px 0; backface-visibility: hidden; border-radius: 2px 7px 7px 2px; }
+#zp-intro .zi-cover .zi-front { right: -5px; background: #1f5f8b; box-shadow: inset 6px 0 0 rgba(0,0,0,.18); }
+#zp-intro .zi-cover .zi-front::after { content: ""; position: absolute; left: 26%; right: 20%; top: 40%; height: 3px; border-radius: 2px; background: rgba(255,255,255,.7); box-shadow: 0 9px 0 rgba(255,255,255,.4); }
+#zp-intro .zi-cover .zi-back { background: #1f5f8b; inset: -5px -5px -5px 0; transform: rotateY(180deg); border-radius: 7px 2px 2px 7px; }
+#zp-intro .zi-name { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; color: var(--accent); opacity: 0; animation: zi-in 0.45s ease-out 0.7s forwards; }
+@keyframes zi-center { to { transform: translateX(0) rotateX(14deg); } }
+@keyframes zi-flip { to { transform: rotateY(-180deg) translateZ(var(--z)); } }
+@keyframes zi-in { to { opacity: 1; } }
+@keyframes zi-out { to { opacity: 0; visibility: hidden; } }
+</style>
+<div id="zp-intro" aria-hidden="true"><div class="zi-stage"><div class="zi-book"><div class="zi-page zi-r"></div><div class="zi-leaf zi-f2"></div><div class="zi-leaf zi-f1"></div><div class="zi-cover"><i class="zi-front"></i><i class="zi-back"></i></div></div></div><div class="zi-name">Semper</div></div>
+<script>
+(function () {
+  const el = document.getElementById("zp-intro"); if (!el) return;
+  const off = () => { if (el.parentNode) el.remove(); };
+  let skip = /beamer/.test(location.hash);
+  try { skip = skip || matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  if (skip) return off();
+  el.addEventListener("click", off);
+  el.addEventListener("animationend", (e) => { if (e.target === el) off(); });
+  setTimeout(off, 2500);
+})();
+</script>
+
 <header class="top" id="hdr">
   <div class="top-inner">
     <div class="brand"><h1>Semper</h1><span class="today" id="todayLabel"></span><button class="codebtn hdr-morebtn" id="hdrMore" type="button" title="Weitere Knöpfe: Grösse der Kopfzeile, Sicherungen, Code" aria-label="Weitere Knöpfe" aria-expanded="false">⋯</button></div>
