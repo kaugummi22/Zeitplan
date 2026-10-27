@@ -1696,9 +1696,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 .lkw select { font: inherit; font-size: 0.9em; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
 </style>
 
-<!-- Startbild: ein Buch geht auf (ca. 1,7 s, Klick überspringt; bei «weniger Bewegung» und im Beamer-Fenster ausgelassen) -->
+<!-- Startbild: ein Buch geht auf und bleibt, bis die Daten geladen sind (cloud.js ruft zpIntroDone); bei «weniger Bewegung» ohne Bewegung, im Beamer-Fenster ausgelassen -->
 <style>
-#zp-intro { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 22px; background: var(--bg); cursor: pointer; animation: zi-out 0.35s ease-in 1.4s forwards; }
+#zp-intro { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: 22px; background: var(--bg); cursor: progress; }
+#zp-intro.zi-done { animation: zi-out 0.35s ease-in forwards; pointer-events: none; }
+#zp-intro.zi-still *, #zp-intro.zi-still *::after { animation-duration: 1ms !important; animation-delay: 0s !important; }
 #zp-intro .zi-stage { perspective: 900px; }
 #zp-intro .zi-book { position: relative; width: 168px; height: 116px; transform-style: preserve-3d; transform: translateX(-42px) rotateX(14deg); animation: zi-center 0.75s cubic-bezier(.4,.1,.2,1) 0.15s forwards; }
 #zp-intro .zi-page, #zp-intro .zi-leaf, #zp-intro .zi-cover { position: absolute; top: 0; width: 50%; height: 100%; box-sizing: border-box; }
@@ -1725,12 +1727,17 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 (function () {
   const el = document.getElementById("zp-intro"); if (!el) return;
   const off = () => { if (el.parentNode) el.remove(); };
-  let skip = /beamer/.test(location.hash);
-  try { skip = skip || matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  if (skip) return off();
-  el.addEventListener("click", off);
+  let skip = false;
+  try { skip = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  if (/beamer/.test(location.hash)) return off();
+  const still = skip, t0 = Date.now();
+  if (still) el.classList.add("zi-still");
+  let ready = false;
+  const fade = () => { if (still) off(); else el.classList.add("zi-done"); };
+  // erst ausblenden, wenn das Buch offen ist und die Daten da sind (oder ein Hinweis wie «Anmelden» kommt)
+  window.zpIntroDone = () => { if (ready) return; ready = true; setTimeout(fade, still ? 0 : Math.max(0, 1300 - (Date.now() - t0))); };
   el.addEventListener("animationend", (e) => { if (e.target === el) off(); });
-  setTimeout(off, 2500);
+  el.addEventListener("click", () => { if (ready) off(); });
 })();
 </script>
 

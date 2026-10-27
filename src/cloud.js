@@ -142,6 +142,7 @@
     }
     el.innerHTML = '<div class="b"><h2>Semper</h2><p>' + html + "</p>" + (btn ? '<button type="button">' + btn + "</button>" : "") + "<small>Ihre Daten liegen in Ihrem OneDrive und gehen nur zwischen diesem Gerät und Microsoft hin und her.</small></div>";
     if (btn) el.querySelector("button").onclick = onBtn;
+    if (window.zpIntroDone) window.zpIntroDone();
     return el;
   }
 
@@ -162,7 +163,8 @@
     const t = ls.get("zp-tok-privat");
     if (!t || !t.refresh) { gate("Bitte melden Sie sich mit Ihrem <b>privaten Microsoft-Konto</b> an (dasselbe wie für OneDrive).", "Mit Microsoft anmelden", () => login("privat", "select_account")); return; }
     if (!navigator.onLine && (await startOffline())) return;
-    gate("Lädt Ihre Daten aus OneDrive …");
+    // Beim Laden zeigt das Startbild (aufgehendes Buch) keinen Text; ohne Startbild bleibt der Hintergrund leer
+    if (!document.getElementById("zp-intro")) gate("").innerHTML = "";
     try {
       if (!t.user) { const me = await (await g("/me")).json(); const tt = ls.get("zp-tok-privat"); tt.user = me.userPrincipalName || me.mail || ""; ls.set("zp-tok-privat", tt); }
       const metas = await listDaten();
@@ -198,6 +200,7 @@
   function begin(offline) {
     if (begun) return; begun = true;
     const gt = document.getElementById("zl-gate"); if (gt) gt.remove();
+    if (window.zpIntroDone) window.zpIntroDone();
     const b = document.createElement("div"); b.id = "zl-badge"; document.body.appendChild(b);
     readyRes();
     if (offline) goneOffline(); else setBadge(COLS.some((c) => Object.keys(dirty[c]).length) ? "Speichert …" : "OneDrive · gespeichert");
