@@ -2882,7 +2882,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const sfx = (part) => (part > 1 ? String(part) : "");
   const richOf = (x, part) => { const h = x["html" + sfx(part)], t = x["text" + sfx(part)]; return h != null ? sanitize(h) : plainToHtml(t); };
   const PART_NAMES = ["", "", " (zweiter Teil)", " (dritter Teil)", " (vierter Teil)"];
-  const todoBox = (x, part) => { const sf = sfx(part); if (!x || !x["todo" + sf]) return ""; const d = !!x["done" + sf]; return '<button type="button" class="tdo' + (d ? " done" : "") + '" data-tdo="' + part + '" title="' + (d ? "Erledigt – klicken, um es wieder zu öffnen" : "Als erledigt abhaken") + '" aria-pressed="' + d + '">' + (d ? "✓" : "") + "</button>"; };
+  const oneTodo = (x, part) => !!(x && x["todo" + sfx(part)] && !tdpHas(richOf(x, part))); // mit To-do-Punkten braucht der Eintrag kein eigenes Kästchen
+  const todoBox = (x, part) => { const sf = sfx(part); if (!oneTodo(x, part)) return ""; const d = !!x["done" + sf]; return '<button type="button" class="tdo' + (d ? " done" : "") + '" data-tdo="' + part + '" title="' + (d ? "Erledigt – klicken, um es wieder zu öffnen" : "Als erledigt abhaken") + '" aria-pressed="' + d + '">' + (d ? "✓" : "") + "</button>"; };
   // Mehrere To-do-Punkte in einem Eintrag: jede Zeile, die mit ☐ (offen) oder ☑ (erledigt) beginnt, ist ein eigener Punkt
   const TDP_RE = /^((?:<[^>]+>)*)([☐☑])/;
   const tdpLines = (html) => String(html || "").split("<br>");
@@ -3005,9 +3006,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const tip = more ? "Gross öffnen (enthält Details" + (x.files && x.files.length ? " und " + x.files.length + " Dokument" + (x.files.length > 1 ? "e" : "") : "") + ")" : "Gross öffnen";
     const band = slot === "morgen" || slot === "nachmittag" ? lessonBand(key, slot) : "";
     const sband = serBand(key, slot);
-    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + (x && !x.split && x.todo ? " has-todo" + (x.done ? " is-done" : "") : "") + (x && x.split ? " is-split" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
+    return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + (x && !x.split && oneTodo(x, 1) ? " has-todo" + (x.done ? " is-done" : "") : "") + (x && x.split ? " is-split" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
       (x && x.split
-        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (x["todo" + sfx(n + 1)] ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button></div>'; }).join("") + '</div>'
+        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (oneTodo(x, n + 1) ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button></div>'; }).join("") + '</div>'
         : todoBox(x, 1) + ta(key, slot, label, 1, x)) +
       (x && x.from && !x.split ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
       (more ? '<span class="dot" aria-hidden="true"></span>' : "") +
@@ -3123,7 +3124,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         const x = day[s]; if (!slotText(x)) return;
         partsOf(x).forEach((pp, i) => {
           const txt = htmlToPlain(pp.html || "").replace(/\s+/g, " ").trim(); if (!txt && !pp.todo) return;
-          const tt = timeTxt(pp), col = pp.color || "", ck = pp.todo ? (pp.done ? "☑ " : "☐ ") : "";
+          const tt = timeTxt(pp), col = pp.color || "", ck = pp.todo && !tdpHas(pp.html) ? (pp.done ? "☑ " : "☐ ") : "";
           inner += '<button type="button" class="cal-e' + (col ? " f-" + col : "") + (pp.todo && pp.done ? " done" : "") + '" data-copen="' + k + "|" + s + "|" + (i + 1) + '" title="' + esc(SLOT_SHORT[s] + ": " + txt + (tt ? " · " + tt : "")) + '">' + (week ? '<span class="cal-s">' + SLOT_SHORT[s] + (tt ? " · " + esc(tt) : "") + "</span>" : "") + esc(ck + txt) + "</button>";
         });
       });
@@ -3438,7 +3439,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const pcur = curSplit ? ((xx.pcolors || [])[part - 1] || "") : cur;
     const ico = (d) => '<svg class="sq" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2"/>' + d + "</svg>";
     const xt = xx || {}, sfp = sfx(curSplit ? part : 1);
-    m.innerHTML = '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button>" +
+    m.innerHTML = (tdpHas(richOf(xt, curSplit ? part : 1)) ? "" : '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button>") +
       (() => { const hp = tdpHas(richOf(xt, curSplit ? part : 1)); return '<button type="button" role="menuitem" data-tdp="1">' + ico(hp ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4 5.5h1.5M4 10.5h1.5M7.5 5.5H12M7.5 10.5H12"/>') + (hp ? "To-do-Punkte entfernen" : "Mehrere To-do-Punkte (Liste zum Abhaken)") + "</button>"; })() + "<hr>" +
       (curSplit ? '<div class="cm-title">Farbe dieses Eintrags</div>' : "") + FARBEN.map(([v, l], i) => (i === 4 ? "<hr>" : "") +
       '<button type="button" role="menuitemradio" aria-checked="' + (v === pcur) + '" data-color="' + v + '"><span class="sq' + (v ? " f-" + v : "") + '"></span>' + l + "</button>").join("") +
@@ -4100,7 +4101,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (opt.plan) { root.querySelector(".panel").classList.add("wide"); root.querySelector(".panel").classList.toggle("side", dSide()); bindPlan(root, opt.plan, () => opt.changed()); bindSide(root); }
         const tdc = root.querySelector("#d-todo");
         if (tdc) tdc.addEventListener("change", () => { x.todo = tdc.checked; if (!tdc.checked) { delete x.todo; delete x.done; } const dd = root.querySelector("#d-done"); if (dd) { dd.disabled = !tdc.checked; if (!tdc.checked) dd.checked = false; } opt.changed(); });
-        const tdpB = root.querySelector("#d-tdp"); if (tdpB) tdpB.addEventListener("click", () => { tText.focus(); caretToEnd(tText); if (htmlToPlain(sanitize(tText.innerHTML)).trim()) lineBreak(); document.execCommand("insertText", false, "☐ "); });
+        const tdpB = root.querySelector("#d-tdp"); if (tdpB) tdpB.addEventListener("click", () => { if (tdc && tdc.checked) { tdc.checked = false; tdc.dispatchEvent(new Event("change")); }
+          const cur = sanitize(tText.innerHTML); if (!tdpHas(cur) && htmlToPlain(cur).trim()) { tText.innerHTML = tdpDeco(tdpConvert(cur, true)); tText.dispatchEvent(new Event("input")); } // bisherige Zeilen werden zu Punkten
+          tText.focus(); caretToEnd(tText); if (htmlToPlain(sanitize(tText.innerHTML)).trim()) lineBreak(); document.execCommand("insertText", false, "☐ "); });
         const tdd = root.querySelector("#d-done"); if (tdd) tdd.addEventListener("change", () => { if (tdd.checked) x.done = true; else delete x.done; opt.changed(); });
         if (opt.time) {
           const tf = () => { const a = $("#d-from").value, b2 = $("#d-to").value; if (a) x.from = a; else delete x.from; if (a && b2) x.to = b2; else delete x.to; opt.changed(); };
@@ -9930,7 +9933,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           const rem = p.from ? tdAt(key, p.from, +c.lead || 0) : tdAt(key, c.at, c.vortag ? 24 * 60 : 0);
           const due = { dateTime: key + "T00:00:00", timeZone: "UTC" };
           const body = "Aus Semper · " + TAGE[tdAt(key).getDay()] + ", " + fmt(tdAt(key)) + " · " + lab + (p.from ? " · " + p.from + (p.to ? "–" + p.to : "") : "");
-          if (p.todo || termin) out[key + "|" + s + "|" + (i + 1)] = { key, slot: s, part: i + 1, todo: !!p.todo, done: p.todo ? !!p.done : key < tk, title: title || "To-do", rem, due, body };
+          if ((p.todo && !tdpHas(p.html)) || termin) out[key + "|" + s + "|" + (i + 1)] = { key, slot: s, part: i + 1, todo: !!p.todo, done: p.todo ? !!p.done : key < tk, title: title || "To-do", rem, due, body };
           tdpItems(p.html).forEach((it, n) => { out[key + "|" + s + "|" + (i + 1) + "|" + n] = { key, slot: s, part: i + 1, pt: n, todo: true, done: it.done, title: it.text || "To-do", rem, due, body }; });
         });
       }
