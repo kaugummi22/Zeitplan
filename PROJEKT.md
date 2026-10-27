@@ -71,6 +71,7 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
 - Ansichten Kommend, Archiv und Kalender. Auf kleinen Geräten startet der Kalender.
 - Zellen lassen sich teilen und verbinden, mit Teilen-Feldern (`from2`, `to2`, `details2`, `files2`, `todo`/`done`).
 - To-do-Kästchen, Serien und Ferien.
+- **Mehrere To-do-Punkte in einem Eintrag** (27.10.2026): jede Zeile, die mit ☐ (offen) bzw. ☑ (erledigt) beginnt, ist ein eigener Punkt (nur im Text gespeichert, alte Einträge bleiben gültig; `tdpDeco`, `tdpHit`, `tdpEnter`, `tdpItems`, `tdpSet`). Anlegen: Rechtsklick › «Mehrere To-do-Punkte (Liste zum Abhaken)» (macht jede Zeile zum Punkt, wieder weg mit «To-do-Punkte entfernen») oder im gross geöffneten Eintrag «+ To-do-Punkt» (auch Handy). Enter in einem Punkt = neuer Punkt, Enter in leerem Punkt = Liste fertig, Umschalt+Enter = normale Zeile. Klick aufs Kästchen hakt ab (erledigt = durchgestrichen). Erinnerungen über To Do: jeder Punkt als eigene Aufgabe (Schlüssel `tag|feld|teil|n`).
 
 **Planung** (`data-tab="unterricht"`, `view-unterricht`)
 - Unterrichtsreihen mit Lektionen und Dokumenten, Dokumentgruppen (`r.fgroups`) und Materialsammlung.

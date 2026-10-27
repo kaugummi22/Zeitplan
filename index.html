@@ -1224,7 +1224,13 @@ html.fit body { touch-action: pan-x pan-y; }
 .cell.has-todo > .inp, .pw.has-todo > .inp { padding-left: 26px; }
 .cell.is-done > .inp, .pw.is-done > .inp { text-decoration: line-through; opacity: 0.6; }
 .cal-e.done { text-decoration: line-through; opacity: 0.6; }
-.d-todof { display: flex; gap: 16px; flex-wrap: wrap; }
+.d-todof { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+/* Mehrere To-do-Punkte in einem Eintrag */
+.tdp { cursor: pointer; color: color-mix(in srgb, var(--ink) 70%, transparent); font-weight: 400; font-style: normal; text-decoration: none; display: inline-block; }
+.tdp:hover { color: var(--accent); }
+.tdp.on { color: var(--accent); }
+.tdp-x { text-decoration: line-through; opacity: 0.6; }
+#d-tdp { align-self: flex-start; margin-top: 6px; }
 .parts-v > .inp + .inp { border-left: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
 .parts-h { flex-direction: column; }
 .parts-h > .inp { flex: 0 0 auto; min-height: 25px; padding-block: 4px; }
@@ -2867,9 +2873,69 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const richOf = (x, part) => { const h = x["html" + sfx(part)], t = x["text" + sfx(part)]; return h != null ? sanitize(h) : plainToHtml(t); };
   const PART_NAMES = ["", "", " (zweiter Teil)", " (dritter Teil)", " (vierter Teil)"];
   const todoBox = (x, part) => { const sf = sfx(part); if (!x || !x["todo" + sf]) return ""; const d = !!x["done" + sf]; return '<button type="button" class="tdo' + (d ? " done" : "") + '" data-tdo="' + part + '" title="' + (d ? "Erledigt – klicken, um es wieder zu öffnen" : "Als erledigt abhaken") + '" aria-pressed="' + d + '">' + (d ? "✓" : "") + "</button>"; };
+  // Mehrere To-do-Punkte in einem Eintrag: jede Zeile, die mit ☐ (offen) oder ☑ (erledigt) beginnt, ist ein eigener Punkt
+  const TDP_RE = /^((?:<[^>]+>)*)([☐☑])/;
+  const tdpLines = (html) => String(html || "").split("<br>");
+  const tdpHas = (html) => tdpLines(html).some((l) => TDP_RE.test(l));
+  const tdpItems = (html) => tdpLines(html).map((l) => TDP_RE.exec(l) && { done: TDP_RE.exec(l)[2] === "☑", text: htmlToPlain(l).replace(/^[☐☑]\s*/, "").replace(/\s+/g, " ").trim() }).filter(Boolean);
+  const tdpSet = (html, n, done) => { let i = 0; return tdpLines(html).map((l) => { const m = TDP_RE.exec(l); if (!m || i++ !== n) return l; return m[1] + (done ? "☑" : "☐") + l.slice(m[0].length); }).join("<br>"); };
+  const tdpConvert = (html, on) => tdpLines(html).map((l) => { const m = TDP_RE.exec(l); if (!on) return m ? m[1] + l.slice(m[0].length).replace(/^\s/, "") : l; if (m || !htmlToPlain(l).trim()) return l; const p = /^((?:<[^>]+>)*)/.exec(l)[1]; return p + "☐ " + l.slice(p.length); }).join("<br>");
+  // Anzeige: Kästchen anklickbar, erledigte Punkte (nur in der Liste) durchgestrichen
+  const tdpDeco = (html, strike) => !tdpHas(html) ? html : tdpLines(html).map((l) => {
+    const m = TDP_RE.exec(l); if (!m) return l;
+    const on = m[2] === "☑", rest = l.slice(m[0].length), bal = (rest.match(/<[a-z]/g) || []).length === (rest.match(/<\//g) || []).length;
+    return m[1] + '<span class="tdp' + (on ? " on" : "") + '" title="' + (on ? "Erledigt – klicken, um es wieder zu öffnen" : "Abhaken") + '">' + m[2] + "</span>" + (on && strike && bal ? '<span class="tdp-x">' + rest + "</span>" : rest);
+  }).join("<br>");
+  const TDP_HOST = "#list .cell .inp, #d-text, .d-part";
+  // Das angeklickte Kästchen finden (auch eben erst getippte, noch ohne eigene Hülle)
+  function tdpHit(e) {
+    const host = e.target.closest && e.target.closest(TDP_HOST); if (!host) return null;
+    const sp = e.target.closest(".tdp");
+    if (sp && /^[☐☑]$/.test(sp.textContent) && sp.firstChild && sp.firstChild.nodeType === 3) return { host, node: sp.firstChild, i: 0, sp };
+    if (!host.isContentEditable || !document.caretRangeFromPoint) return null;
+    const r = document.caretRangeFromPoint(e.clientX, e.clientY), n = r && r.startContainer; if (!n || n.nodeType !== 3 || !host.contains(n)) return null;
+    for (const i of [r.startOffset, r.startOffset - 1]) {
+      if (i < 0 || i >= n.data.length || !/[☐☑]/.test(n.data[i])) continue;
+      const cr = document.createRange(); cr.setStart(n, i); cr.setEnd(n, i + 1); const b = cr.getBoundingClientRect();
+      if (e.clientX >= b.left - 3 && e.clientX <= b.right + 3 && e.clientY >= b.top - 3 && e.clientY <= b.bottom + 3) return { host, node: n, i };
+    }
+    return null;
+  }
+  // Text der Zeile mit der Schreibmarke (vorher / nachher)
+  function tdpCaretLine(host) {
+    const s = getSelection(); if (!s.rangeCount || !s.isCollapsed) return null;
+    const r = s.getRangeAt(0); if (!host.contains(r.startContainer)) return null;
+    const txt = (rg, end) => { const d = document.createElement("div"); d.appendChild(rg.cloneContents()); if (end) d.appendChild(document.createTextNode("")); return htmlToPlain(sanitize(d.innerHTML)).replace("", ""); };
+    const a = document.createRange(); a.selectNodeContents(host); a.setEnd(r.startContainer, r.startOffset);
+    const b = document.createRange(); b.selectNodeContents(host); b.setStart(r.startContainer, r.startOffset);
+    const before = txt(a, true).split("\n").pop(), after = txt(b).split("\n")[0];
+    return { before, after, point: /^[☐☑]/.test(before + after), empty: !(before + after).replace(/^[☐☑]/, "").trim() };
+  }
+  // Enter in einem Punkt: neuer Punkt darunter; Enter in einem leeren Punkt: Kästchen weg (Liste fertig). true = erledigt
+  function tdpEnter(host) {
+    const ln = tdpCaretLine(host); if (!ln || !ln.point) return false;
+    if (ln.empty) { for (let i = 0; i < ln.after.length; i++) document.execCommand("forwardDelete"); for (let i = 0; i < ln.before.length; i++) document.execCommand("delete"); return false; }
+    lineBreak(); document.execCommand("insertText", false, "☐ "); return true;
+  }
+  document.addEventListener("mousedown", (e) => { if (tdpHit(e)) e.preventDefault(); }, true); // Schreibmarke bleibt, Feld wird nicht umgeschaltet
+  document.addEventListener("click", (e) => {
+    const h = tdpHit(e); if (!h) return;
+    e.preventDefault(); e.stopPropagation();
+    const on = h.node.data[h.i] !== "☑";
+    h.node.replaceData(h.i, 1, on ? "☑" : "☐");
+    if (h.sp) { h.sp.classList.toggle("on", on); h.sp.title = on ? "Erledigt – klicken, um es wieder zu öffnen" : "Abhaken"; }
+    h.host.dispatchEvent(new Event("input", { bubbles: true }));
+    if (h.host.closest("#list") && !h.host.isContentEditable) h.host.innerHTML = tdpDeco(sanitize(h.host.innerHTML), true);
+  }, true);
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey || e.isComposing) return;
+    const t = e.target.closest && e.target.closest("#d-text, .d-part"); if (!t || !t.isContentEditable) return;
+    const ln = tdpCaretLine(t); if (!ln || !ln.point) return;
+    e.preventDefault(); e.stopPropagation(); tdpEnter(t);
+  }, true);
   const ta = (key, slot, label, part, x) => {
     const pc = x && x.split && x.pcolors && x.pcolors[part - 1];
-    return '<div class="inp rich' + (pc ? " f-" + pc : "") + '" data-part="' + part + '" tabindex="0" role="textbox" aria-multiline="true" id="t-' + key + '-' + slot + (part > 1 ? "-" + part : "") + '" aria-label="' + label + PART_NAMES[part] + '" title="Doppelklick zum Schreiben">' + (x ? richOf(x, part) : "") + "</div>";
+    return '<div class="inp rich' + (pc ? " f-" + pc : "") + '" data-part="' + part + '" tabindex="0" role="textbox" aria-multiline="true" id="t-' + key + '-' + slot + (part > 1 ? "-" + part : "") + '" aria-label="' + label + PART_NAMES[part] + '" title="Doppelklick zum Schreiben">' + (x ? tdpDeco(richOf(x, part), true) : "") + "</div>";
   };
   // ---------- Regelmässige Termine, Zeiten, Ferienstreifen ----------
   const timeTxt = (o) => (o && o.from ? o.from + (o.to ? "–" + o.to : "") : "");
@@ -3171,6 +3237,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const s = getSelection(); if (s.anchorNode && t.contains(s.anchorNode)) s.removeAllRanges();
     hideFmt();
     flush(t.closest(".day").dataset.key);
+    if (/[☐☑]/.test(t.textContent)) t.innerHTML = tdpDeco(sanitize(t.innerHTML), true); // neue To-do-Punkte bekommen ihr Kästchen
   }
   function neighbour(t, dRow, dCol) {
     const cell = t.closest(".cell"), slot = cell.dataset.slot;
@@ -3234,6 +3301,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (e.key !== "Enter") return;
     e.preventDefault();
     if (e.altKey || e.shiftKey || e.ctrlKey || e.metaKey) { lineBreak(); return; }
+    if (!e.isComposing && tdpEnter(t)) return; // in einer To-do-Liste: neuer Punkt
     stopEdit(t);
     select(neighbour(t, 1, 0) || t);
   });
@@ -3360,7 +3428,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const pcur = curSplit ? ((xx.pcolors || [])[part - 1] || "") : cur;
     const ico = (d) => '<svg class="sq" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2"/>' + d + "</svg>";
     const xt = xx || {}, sfp = sfx(curSplit ? part : 1);
-    m.innerHTML = '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button><hr>" +
+    m.innerHTML = '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button>" +
+      (() => { const hp = tdpHas(richOf(xt, curSplit ? part : 1)); return '<button type="button" role="menuitem" data-tdp="1">' + ico(hp ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4 5.5h1.5M4 10.5h1.5M7.5 5.5H12M7.5 10.5H12"/>') + (hp ? "To-do-Punkte entfernen" : "Mehrere To-do-Punkte (Liste zum Abhaken)") + "</button>"; })() + "<hr>" +
       (curSplit ? '<div class="cm-title">Farbe dieses Eintrags</div>' : "") + FARBEN.map(([v, l], i) => (i === 4 ? "<hr>" : "") +
       '<button type="button" role="menuitemradio" aria-checked="' + (v === pcur) + '" data-color="' + v + '"><span class="sq' + (v ? " f-" + v : "") + '"></span>' + l + "</button>").join("") +
       "<hr>" +
@@ -3377,6 +3446,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     m.addEventListener("click", (ev) => {
       const b = ev.target.closest("button"); if (!b) return;
       closeMenu();
+      if (b.dataset.tdp) {
+        const x2 = slotOf(key, slot), cur = richOf(x2, curSplit ? part : 1), on = !tdpHas(cur);
+        const h = tdpConvert(cur, on), blank = on && !htmlToPlain(h).trim();
+        if (on) { delete x2["todo" + sfp]; delete x2["done" + sfp]; }
+        x2["html" + sfp] = h; x2["text" + sfp] = htmlToPlain(h); scheduleSave(key, 0);
+        const ae = document.activeElement; if (ae && ae.blur) ae.blur(); render();
+        const el = on && document.getElementById("t-" + key + "-" + slot + (curSplit && part > 1 ? "-" + part : "")); if (el) { startEdit(el); if (blank) document.execCommand("insertText", false, "☐ "); }
+        return;
+      }
       if (b.dataset.todo) { const xx2 = slotOf(key, slot), f = "todo" + sfp; if (xx2[f]) { delete xx2[f]; delete xx2["done" + sfp]; } else xx2[f] = true; scheduleSave(key, 0); const ae = document.activeElement; if (ae && ae.blur) ae.blur(); render(); return; }
       if (b.dataset.split !== undefined) setSplit(key, slot, b.dataset.split);
       else if (b.dataset.psplit) splitPart(key, slot, part);
@@ -3933,8 +4011,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function openDetailBox(opt) {
     const x = opt.x;
     x.files = Array.isArray(x.files) ? x.files : [];
-    const textF = '<div class="field"><label for="d-text">' + esc(opt.textLabel || "Eintrag in der Liste") + (x.split ? " (erster Teil)" : "") + '</label><div class="rich rtfield" contenteditable="true" role="textbox" aria-multiline="true" id="d-text">' + richOf(x, 1) + "</div></div>" +
-      (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, n) => '<div class="field"><label for="d-text' + (n + 2) + '">Teil ' + (n + 2) + '</label><div class="rich rtfield d-part" data-dp="' + (n + 2) + '" contenteditable="true" role="textbox" aria-multiline="true" id="d-text' + (n + 2) + '">' + richOf(x, n + 2) + "</div></div>").join("") : "");
+    const textF = '<div class="field"><label for="d-text">' + esc(opt.textLabel || "Eintrag in der Liste") + (x.split ? " (erster Teil)" : "") + '</label><div class="rich rtfield" contenteditable="true" role="textbox" aria-multiline="true" id="d-text">' + tdpDeco(richOf(x, 1)) + "</div></div>" +
+      (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, n) => '<div class="field"><label for="d-text' + (n + 2) + '">Teil ' + (n + 2) + '</label><div class="rich rtfield d-part" data-dp="' + (n + 2) + '" contenteditable="true" role="textbox" aria-multiline="true" id="d-text' + (n + 2) + '">' + tdpDeco(richOf(x, n + 2)) + "</div></div>").join("") : "");
     const colorF = '<div class="field"><span class="lbl">Farbe</span>' + swatchHtml("d", x.color) + "</div>";
     const NB = (cmd, arg, label, title, cls) => '<button type="button" class="nb' + (cls ? " " + cls : "") + '" data-ncmd="' + cmd + '"' + (arg ? ' data-narg="' + arg + '"' : "") + ' title="' + title + '" aria-label="' + title + '">' + label + "</button>";
     const notesRich = '<div class="field"><span class="lbl">Notizen</span><div class="nbar" role="toolbar" aria-label="Notizen formatieren">' +
@@ -3969,7 +4047,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         '<div class="d-split' + (side ? " on" : "") + '" id="d-split" style="--dl:' + dSideW() + '"><div class="d-sl"><div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
         '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern. Zeilen am Griff ⠿ rechts nach oben oder unten ziehen. Rechtsklick (Tablet: lange drücken auf den Titel): Spalten und Zeilen verschieben, einfügen, löschen.</span></div></div></div>' +
         '<div class="d-gut" id="d-gut" title="Ziehen, um die Breite der beiden Seiten zu ändern" aria-hidden="true"></div><div class="d-sr">' + notesF + "</div></div>" + actionsF;
-    } else body = textF + (opt.todo ? '<div class="field d-todof"><label class="dp-chk"><input type="checkbox" id="d-todo"' + (x.todo ? " checked" : "") + '> Als To-do (zum Abhaken)</label><label class="dp-chk"><input type="checkbox" id="d-done"' + (x.done ? " checked" : "") + (x.todo ? "" : " disabled") + "> erledigt</label></div>" : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
+    } else body = textF + (opt.todo ? '<div class="field d-todof"><label class="dp-chk"><input type="checkbox" id="d-todo"' + (x.todo ? " checked" : "") + '> Als To-do (zum Abhaken)</label><label class="dp-chk"><input type="checkbox" id="d-done"' + (x.done ? " checked" : "") + (x.todo ? "" : " disabled") + '> erledigt</label><button type="button" class="btn ghost" id="d-tdp" title="Mehrere To-do-Punkte: jede Zeile mit Kästchen ist ein eigener Punkt zum Abhaken. Enter = nächster Punkt, Enter in einem leeren Punkt = Liste fertig.">+ To-do-Punkt</button></div>' : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
       (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, k) => { const n = k + 2; return '<div class="d-time" data-ptime="' + n + '"><input type="time" class="pf" value="' + esc(x["from" + n] || "") + '" aria-label="Teil ' + n + ' von"><span>bis</span><input type="time" class="pt" value="' + esc(x["to" + n] || "") + '" aria-label="Teil ' + n + ' bis"><button type="button" class="btn ghost pc" title="Zeit entfernen">×</button><span class="msg">(Teil ' + n + ")</span></div>"; }).join("") : "") + '</div>' : "") + colorF + notesF + docsF + actionsF;
     openModal(
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
@@ -3987,7 +4065,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
             Object.assign(x, o.x); if (!x.notesLh) delete x.notesLh; if (x.notesHtml) x.details = notesPlain(x.notesHtml);
             const tb = root.querySelector("#p-table"); if (tb) tb.innerHTML = planTableInner(opt.plan);
             const z = root.querySelector("#p-ziele"); if (z) z.innerHTML = sanitize(opt.plan.ziele || "");
-            const t1 = root.querySelector("#d-text"); if (t1) t1.innerHTML = richOf(x, 1);
+            const t1 = root.querySelector("#d-text"); if (t1) t1.innerHTML = tdpDeco(richOf(x, 1));
             const nd = root.querySelector("#d-notes");
             if (nd) { nd.innerHTML = sanitizeNotes(x.notesHtml || ""); nd.querySelectorAll("figure.nfig").forEach((f) => { f.contentEditable = "false"; }); nd.style.lineHeight = String(x.notesLh || 1.5); const lh = root.querySelector("#d-nlh"); if (lh) lh.value = String(x.notesLh || 1.5); const dl = root.querySelector("#d-links"); if (dl) dl.innerHTML = linkify(notesLinkText(x.notesHtml || "")); }
             ttHide(); oc(); H.busy = false; H.t = 0; btns();
@@ -4012,6 +4090,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (opt.plan) { root.querySelector(".panel").classList.add("wide"); root.querySelector(".panel").classList.toggle("side", dSide()); bindPlan(root, opt.plan, () => opt.changed()); bindSide(root); }
         const tdc = root.querySelector("#d-todo");
         if (tdc) tdc.addEventListener("change", () => { x.todo = tdc.checked; if (!tdc.checked) { delete x.todo; delete x.done; } const dd = root.querySelector("#d-done"); if (dd) { dd.disabled = !tdc.checked; if (!tdc.checked) dd.checked = false; } opt.changed(); });
+        const tdpB = root.querySelector("#d-tdp"); if (tdpB) tdpB.addEventListener("click", () => { tText.focus(); caretToEnd(tText); if (htmlToPlain(sanitize(tText.innerHTML)).trim()) lineBreak(); document.execCommand("insertText", false, "☐ "); });
         const tdd = root.querySelector("#d-done"); if (tdd) tdd.addEventListener("change", () => { if (tdd.checked) x.done = true; else delete x.done; opt.changed(); });
         if (opt.time) {
           const tf = () => { const a = $("#d-from").value, b2 = $("#d-to").value; if (a) x.from = a; else delete x.from; if (a && b2) x.to = b2; else delete x.to; opt.changed(); };
@@ -9837,11 +9916,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         partsOf(x).forEach((p, i) => {
           const title = htmlToPlain(p.html || "").replace(/\s+/g, " ").trim().slice(0, 240);
           const termin = !p.todo && c.termine && p.from && title;
-          if (!p.todo && !termin) return;
+          if (!p.todo && !termin && !tdpHas(p.html)) return;
           const rem = p.from ? tdAt(key, p.from, +c.lead || 0) : tdAt(key, c.at, c.vortag ? 24 * 60 : 0);
           const due = { dateTime: key + "T00:00:00", timeZone: "UTC" };
           const body = "Aus Semper · " + TAGE[tdAt(key).getDay()] + ", " + fmt(tdAt(key)) + " · " + lab + (p.from ? " · " + p.from + (p.to ? "–" + p.to : "") : "");
-          out[key + "|" + s + "|" + (i + 1)] = { key, slot: s, part: i + 1, todo: !!p.todo, done: p.todo ? !!p.done : key < tk, title: title || "To-do", rem, due, body };
+          if (p.todo || termin) out[key + "|" + s + "|" + (i + 1)] = { key, slot: s, part: i + 1, todo: !!p.todo, done: p.todo ? !!p.done : key < tk, title: title || "To-do", rem, due, body };
+          tdpItems(p.html).forEach((it, n) => { out[key + "|" + s + "|" + (i + 1) + "|" + n] = { key, slot: s, part: i + 1, pt: n, todo: true, done: it.done, title: it.text || "To-do", rem, due, body }; });
         });
       }
     }
@@ -9879,7 +9959,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         }
         let done = w.done, push = m.h !== h;
         if (w.done !== !!m.done) push = true; // in Semper geändert
-        else if (w.todo && (t.status === "completed") !== !!m.done) { done = t.status === "completed"; pulled.add(k); const x = slotOf(w.key, w.slot); x["done" + sfx(w.part)] = done; if (!done) delete x["done" + sfx(w.part)]; scheduleSave(w.key, 0); }
+        else if (w.todo && (t.status === "completed") !== !!m.done) { done = t.status === "completed"; pulled.add(k); const x = slotOf(w.key, w.slot), sf = sfx(w.part); if (w.pt != null) { x["html" + sf] = tdpSet(richOf(x, w.part), w.pt, done); x["text" + sf] = htmlToPlain(x["html" + sf]); } else { x["done" + sf] = done; if (!done) delete x["done" + sf]; } scheduleSave(w.key, 0); }
         else if (!w.todo && (t.status === "completed") !== done) push = true;
         if (push) await tdJson(await A.api(base + "/" + m.id, { method: "PATCH", body: tdTask(w, done) }));
         c.map[k] = { id: m.id, h, done };
