@@ -9472,11 +9472,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (pulled.size && !$("#ov")) render();
     } catch (e) {
       console.error(e);
-      TD.err = e.offline ? "offline" : e.consent ? "consent" : "fehler";
+      TD.err = e.offline ? "offline" : e.consent ? "consent" : "fehler"; TD.msg = String((e && e.message) || e).slice(0, 220);
       if (Object.keys(c.map).length && JSON.stringify({ l: c.listId, m: c.map }) !== before) { const cur = tdCfg(); tdSaveCfg({ ...cur, listId: c.listId, map: c.map }); }
     } finally {
       TD.busy = false; tdBadge(); tdPaint();
-      if (TD.err === "consent" && !TD.asked && !$("#ov")) tdAsk();
+      if ((TD.err === "consent" || (TD.err && TD.err !== "offline" && !TD.at)) && !TD.asked && !$("#ov")) tdAsk();
       if (TD.again) tdKick(1500);
     }
   }
@@ -9498,13 +9498,13 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const tdStatusTxt = () => {
     if (!TD.cfg || !TD.cfg.on) return "Ausgeschaltet.";
     if (TD.busy) return "Gleicht ab …";
-    if (TD.err === "consent") return "Microsoft muss einmal erlauben, dass Semper in To Do schreiben darf.";
+    if (TD.err === "consent") return "Microsoft muss einmal erlauben, dass Semper in To Do schreiben darf." + (TD.msg && !/Nicht angemeldet|Keine Zustimmung|Keine Berechtigung/.test(TD.msg) ? " (Meldung: " + TD.msg + ")" : "");
     if (TD.err === "offline") return "Kein Internet – wird nachgeholt.";
-    if (TD.err) return "Der Abgleich hat nicht geklappt. Er wird später nochmals versucht.";
+    if (TD.err) return "Der Abgleich hat nicht geklappt (Meldung von Microsoft: " + (TD.msg || "unbekannt") + "). Bitte «Mit Microsoft verbinden» antippen.";
     if (!TD.at) return "Noch nicht abgeglichen.";
     const d = new Date(TD.at); return "Abgeglichen um " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + " · " + TD.n + " offene Erinnerung" + (TD.n === 1 ? "" : "en") + " in der Liste «Semper».";
   };
-  function tdPaint() { const s = $("#td-stat"); if (s) s.textContent = tdStatusTxt(); const cb = $("#td-consent"); if (cb) cb.hidden = TD.err !== "consent"; }
+  function tdPaint() { const s = $("#td-stat"); if (s) s.textContent = tdStatusTxt(); const cb = $("#td-consent"); if (cb) cb.hidden = !(TD.cfg && TD.cfg.on && TD.err && TD.err !== "offline" && !TD.busy); }
   function openTodoDlg() {
     const c = tdCfg(), sel = (v) => [0, 5, 10, 15, 30, 60, 120].map((n) => '<option value="' + n + '"' + (+c.lead === n ? " selected" : "") + ">" + (n ? (n < 60 ? n + " Minuten" : n / 60 + (n === 60 ? " Stunde" : " Stunden")) + " vorher" : "zur Startzeit") + "</option>").join("");
     openModal('<h3>Erinnerungen aufs Handy</h3>' +
@@ -9513,7 +9513,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<div class="td-opts"><div class="field"><label for="td-at">To-dos ohne Uhrzeit: erinnern um</label><div class="td-row"><input type="time" id="td-at" value="' + esc(c.at) + '"><label class="dp-chk"><input type="checkbox" id="td-vt"' + (c.vortag ? " checked" : "") + "> schon am Vortag</label></div></div>" +
       '<div class="field"><label for="td-lead">Mit Uhrzeit: erinnern</label><select id="td-lead">' + sel() + "</select></div>" +
       '<label class="dp-chk"><input type="checkbox" id="td-tm"' + (c.termine ? " checked" : "") + "> Auch an Termine mit Uhrzeit erinnern (nicht nur an To-dos)</label></div>" +
-      '<p class="td-stat" id="td-stat" role="status"></p><p id="td-consent" hidden><button class="btn primary" type="button" id="td-ok">Bei Microsoft erlauben</button></p>' +
+      '<p class="td-stat" id="td-stat" role="status"></p><p id="td-consent" hidden><button class="btn primary" type="button" id="td-ok">Mit Microsoft verbinden</button></p>' +
       '<details class="hint"><summary>ⓘ Was ist auf dem Handy zu tun?</summary><p>Einmal die App <b>Microsoft To Do</b> installieren, mit demselben Microsoft-Konto anmelden und Mitteilungen erlauben. Die Erinnerungen stehen in der Liste «Semper». Beim Ausschalten entfernt Semper die offenen Einträge wieder aus dieser Liste.</p></details>' +
       '<div class="actions"><button class="btn ghost" id="td-now" type="button">Jetzt abgleichen</button><div class="right"><button class="btn primary" id="td-x" type="button">Fertig</button></div></div>',
       (root) => {
