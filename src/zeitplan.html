@@ -601,7 +601,8 @@ html.fit body { touch-action: pan-x pan-y; }
 .savebtn { font-size: 14px; line-height: 1; }
 .tdbtn svg { width: 55%; height: 55%; } .tdbtn.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); } .tdbtn.warn { color: var(--danger); border-color: var(--danger); }
 .td-intro { margin: 0 0 12px; color: var(--muted); } .td-main { font-weight: 700; margin-bottom: 10px; } .td-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-.td-opts { border-left: 3px solid var(--line); padding-left: 12px; margin-bottom: 8px; } .td-opts .field { margin-bottom: 12px; } .td-stat { color: var(--muted); font-size: 0.92rem; } .td-hint { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+.td-opts { border-left: 3px solid var(--line); padding-left: 12px; margin-bottom: 8px; } .td-opts .field { margin-bottom: 12px; } .td-stat { color: var(--muted); font-size: 0.92rem; } .tn-list { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; max-height: 50vh; overflow: auto; } .tn-row { display: flex; gap: 10px; align-items: baseline; } .tn-t { flex: 1; } .tn-d { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.td-hint { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
 .savebtn.busy { opacity: 0.5; pointer-events: none; }
 .sv-toast { position: fixed; right: 16px; bottom: 16px; z-index: 60; max-width: min(420px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 10px 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 0.9rem; }
 .sv-toast.warn { border-color: var(--danger); }
@@ -1773,6 +1774,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       <label class="sp-show"><input type="checkbox" id="t-showhol" checked> Ferien anzeigen</label>
       <button type="button" class="btn ghost" id="t-hol">Ferien eintragen</button>
       <button type="button" class="btn ghost" id="t-ser">↻ Regelmässige Termine</button>
+      <button type="button" class="btn ghost" id="t-next" hidden title="Offene To-dos von heute (und den letzten Tagen) auf den nächsten Tag schieben">⇢ To-dos weiterschieben</button>
       <span class="status" id="status"></span>
     </div>
     <div class="layout">
@@ -2539,7 +2541,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   function render() {
     if (editingInList()) { pendingRender = true; return; }
-    queueMicrotask(jumpTodayNow);
+    queueMicrotask(jumpTodayNow); queueMicrotask(tnBtn);
     try { curLB = lessonsByDay(); } catch (e) { curLB = {}; }
     try { const sp = spGet(); $("#t-show").checked = sp.show; $("#t-showhol").checked = sp.showHol; } catch (e) {}
     pendingRender = false;
@@ -2923,7 +2925,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const pcur = curSplit ? ((xx.pcolors || [])[part - 1] || "") : cur;
     const ico = (d) => '<svg class="sq" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2"/>' + d + "</svg>";
     const xt = xx || {}, sfp = sfx(curSplit ? part : 1);
-    m.innerHTML = (tdpHas(richOf(xt, curSplit ? part : 1)) ? "" : '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button>") +
+    const tnOpen = tnOpenOf(key).filter((it) => it.slot === slot && it.part === (curSplit ? part : 1));
+    m.innerHTML = (tnOpen.length ? '<button type="button" role="menuitem" data-tnext="1">' + ico('<path d="M5 8h6M9 5.5L11.5 8 9 10.5"/>') + "Offene To-dos auf den nächsten Tag</button>" : "") + (tdpHas(richOf(xt, curSplit ? part : 1)) ? "" : '<button type="button" role="menuitem" data-todo="1">' + ico(xt["todo" + sfp] ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4.5 8.5l2.5 2.5 4.5-5"/>') + (xt["todo" + sfp] ? "To-do entfernen" : "Als To-do markieren (zum Abhaken)") + "</button>") +
       (() => { const hp = tdpHas(richOf(xt, curSplit ? part : 1)); return '<button type="button" role="menuitem" data-tdp="1">' + ico(hp ? '<path d="M5 5l6 6M11 5l-6 6"/>' : '<path d="M4 5.5h1.5M4 10.5h1.5M7.5 5.5H12M7.5 10.5H12"/>') + (hp ? "To-do-Punkte entfernen" : "Mehrere To-do-Punkte (Liste zum Abhaken)") + "</button>"; })() + "<hr>" +
       (curSplit ? '<div class="cm-title">Farbe dieses Eintrags</div>' : "") + FARBEN.map(([v, l], i) => (i === 4 ? "<hr>" : "") +
       '<button type="button" role="menuitemradio" aria-checked="' + (v === pcur) + '" data-color="' + v + '"><span class="sq' + (v ? " f-" + v : "") + '"></span>' + l + "</button>").join("") +
@@ -2950,6 +2953,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         const el = on && document.getElementById("t-" + key + "-" + slot + (curSplit && part > 1 ? "-" + part : "")); if (el) { startEdit(el); if (blank) document.execCommand("insertText", false, "☐ "); }
         return;
       }
+      if (b.dataset.tnext) { tnMove(tnOpen); return; }
       if (b.dataset.todo) { const xx2 = slotOf(key, slot), f = "todo" + sfp; if (xx2[f]) { delete xx2[f]; delete xx2["done" + sfp]; } else xx2[f] = true; scheduleSave(key, 0); const ae = document.activeElement; if (ae && ae.blur) ae.blur(); render(); return; }
       if (b.dataset.split !== undefined) setSplit(key, slot, b.dataset.split);
       else if (b.dataset.psplit) splitPart(key, slot, part);
@@ -9422,17 +9426,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         });
       }
     }
-    // Abendfrage: pro Tag (heute und die nächsten 6 Tage) eine eigene Aufgabe «Noch offen?» mit Erinnerung am Abend.
-    // Sie steht schon im Voraus in To Do, damit sie auch kommt, wenn Semper tagsüber nicht offen war.
+    // Abendfrage: eine einzige Aufgabe «Sind die To-dos gemacht?», die sich in To Do täglich wiederholt (Erinnerung am Abend).
+    // Abhaken = für heute beantwortet; To Do legt dann von selbst die Frage für morgen an.
     if (c.abend) {
-      const open = {};
-      Object.values(out).forEach((w) => { if (w.todo && !w.done && w.key >= tk) (open[w.key] = open[w.key] || []).push(w.title); });
-      for (let i = 0; i < 7; i++) {
-        const key = keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i)), ts = open[key];
-        if (!ts || !ts.length) continue;
-        out[key + "|abendfrage"] = { key, slot: "abend", part: 0, todo: false, ask: true, done: false, title: ("Noch offen? " + ts.join(" · ")).slice(0, 240), rem: tdAt(key, c.abend), due: { dateTime: key + "T00:00:00", timeZone: "UTC" },
-          body: "Abendfrage aus Semper: Was erledigt ist, in der Liste abhaken. Was auf morgen soll: To-do antippen, «Fällig» → «Morgen» – Semper verschiebt es dann." };
-      }
+      const ev = tdAt(tk, c.abend), key = Date.now() < ev.getTime() ? tk : keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 1));
+      out.abendfrage = { key, slot: "abend", part: 0, todo: false, ask: true, done: false, title: "Sind die To-dos gemacht?", rem: tdAt(key, c.abend), due: { dateTime: key + "T00:00:00", timeZone: "UTC" },
+        body: "Tägliche Frage aus Semper. Was nicht erledigt ist, in Semper mit «⇢ To-dos weiterschieben» auf den nächsten Tag schieben: " + location.origin + location.pathname + "#weiterschieben" };
     }
     return out;
   }
@@ -9451,13 +9450,56 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (!tg || slotEmpty(tg)) {
       const x = slotOf(nk, w.slot);
       if (w.pt == null) { Object.assign(x, clone(src)); delete x.done; } else Object.assign(x, { html: line, text: htmlToPlain(line), todo: true });
-    } else { const h = richOf(tg, 1); tg.html = (htmlToPlain(h).trim() ? h + "<br>" : "") + line; tg.text = htmlToPlain(tg.html); }
+    } else {
+      // Feld schon belegt: als To-do-Punkt anhängen; ein einzelnes To-do dort wird selbst zum Punkt, damit es To-do bleibt
+      let h = richOf(tg, 1); const single = tg.todo && !tdpHas(h);
+      if (single) { h = tdpConvert(h, true); if (tg.done) h = h.replace(/☐/g, "☑"); delete tg.done; }
+      tg.html = (htmlToPlain(h).trim() ? h + "<br>" : "") + line; tg.text = htmlToPlain(tg.html); tg.todo = true;
+    }
     if (w.pt == null || !htmlToPlain(richOf(src, 1)).trim() && !src.split) delete state.days[w.key][w.slot];
     scheduleSave(w.key, 0); scheduleSave(nk, 0);
     return true;
   }
+  // ---------- To-dos weiterschieben (in Semper; To Do zieht beim nächsten Abgleich mit) ----------
+  // Offene To-dos eines Tages: ganze To-do-Einträge und offene To-do-Punkte
+  function tnOpenOf(key) {
+    const d = state.days[key], out = []; if (!d) return out;
+    for (const [s] of SLOTS) { const x = d[s]; if (!x) continue;
+      partsOf(x).forEach((p, i) => {
+        if (tdpHas(p.html)) tdpItems(p.html).forEach((it, n) => { if (!it.done) out.push({ key, slot: s, part: i + 1, pt: n, title: it.text || "To-do" }); });
+        else if (p.todo && !p.done) out.push({ key, slot: s, part: i + 1, title: htmlToPlain(p.html || "").replace(/\s+/g, " ").trim().slice(0, 240) || "To-do" });
+      });
+    }
+    return out;
+  }
+  const tnNext = (key) => { const [y, m, d] = key.split("-").map(Number), tk = keyOf(today()); return key < tk ? tk : keyOf(new Date(y, m - 1, d + 1)); };
+  // Verschieben: Punkte desselben Eintrags von hinten nach vorne, damit die Nummern stimmen
+  function tnMove(items) {
+    let n = 0;
+    items.slice().sort((a, b) => (b.pt ?? -1) - (a.pt ?? -1)).forEach((it) => { if (tdMove(it, tnNext(it.key))) n++; });
+    if (!$("#ov")) render(); tdKick(1500);
+    if (n < items.length) alert("Ein Teil konnte nicht verschoben werden (geteiltes Feld). Bitte von Hand verschieben.");
+    return n;
+  }
+  function tnAll() { const t0 = today(), out = []; for (let i = 7; i >= 0; i--) out.push(...tnOpenOf(keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - i)))); return out; }
+  function tnBtn() { const b = $("#t-next"); if (b) b.hidden = !tnAll().length; }
+  function openTnDlg() {
+    const items = tnAll(), lab = (k) => { const d = tdAt(k); return TAGE[d.getDay()].slice(0, 2) + " " + pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "."; };
+    if (!items.length) { openModal('<h3>To-dos weiterschieben</h3><p>Es sind keine offenen To-dos von heute oder den letzten Tagen da.</p><div class="actions"><span></span><div class="right"><button class="btn primary" id="tn-x" type="button">OK</button></div></div>', () => ($("#tn-x").onclick = closeModal)); return; }
+    openModal('<h3>To-dos weiterschieben</h3><p class="td-intro">Was noch nicht erledigt ist, auf den nächsten Tag schieben. Microsoft To Do wird automatisch nachgeführt.</p>' +
+      '<div class="tn-list">' + items.map((it, i) => '<label class="dp-chk tn-row"><input type="checkbox" data-i="' + i + '" checked><span class="tn-t">' + esc(it.title) + '</span><span class="tn-d">' + lab(it.key) + " → " + lab(tnNext(it.key)) + "</span></label>").join("") + "</div>" +
+      '<div class="actions"><button class="btn ghost" id="tn-c" type="button">Abbrechen</button><div class="right"><button class="btn primary" id="tn-go" type="button">Ausgewählte weiterschieben</button></div></div>',
+      (root) => {
+        root.querySelector("#tn-c").onclick = closeModal;
+        root.querySelector("#tn-go").onclick = () => { const sel = [...root.querySelectorAll("[data-i]:checked")].map((c) => items[+c.dataset.i]); closeModal(); if (sel.length) tnMove(sel); };
+      });
+  }
+  { const b = $("#t-next"); if (b) b.onclick = openTnDlg; }
+  // Link aus der Abendfrage in To Do: …#weiterschieben öffnet das Fenster direkt
+  const tnHash = () => { if (location.hash === "#weiterschieben") { history.replaceState(null, "", location.pathname + location.search); let i = 0; const go = () => (state.daysIn || state.local || i++ > 40 ? openTnDlg() : setTimeout(go, 500)); go(); } };
+  addEventListener("hashchange", tnHash); tnHash();
   const tdHash = (w) => [w.title, w.due.dateTime, w.rem.getTime(), w.body].join("¦");
-  const tdTask = (w, done) => { const on = !done && w.rem.getTime() > Date.now(); return { title: w.title, body: { content: w.body, contentType: "text" }, dueDateTime: w.due, isReminderOn: on, reminderDateTime: tdUtc(w.rem), status: done ? "completed" : "notStarted" }; };
+  const tdTask = (w, done) => { const on = !done && w.rem.getTime() > Date.now(), o = { title: w.title, body: { content: w.body, contentType: "text" }, dueDateTime: w.due, isReminderOn: on, reminderDateTime: tdUtc(w.rem), status: done ? "completed" : "notStarted" }; if (w.ask) o.recurrence = { pattern: { type: "daily", interval: 1 }, range: { type: "noEnd", startDate: w.key } }; return o; };
   // Fehler mit Schritt und Text von Microsoft, damit man sieht, woran es liegt
   async function tdJson(r) {
     if (r.ok) return r.status === 204 ? null : r.json();
@@ -9505,14 +9547,28 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       }
       // (nach dem Verschieben neu: der Eintrag findet seine Aufgabe über Titel und Datum wieder)
       const want = pulled.size ? tdWanted(c) : w0, used = new Set(Object.values(c.map).map((m) => m.id));
-      // Verrutschte Zuordnungen (z. B. To-do-Punkte neu nummeriert) über Titel und Datum wieder zusammenführen
+      // Verrutschte Zuordnungen (Punkte neu nummeriert, in Semper verschoben) über den Titel wieder zusammenführen
+      const loose = [];
       for (const [k, m] of Object.entries(c.map)) {
-        if (want[k] || !tasks[m.id]) continue;
-        const k2 = Object.keys(want).find((x) => !c.map[x] && want[x].key === k.split("|")[0] && want[x].title === tasks[m.id].title);
-        if (k2) { c.map[k2] = m; delete c.map[k]; }
+        const t = tasks[m.id]; if (!t || k === "abendfrage") continue;
+        if (want[k] && want[k].title === t.title) continue;
+        if (!Object.keys(want).some((x) => x !== k && want[x].title === t.title)) continue; // umbenannt: Zuordnung bleibt
+        loose.push([k, m, t]); delete c.map[k];
       }
-      for (const [k, w] of Object.entries(want)) {
-        let m = c.map[k]; const h = tdHash(w), t = m && tasks[m.id];
+      for (const [k, m, t] of loose) {
+        const ks = Object.keys(want).filter((x) => !c.map[x] && want[x].title === t.title);
+        const k2 = ks.find((x) => want[x].key === k.split("|")[0]) || ks.find((x) => !want[x].done) || ks[0];
+        if (k2) c.map[k2] = m; else if (want[k] && !c.map[k]) c.map[k] = m;
+      }
+      for (const [k, w0k] of Object.entries(want)) {
+        let w = w0k, m = c.map[k];
+        if (w.ask && m && (!tasks[m.id] || tasks[m.id].status === "completed")) { // abgehakt: der nächsten (von To Do angelegten) Frage folgen
+          const nx = Object.values(tasks).find((x) => x.title === w.title && x.status !== "completed" && !used.has(x.id));
+          m = nx ? (c.map[k] = { id: nx.id, h: "", done: false }) : null; if (nx) used.add(nx.id); else delete c.map[k];
+        }
+        const t = m && tasks[m.id];
+        if (w.ask && t && tdDueKey(t) > w.key) { const dk = tdDueKey(t); w = { ...w, key: dk, rem: tdAt(dk, c.abend), due: { dateTime: dk + "T00:00:00", timeZone: "UTC" } }; } // nicht früher als To Do selbst
+        const h = tdHash(w);
         if (m && !t) { if (m.gone && m.h === h) continue; if (!m.gone && m.h === h) { m.gone = 1; continue; } m = null; } // in To Do gelöscht: erst bei einer Änderung neu
         if (!m) {
           if (w.done) continue; // Erledigtes und Vergangenes nicht neu anlegen
@@ -9522,7 +9578,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           c.map[k] = { id: r.id, h, done: false }; used.add(r.id); continue;
         }
         let done = w.done, push = m.h !== h;
-        if (w.ask) done = t.status === "completed"; // Abendfrage: Abhaken in To Do gilt, Semper öffnet sie nicht wieder
+        if (w.ask) done = false;
         else if (w.done !== !!m.done) push = true; // in Semper geändert
         else if (w.todo && (t.status === "completed") !== !!m.done) { done = t.status === "completed"; pulled.add(k); const x = slotOf(w.key, w.slot), sf = sfx(w.part); if (w.pt != null) { x["html" + sf] = tdpSet(richOf(x, w.part), w.pt, done); x["text" + sf] = htmlToPlain(x["html" + sf]); } else { x["done" + sf] = done; if (!done) delete x["done" + sf]; } scheduleSave(w.key, 0); }
         else if (!w.todo && (t.status === "completed") !== done) push = true;
@@ -9535,7 +9591,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (k.split("|")[0] >= from && tasks[m.id]) { const r = await A.api(base + "/" + m.id, { method: "DELETE" }); if (!r.ok && r.status !== 404) await tdJson(r); }
         delete c.map[k];
       }
-      TD.err = ""; TD.at = Date.now(); TD.n = Object.entries(c.map).filter(([k, m]) => !m.done && !m.gone && !k.endsWith("|abendfrage")).length;
+      TD.err = ""; TD.at = Date.now(); TD.n = Object.entries(c.map).filter(([k, m]) => !m.done && !m.gone && k !== "abendfrage").length;
       if (JSON.stringify({ l: c.listId, m: c.map }) !== before) { const cur = tdCfg(); await tdSaveCfg({ ...cur, listId: c.listId, map: c.map }); }
       if (pulled.size && !$("#ov")) render();
     } catch (e) {
@@ -9581,7 +9637,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<label class="dp-chk td-main"><input type="checkbox" id="td-on"' + (c.on ? " checked" : "") + "> Erinnerungen über Microsoft To Do</label>" +
       '<div class="td-opts"><div class="field"><label for="td-at">To-dos ohne Uhrzeit: erinnern um</label><div class="td-row"><input type="time" id="td-at" value="' + esc(c.at) + '"><label class="dp-chk"><input type="checkbox" id="td-vt"' + (c.vortag ? " checked" : "") + "> schon am Vortag</label></div></div>" +
       '<div class="field"><label for="td-lead">Mit Uhrzeit: erinnern</label><select id="td-lead">' + sel() + "</select></div>" +
-      '<div class="field"><label for="td-ev">Am Abend nochmals fragen, wenn ein To-do offen ist</label><div class="td-row"><label class="dp-chk"><input type="checkbox" id="td-evon"' + (c.abend ? " checked" : "") + '> um</label><input type="time" id="td-ev" value="' + esc(c.abend || "20:00") + '"></div><small class="td-hint">Auf dem Handy dann abhaken – oder in To Do «Fällig: Morgen» wählen, dann schiebt Semper das To-do auf morgen.</small></div>' +
+      '<div class="field"><label for="td-ev">Jeden Abend fragen: «Sind die To-dos gemacht?»</label><div class="td-row"><label class="dp-chk"><input type="checkbox" id="td-evon"' + (c.abend ? " checked" : "") + '> um</label><input type="time" id="td-ev" value="' + esc(c.abend || "20:00") + '"></div><small class="td-hint">Einmal pro Tag. Frage in To Do abhaken, dann kommt sie am nächsten Abend wieder. Offenes in Semper mit «⇢ To-dos weiterschieben» auf den nächsten Tag schieben.</small></div>' +
       '<label class="dp-chk"><input type="checkbox" id="td-tm"' + (c.termine ? " checked" : "") + "> Auch an Termine mit Uhrzeit erinnern (nicht nur an To-dos)</label></div>" +
       '<p class="td-stat" id="td-stat" role="status"></p><p id="td-consent" hidden><button class="btn primary" type="button" id="td-ok">Mit Microsoft verbinden</button></p>' +
       '<details class="hint"><summary>ⓘ Was ist auf dem Handy zu tun?</summary><p>Einmal die App <b>Microsoft To Do</b> installieren, mit demselben Microsoft-Konto anmelden und Mitteilungen erlauben. Die Erinnerungen stehen in der Liste «Semper». Beim Ausschalten entfernt Semper die offenen Einträge wieder aus dieser Liste.</p></details>' +
@@ -9665,7 +9721,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const days = {};
       snap.docs.forEach((doc) => { const v = doc.data(); if (v) days[doc.id] = normDay(v); });
       for (const k of dirty) if (state.days[k]) days[k] = state.days[k];
-      state.days = days;
+      state.days = days; state.daysIn = true;
       if (!$("#ov")) render();
       tdKick(TD.at ? 6000 : 2500);
       if (!dirty.size) setStatus("");
