@@ -9426,12 +9426,31 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   const tdHash = (w) => [w.title, w.due.dateTime, w.rem.getTime(), w.body].join("¦");
   const tdTask = (w, done) => { const on = !done && w.rem.getTime() > Date.now(); return { title: w.title, body: { content: w.body, contentType: "text" }, dueDateTime: w.due, isReminderOn: on, reminderDateTime: tdUtc(w.rem), status: done ? "completed" : "notStarted" }; };
-  async function tdJson(r) { if (!r.ok) { const x = new Error("To Do " + r.status); x.status = r.status; throw x; } return r.status === 204 ? null : r.json(); }
+  // Fehler mit Schritt und Text von Microsoft, damit man sieht, woran es liegt
+  async function tdJson(r) {
+    if (r.ok) return r.status === 204 ? null : r.json();
+    let m = ""; try { const j = await r.json(); m = (j.error && (j.error.message || j.error.code)) || ""; } catch (e) {}
+    const x = new Error("To Do " + r.status + (TD.step ? " beim Schritt «" + TD.step + "»" : "") + (m ? ": " + m : "")); x.status = r.status; throw x;
+  }
+  // Aufgabe schreiben; lehnt Microsoft ab (400), mit Ortszeit und zuletzt nur mit Titel nochmals versuchen
+  const tdLocal = (d) => ({ dateTime: keyOf(d) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":00.0000000", timeZone: "W. Europe Standard Time" });
+  async function tdWrite(url, method, w, done) {
+    const full = tdTask(w, done), r1 = await window.ZTODO.api(url, { method, body: full });
+    if (r1.status !== 400) return tdJson(r1);
+    const loc = { ...full, dueDateTime: { dateTime: w.key + "T00:00:00.0000000", timeZone: "W. Europe Standard Time" }, reminderDateTime: tdLocal(w.rem) }; delete loc.body;
+    const r2 = await window.ZTODO.api(url, { method, body: loc });
+    if (r2.status !== 400) return tdJson(r2);
+    const r3 = await window.ZTODO.api(url, { method, body: { title: full.title, status: full.status } });
+    if (r3.status !== 400) return tdJson(r3);
+    return tdJson(r1);
+  }
   async function tdList(c) {
     const A = window.ZTODO;
-    if (c.listId) { const r = await A.api("/me/todo/lists/" + encodeURIComponent(c.listId)); if (r.ok) return c.listId; if (r.status !== 404) await tdJson(r); }
+    TD.step = "Liste suchen";
+    if (c.listId) { const r = await A.api("/me/todo/lists/" + c.listId); if (r.ok) return c.listId; if (r.status !== 404) await tdJson(r); }
     const ls = (await tdJson(await A.api("/me/todo/lists"))).value || [];
     const hit = ls.find((l) => l.displayName === "Semper");
+    TD.step = "Liste «Semper» anlegen";
     c.listId = hit ? hit.id : (await tdJson(await A.api("/me/todo/lists", { method: "POST", body: { displayName: "Semper" } }))).id;
     return c.listId;
   }
@@ -9441,8 +9460,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     TD.busy = true; TD.again = false;
     const A = window.ZTODO, c = tdCfg(), before = JSON.stringify({ l: c.listId, m: c.map });
     try {
-      const lid = await tdList(c), base = "/me/todo/lists/" + encodeURIComponent(lid) + "/tasks";
-      const tasks = {}; let url = base + "?$top=100&$select=id,title,status,dueDateTime";
+      const lid = await tdList(c), base = "/me/todo/lists/" + lid + "/tasks";
+      TD.step = "Aufgaben lesen";
+      const tasks = {}; let url = base;
       while (url) { const j = await tdJson(await A.api(url)); (j.value || []).forEach((t) => (tasks[t.id] = t)); url = j["@odata.nextLink"] || ""; }
       const want = tdWanted(c), used = new Set(Object.values(c.map).map((m) => m.id)), pulled = new Set();
       for (const [k, w] of Object.entries(want)) {
@@ -9451,14 +9471,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (!m) {
           if (w.done) continue; // Erledigtes und Vergangenes nicht neu anlegen
           const twin = Object.values(tasks).find((x) => !used.has(x.id) && x.title === w.title && x.dueDateTime && String(x.dueDateTime.dateTime).slice(0, 10) === w.key);
-          const r = twin ? await tdJson(await A.api(base + "/" + twin.id, { method: "PATCH", body: tdTask(w, false) })) : await tdJson(await A.api(base, { method: "POST", body: tdTask(w, false) }));
+          TD.step = "Aufgabe eintragen";
+          const r = twin ? await tdWrite(base + "/" + twin.id, "PATCH", w, false) : await tdWrite(base, "POST", w, false);
           c.map[k] = { id: r.id, h, done: false }; used.add(r.id); continue;
         }
         let done = w.done, push = m.h !== h;
         if (w.done !== !!m.done) push = true; // in Semper geändert
         else if (w.todo && (t.status === "completed") !== !!m.done) { done = t.status === "completed"; pulled.add(k); const x = slotOf(w.key, w.slot), sf = sfx(w.part); if (w.pt != null) { x["html" + sf] = tdpSet(richOf(x, w.part), w.pt, done); x["text" + sf] = htmlToPlain(x["html" + sf]); } else { x["done" + sf] = done; if (!done) delete x["done" + sf]; } scheduleSave(w.key, 0); }
         else if (!w.todo && (t.status === "completed") !== done) push = true;
-        if (push) await tdJson(await A.api(base + "/" + m.id, { method: "PATCH", body: tdTask(w, done) }));
+        if (push) { TD.step = "Aufgabe ändern"; await tdWrite(base + "/" + m.id, "PATCH", w, done); }
         c.map[k] = { id: m.id, h, done };
       }
       const t0 = today(), from = keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - 7));
@@ -9483,7 +9504,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   // Ausschalten: offene Einträge von Semper wieder aus To Do entfernen
   async function tdClear(c) {
     if (!c.listId || !window.ZTODO) return;
-    const base = "/me/todo/lists/" + encodeURIComponent(c.listId) + "/tasks";
+    const base = "/me/todo/lists/" + c.listId + "/tasks";
     for (const m of Object.values(c.map)) { if (m.done || m.gone) continue; try { await window.ZTODO.api(base + "/" + m.id, { method: "DELETE" }); } catch (e) {} }
     c.map = {};
   }
@@ -9491,8 +9512,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function tdAsk() {
     TD.asked = true;
     let t = $("#sv-toast"); if (!t) { t = document.createElement("div"); t.id = "sv-toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
-    t.className = "sv-toast warn"; t.innerHTML = "Für die Erinnerungen aufs Handy muss Microsoft einmal zustimmen." + (TD.msg ? '<small style="display:block;opacity:.75;margin-top:4px">Meldung von Microsoft: ' + esc(TD.msg) + "</small>" : "") + '<button type="button" class="btn primary" data-tdok>Jetzt erlauben</button><button type="button" class="btn ghost" data-svclose aria-label="Schliessen">×</button>';
-    t.querySelector("[data-tdok]").onclick = () => window.ZTODO.connect();
+    const cons = TD.err === "consent";
+    t.className = "sv-toast warn"; t.innerHTML = (cons ? "Für die Erinnerungen aufs Handy muss Microsoft einmal zustimmen." : "Die Erinnerungen konnten nicht nach Microsoft To Do übertragen werden.") + (TD.msg ? '<small style="display:block;opacity:.75;margin-top:4px">Meldung von Microsoft: ' + esc(TD.msg) + "</small>" : "") + '<button type="button" class="btn primary" data-tdok>' + (cons ? "Jetzt erlauben" : "Nochmals versuchen") + '</button><button type="button" class="btn ghost" data-svclose aria-label="Schliessen">×</button>';
+    t.querySelector("[data-tdok]").onclick = () => { if (cons) window.ZTODO.connect(); else { t.remove(); TD.asked = false; tdKick(0); } };
   }
   function tdBadge() { const b = $("#tdBtn"); if (!b) return; b.classList.toggle("on", !!(TD.cfg && TD.cfg.on)); b.classList.toggle("warn", !!(TD.cfg && TD.cfg.on && TD.err === "consent")); }
   const tdStatusTxt = () => {
