@@ -9414,15 +9414,24 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           const title = htmlToPlain(p.html || "").replace(/\s+/g, " ").trim().slice(0, 240);
           const termin = !p.todo && c.termine && p.from && title;
           if (!p.todo && !termin && !tdpHas(p.html)) return;
-          let rem = p.from ? tdAt(key, p.from, +c.lead || 0) : tdAt(key, c.at, c.vortag ? 24 * 60 : 0);
+          const rem = p.from ? tdAt(key, p.from, +c.lead || 0) : tdAt(key, c.at, c.vortag ? 24 * 60 : 0);
           const due = { dateTime: key + "T00:00:00", timeZone: "UTC" };
-          let body = "Aus Semper · " + TAGE[tdAt(key).getDay()] + ", " + fmt(tdAt(key)) + " · " + lab + (p.from ? " · " + p.from + (p.to ? "–" + p.to : "") : "");
-          // Abendfrage: ist die erste Erinnerung vorbei und das To-do offen, meldet sich To Do am Abend nochmals
-          const evening = (p.todo || tdpHas(p.html)) && c.abend && Date.now() >= rem.getTime() && tdAt(key, c.abend) > rem;
-          if (evening) { rem = tdAt(key, c.abend); body += "\nNoch nicht erledigt? Hier abhaken – oder «Fällig: Morgen» wählen, dann verschiebt Semper das To-do auf morgen."; }
+          const body = "Aus Semper · " + TAGE[tdAt(key).getDay()] + ", " + fmt(tdAt(key)) + " · " + lab + (p.from ? " · " + p.from + (p.to ? "–" + p.to : "") : "");
           if ((p.todo && !tdpHas(p.html)) || termin) out[key + "|" + s + "|" + (i + 1)] = { key, slot: s, part: i + 1, todo: !!p.todo, done: p.todo ? !!p.done : key < tk, title: title || "To-do", rem, due, body };
           tdpItems(p.html).forEach((it, n) => { out[key + "|" + s + "|" + (i + 1) + "|" + n] = { key, slot: s, part: i + 1, pt: n, todo: true, done: it.done, title: it.text || "To-do", rem, due, body }; });
         });
+      }
+    }
+    // Abendfrage: pro Tag (heute und die nächsten 6 Tage) eine eigene Aufgabe «Noch offen?» mit Erinnerung am Abend.
+    // Sie steht schon im Voraus in To Do, damit sie auch kommt, wenn Semper tagsüber nicht offen war.
+    if (c.abend) {
+      const open = {};
+      Object.values(out).forEach((w) => { if (w.todo && !w.done && w.key >= tk) (open[w.key] = open[w.key] || []).push(w.title); });
+      for (let i = 0; i < 7; i++) {
+        const key = keyOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i)), ts = open[key];
+        if (!ts || !ts.length) continue;
+        out[key + "|abendfrage"] = { key, slot: "abend", part: 0, todo: false, ask: true, done: false, title: ("Noch offen? " + ts.join(" · ")).slice(0, 240), rem: tdAt(key, c.abend), due: { dateTime: key + "T00:00:00", timeZone: "UTC" },
+          body: "Abendfrage aus Semper: Was erledigt ist, in der Liste abhaken. Was auf morgen soll: To-do antippen, «Fällig» → «Morgen» – Semper verschiebt es dann." };
       }
     }
     return out;
@@ -9513,7 +9522,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           c.map[k] = { id: r.id, h, done: false }; used.add(r.id); continue;
         }
         let done = w.done, push = m.h !== h;
-        if (w.done !== !!m.done) push = true; // in Semper geändert
+        if (w.ask) done = t.status === "completed"; // Abendfrage: Abhaken in To Do gilt, Semper öffnet sie nicht wieder
+        else if (w.done !== !!m.done) push = true; // in Semper geändert
         else if (w.todo && (t.status === "completed") !== !!m.done) { done = t.status === "completed"; pulled.add(k); const x = slotOf(w.key, w.slot), sf = sfx(w.part); if (w.pt != null) { x["html" + sf] = tdpSet(richOf(x, w.part), w.pt, done); x["text" + sf] = htmlToPlain(x["html" + sf]); } else { x["done" + sf] = done; if (!done) delete x["done" + sf]; } scheduleSave(w.key, 0); }
         else if (!w.todo && (t.status === "completed") !== done) push = true;
         if (push) { TD.step = "Aufgabe ändern"; await tdWrite(base + "/" + m.id, "PATCH", w, done); }
@@ -9525,7 +9535,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         if (k.split("|")[0] >= from && tasks[m.id]) { const r = await A.api(base + "/" + m.id, { method: "DELETE" }); if (!r.ok && r.status !== 404) await tdJson(r); }
         delete c.map[k];
       }
-      TD.err = ""; TD.at = Date.now(); TD.n = Object.values(c.map).filter((m) => !m.done && !m.gone).length;
+      TD.err = ""; TD.at = Date.now(); TD.n = Object.entries(c.map).filter(([k, m]) => !m.done && !m.gone && !k.endsWith("|abendfrage")).length;
       if (JSON.stringify({ l: c.listId, m: c.map }) !== before) { const cur = tdCfg(); await tdSaveCfg({ ...cur, listId: c.listId, map: c.map }); }
       if (pulled.size && !$("#ov")) render();
     } catch (e) {
