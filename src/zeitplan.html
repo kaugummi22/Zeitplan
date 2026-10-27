@@ -170,7 +170,8 @@ html.lk-proj .lk-planbox { display: none !important; }
 html.lk-proj .lk-main.split > .lk-page { grid-column: 1 / -1; }
 html.mob .lk-main.split > .lk-page { grid-column: 1 / -1; grid-row: 4; }
 html.mob .lk-main.split > .lk-planbox { grid-column: 1 / -1; position: static; max-height: 40vh; }
-.ls { font-family: "Ink Free", "Segoe Print", "Bradley Hand", "Noteworthy", "Comic Sans MS", cursive; color: #c8402c; }
+.ls { font-family: "Ink Free", "Segoe Print", "Bradley Hand", "Noteworthy", "Comic Sans MS", cursive; color: #c8402c; line-height: 1; }
+.ls-act { background: #fde8e3 !important; box-shadow: inset 0 0 0 1.5px #c8402c; border-radius: 5px; }
 html:not(.ls-on).lk-proj .lk-page .ls, .ls-x { visibility: hidden; }
 .nb.nls { font-family: inherit; font-size: 0.85rem; }
 .lk-page .lk-note { background: color-mix(in srgb, #e0b000 14%, transparent); border-left: 3px dashed #c99a00; padding-left: 8px; font-style: italic; color: color-mix(in srgb, var(--ink) 75%, transparent); }
@@ -1052,6 +1053,7 @@ html.phone .lesson.mat-slim .ldocs { grid-column: 1 / -1; }
 .notes-ed .nfig { cursor: pointer; border-radius: 4px; }
 .notes-ed .nfig img { border: 1px solid var(--line); border-radius: 4px; vertical-align: top; }
 .notes-ed .nfig.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+.notes-ed .nfig.moving, .lk-page .lk-fig.moving { opacity: 0.35; }
 .lk-plantext img { max-width: 100%; height: auto; }
 .lk-plantext .lk-pimg, .lk-plantext .nfig { position: relative; display: inline-block; max-width: 100%; }
 .lk-plantext .nfig { display: block; }
@@ -1984,7 +1986,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   // Lehrerschrift: eigene Schrift für Lösungen und Hinweise; beim Zeigen (Projizieren, Folien, Beamer, Ausgeben) ausblendbar
   const isLs = (n) => (n.classList && n.classList.contains("ls")) || (n.tagName === "FONT" && n.getAttribute("face") === "zp-ls");
   function lsToggle(host) {
-    const s = getSelection(); if (!s.rangeCount || s.isCollapsed || !host.contains(s.anchorNode)) return false;
+    const s = getSelection(); if (!s.rangeCount || !host.contains(s.anchorNode)) return false;
+    if (s.isCollapsed) { lsCaret(host, s); return true; }
     const rg = s.getRangeAt(0), el = (n) => (n.nodeType === 1 ? n : n.parentElement);
     const texts = [];
     if (rg.commonAncestorContainer.nodeType === 3) texts.push(rg.commonAncestorContainer);
@@ -2000,6 +2003,32 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     host.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   }
+  // Ohne Markierung: ab der Schreibmarke in Lehrerschrift weiterschreiben bzw. wieder normal
+  function lsCaret(host, s) {
+    const rg = s.getRangeAt(0), an = rg.startContainer, el = an.nodeType === 1 ? an : an.parentElement;
+    const cur = el && el.closest(".ls"), t = document.createTextNode("​");
+    if (cur && host.contains(cur)) {
+      // Lehrerschrift verlassen: Rest des Kastens abtrennen, Schreibmarke dazwischen
+      const tail = document.createRange(); tail.setStart(rg.startContainer, rg.startOffset); tail.setEndAfter(cur.lastChild || cur);
+      const rest = tail.extractContents(), sp2 = cur.cloneNode(false); sp2.appendChild(rest);
+      cur.after(t); if (sp2.textContent.replace(/​/g, "")) t.after(sp2);
+      if (!cur.textContent.replace(/​/g, "")) cur.remove();
+    } else {
+      const sp = document.createElement("span"); sp.className = "ls"; sp.appendChild(t); rg.insertNode(sp);
+    }
+    const r2 = document.createRange(); r2.setStart(t, 1); r2.collapse(true); s.removeAllRanges(); s.addRange(r2);
+  }
+  // Strg+Umschalt+L: Lehrerschrift ein/aus (mit oder ohne Markierung), überall wo man schreibt
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey || (e.key || "").toLowerCase() !== "l") return;
+    const host = e.target && e.target.isContentEditable && e.target.closest('[contenteditable="true"]'); if (!host) return;
+    e.preventDefault(); lsToggle(host); host.dispatchEvent(new Event("input", { bubbles: true }));
+  }, true);
+  // Knöpfe «Lehrerschrift» zeigen, ob an der Schreibmarke Lehrerschrift gilt
+  document.addEventListener("selectionchange", () => {
+    const s = getSelection(), n = s.anchorNode, el = n && (n.nodeType === 1 ? n : n.parentElement), on = !!(el && el.isContentEditable && el.closest(".ls"));
+    document.querySelectorAll('[data-lkcmd="ls"], [data-ncmd="ls"], .fm-ls').forEach((b) => b.classList.toggle("ls-act", on));
+  });
   // ganze Zelle in Lehrerschrift (oder wieder normal); gibt true zurück, wenn sie jetzt Lehrerschrift ist
   const lsAll = (el) => { const t = el.textContent.replace(/\s/g, ""); if (!t) return false; let ls = ""; el.querySelectorAll(".ls").forEach((x) => { if (!x.parentElement.closest(".ls")) ls += x.textContent; }); return ls.replace(/\s/g, "") === t; };
   function lsCell(el, on) {
@@ -2038,7 +2067,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     let out = "";
     function walk(node) {
       for (const n of node.childNodes) {
-        if (n.nodeType === 3) { out += esc(n.nodeValue.replace(/ /g, " ")); continue; }
+        if (n.nodeType === 3) { out += esc(n.nodeValue.replace(/ /g, " ").replace(/\u200b/g, "")); continue; }
         if (n.nodeType !== 1) continue;
         const tag = n.tagName;
         if (tag === "BR") { out += "<br>"; continue; }
@@ -3396,7 +3425,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const colorF = '<div class="field"><span class="lbl">Farbe</span>' + swatchHtml("d", x.color) + "</div>";
     const NB = (cmd, arg, label, title, cls) => '<button type="button" class="nb' + (cls ? " " + cls : "") + '" data-ncmd="' + cmd + '"' + (arg ? ' data-narg="' + arg + '"' : "") + ' title="' + title + '" aria-label="' + title + '">' + label + "</button>";
     const notesRich = '<div class="field"><span class="lbl">Notizen</span><div class="nbar" role="toolbar" aria-label="Notizen formatieren">' +
-      NB("bold", "", "<b>F</b>", "Fett (Strg+B)") + NB("italic", "", "<i>K</i>", "Kursiv (Strg+I)") + NB("underline", "", "<u>U</u>", "Unterstrichen (Strg+U)") + NB("ls", "", '<span class="ls">✎ Lehrerschrift</span>', "Markierten Text in Lehrerschrift setzen (z. B. Lösungen) – auf der Unterrichtsseite beim Zeigen ausblendbar. Nochmals klicken: normale Schrift", "nls") + '<span class="nsep"></span>' +
+      NB("bold", "", "<b>F</b>", "Fett (Strg+B)") + NB("italic", "", "<i>K</i>", "Kursiv (Strg+I)") + NB("underline", "", "<u>U</u>", "Unterstrichen (Strg+U)") + NB("ls", "", '<span class="ls">✎ Lehrerschrift</span>', "Lehrerschrift (z. B. Lösungen) – ohne Markierung: ab hier in Lehrerschrift weiterschreiben; mit Markierung: markierten Text umstellen. Nochmals klicken: normale Schrift (Strg+Umschalt+L). Beim Zeigen ausgeblendet", "nls") + '<span class="nsep"></span>' +
       NB("hl", "y", "", "Gelb markieren", "sw-y") + NB("hl", "g", "", "Grün markieren", "sw-g") + NB("hl", "b", "", "Blau markieren", "sw-b") + NB("hl", "", "✕", "Markierung entfernen", "sw-x") + '<span class="nsep"></span>' +
       NB("size", "2", '<span style="font-size:11px">A</span>', "Kleine Schrift") + NB("size", "3", '<span style="font-size:14px">A</span>', "Normale Schrift") + NB("size", "4", '<span style="font-size:17px">A</span>', "Grosse Schrift") + NB("size", "5", '<span style="font-size:20px">A</span>', "Sehr grosse Schrift") + '<span class="nsep"></span>' +
       NB("justifyLeft", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg>', "Linksbündig") + NB("justifyCenter", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8"/></svg>', "Zentriert") + NB("justifyRight", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8"/></svg>', "Rechtsbündig") + NB("justifyFull", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h12"/></svg>', "Blocksatz") + '<span class="nsep"></span>' + NB("insertUnorderedList", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="3" cy="4" r="1" fill="currentColor"/><circle cx="3" cy="8" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><path d="M6 4h8M6 8h8M6 12h8"/></svg>', "Aufzählung") + NB("insertOrderedList", "", '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4h8M6 8h8M6 12h8"/><text x="0.5" y="5.5" font-size="5" fill="currentColor" stroke="none">1</text><text x="0.5" y="9.5" font-size="5" fill="currentColor" stroke="none">2</text><text x="0.5" y="13.5" font-size="5" fill="currentColor" stroke="none">3</text></svg>', "Nummerierte Liste") + '<span class="nsep"></span>' +
@@ -3599,8 +3628,47 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       if (h) { document.execCommand("insertHTML", false, sanitizeNotes(h.replace(/<img[^>]*>/gi, ""))); tabTail(); }
       else document.execCommand("insertText", false, tx || "");
     }, true);
-    ned.addEventListener("dragover", (e) => { if ([...(e.dataTransfer.items || [])].some((i) => i.kind === "file")) e.preventDefault(); });
-    ned.addEventListener("drop", (e) => { const f = [...(e.dataTransfer.files || [])]; if (f.length) { e.preventDefault(); insertImgs(f); } });
+    // Bild ziehen = verschieben (nicht kopieren): zwischen Absätze, neben Text (Bild rückt auf die Seite, zu der es gezogen wird)
+    let mv = null;
+    const mvEnd = () => { if (!mv) return; mv.ind.remove(); mv.fig.classList.remove("moving"); mv = null; };
+    const mvAt = (x, y) => {
+      const under = document.elementFromPoint(x, y), col = under && under.closest && under.closest(".ncol");
+      const box = col && ned.contains(col) ? col : ned, br = box.getBoundingClientRect();
+      const kids = [...box.children].filter((k) => k !== mv.fig && !(k.dataset && k.dataset.fill && !k.textContent.trim()));
+      const hit = kids.find((k) => { const r = k.getBoundingClientRect(); return y >= r.top && y <= r.bottom; });
+      const ref = hit || kids.find((k) => k.getBoundingClientRect().top > y) || null;
+      const text = !!(hit && !hit.matches("figure, table") && hit.textContent.trim());
+      const side = x > br.left + br.width / 2 ? "r" : "l";
+      const ry = ref ? ref.getBoundingClientRect().top - 2 : (kids.length ? kids[kids.length - 1].getBoundingClientRect().bottom + 2 : br.top + 4);
+      return { box, ref, text, side, ind: text ? { left: (side === "r" ? br.right - 3 : br.left) + "px", top: ry + "px", width: "3px", height: Math.max(24, hit.getBoundingClientRect().height) + "px" } : { left: br.left + "px", top: ry + "px", width: br.width + "px", height: "3px" } };
+    };
+    ned.addEventListener("dragstart", (e) => {
+      const img = e.target.closest && e.target.closest("img"); if (!img || !ned.contains(img)) return;
+      fpClose(); const fig = img.closest("figure.nfig") || toFig(img);
+      const ind = document.createElement("div"); ind.className = "tt-drop"; ind.hidden = true; document.body.appendChild(ind);
+      mv = { fig, ind, at: null }; fig.classList.add("moving");
+      try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); e.dataTransfer.setDragImage(img, 20, 20); } catch (err) {}
+    });
+    ned.addEventListener("dragend", mvEnd);
+    ned.addEventListener("dragover", (e) => {
+      if (mv) { e.preventDefault(); try { e.dataTransfer.dropEffect = "move"; } catch (err) {} mv.at = mvAt(e.clientX, e.clientY); mv.ind.hidden = false; Object.assign(mv.ind.style, mv.at.ind); return; }
+      if ([...(e.dataTransfer.items || [])].some((i) => i.kind === "file")) e.preventDefault();
+    });
+    ned.addEventListener("drop", (e) => {
+      if (mv) {
+        e.preventDefault(); e.stopPropagation();
+        const fig = mv.fig, d = mvAt(e.clientX, e.clientY); mvEnd();
+        if (d.ref) d.box.insertBefore(fig, d.ref); else d.box.appendChild(fig);
+        // neben Text: Bild auf die Seite, zu der es gezogen wurde; der Text fliesst daneben
+        if (d.text || /\bp-[lr]\b/.test(fig.className)) {
+          fig.className = fig.className.replace(/\s*\bp-[lrc]\b/g, "") + " p-" + d.side;
+          if (d.text && !/\bw(25|33|50|75)\b/.test(fig.className)) fig.className = fig.className.replace(/\s*\bw100\b/g, "") + " w50";
+        }
+        if (!fig.nextSibling) { const dv = document.createElement("div"); dv.innerHTML = "<br>"; fig.after(dv); }
+        figLock(); dropFill(null); save(); return;
+      }
+      const f = [...(e.dataTransfer.files || [])]; if (f.length) { e.preventDefault(); insertImgs(f); }
+    });
     $("#d-nimg").addEventListener("change", (e) => { const f = [...e.target.files]; e.target.value = ""; insertImgs(f); });
     // Bilder: im Text nicht bearbeitbar (ganzer Block), ein Klick öffnet Grösse, Lage, Bildunterschrift/Quelle
     // nach einer Tabelle ganz am Ende eine leere Zeile, damit man darunter weiterschreiben kann
@@ -3791,7 +3859,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const b = e.target.closest("[data-ncmd]"); if (!b) return;
       const sel = getSelection(); if (!sel.rangeCount || !ned.contains(sel.anchorNode)) { ned.focus(); }
       const c = b.dataset.ncmd, a = b.dataset.narg;
-      if (c === "ls") { if (!lsToggle(ned)) $("#d-nmsg").textContent = "Zuerst Text markieren, dann «Lehrerschrift»."; return; }
+      if (c === "ls") { if (!lsToggle(ned)) $("#d-nmsg").textContent = "Zuerst in die Notizen klicken, dann «Lehrerschrift»."; return; }
       if (c === "hl") { try { document.execCommand("styleWithCSS", false, true); } catch (err) {} document.execCommand("hiliteColor", false, a ? HL[a] : "transparent"); try { document.execCommand("styleWithCSS", false, false); } catch (err) {} }
       else if (/^justify|List$/.test(c)) { try { document.execCommand("styleWithCSS", false, false); } catch (err) {} document.execCommand(c); }
       else if (c === "size") { try { document.execCommand("styleWithCSS", false, false); } catch (err) {} document.execCommand("fontSize", false, a); }
@@ -7452,7 +7520,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     };
     (function walk(node) {
       for (const n of node.childNodes) {
-        if (n.nodeType === 3) { out += esc(n.nodeValue.replace(/ /g, " ")); continue; }
+        if (n.nodeType === 3) { out += esc(n.nodeValue.replace(/ /g, " ").replace(/\u200b/g, "")); continue; }
         if (n.nodeType !== 1) continue;
         const tag = n.tagName;
         if (tag === "BR") { out += "<br>"; continue; }
@@ -7507,7 +7575,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   }
   // Notizen (nur für die Lehrperson): verschwinden beim Projizieren, in Folien, im Beamer-Fenster und beim Ausgeben
   // Lehrerschrift beim Zeigen ausgeblendet: Text weg, die Lücke bleibt (zum Ausfüllen)
-  const lkLsShow = () => { try { return localStorage.getItem("semper-ls") === "1"; } catch (e) { return false; } };
+  // Nur vorübergehend (nicht gemerkt): jedes neue Zeigen beginnt wieder mit ausgeblendeter Lehrerschrift
+  let LS_SHOW = false;
+  try { localStorage.removeItem("semper-ls"); } catch (e) {}
+  const lkLsShow = () => LS_SHOW;
   function lkStripNotes(html) {
     const hideLs = !lkLsShow() && /class="[^"]*\bls\b/.test(html || "");
     if (!/lk-note/.test(html || "") && !hideLs) return html || "";
@@ -7614,7 +7685,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       TB("al", "", "⯇≡", "Linksbündig") + TB("al", "al-c", "≡", "Zentriert") + TB("al", "al-r", "≡⯈", "Rechtsbündig") + TB("ind", "-1", "⇤", "Ausrücken (Umschalt+Tab)") + TB("ind", "1", "⇥", "Einrücken – jedes Mal eine Stufe weiter (Tab)") + SEP +
       TB("bold", "", "<b>F</b>", "Fett") + TB("italic", "", "<i>K</i>", "Kursiv") + TB("underline", "", "<u>U</u>", "Unterstrichen") + POP("col", '<span class="tc-rot">A</span>', "Schriftfarbe und Marker", colPop) + SEP +
       TB("insertUnorderedList", "", "• Liste", "Aufzählung") + TB("insertOrderedList", "", "1. Liste", "Nummerierte Liste") + POP("check", "☑ Checkliste", "Checkliste zum Abhaken während des Unterrichts", checkPop) + POP("tab", "▦ Tabelle", "Einfache Tabelle", tabPop) + POP("box", "▭ Kasten", "Farbiger Kasten, z. B. für einen Auftrag", boxPop) +
-      TB("ls", "", '<span class="ls">✎ Lehrerschrift</span>', "Markierten Text in Lehrerschrift setzen (z. B. Lösungen) – beim Zeigen ausblendbar. Nochmals klicken: wieder normale Schrift") +
+      TB("ls", "", '<span class="ls">✎ Lehrerschrift</span>', "Lehrerschrift (z. B. Lösungen) – ohne Markierung: ab hier in Lehrerschrift weiterschreiben; mit Markierung: markierten Text umstellen. Nochmals klicken: normale Schrift (Strg+Umschalt+L). Beim Zeigen ausgeblendet") +
       TB("note", "", "🔒 Notiz", "Notiz nur für Sie: markierte Zeilen werden grau-gelb und sind beim Projizieren, in Folien, im Beamer-Fenster und beim Ausgeben unsichtbar. Nochmals klicken macht wieder normalen Text") +
       TB("dot", "", "·", "Mittelpunkt einfügen, z. B. «L6 · Die Prozesse»") + POP("emo", "💡", "Symbol einfügen", '<div class="lk-emo">' + LK_EMO.map((x) => '<button type="button" class="lk-sw lk-em" data-lkcmd="emo" data-arg="' + x[0] + '" title="' + x[1] + '">' + x[0] + "</button>").join("") + "</div>") + SEP + TB("hr", "", "<b style=\"color:var(--accent)\">━━</b> Abschnitt", "Abschnittslinie: beim Projizieren beginnt hier eine neue Folie (wird nicht gedruckt)") + TB("hr", "lk-step", "<span style=\"color:var(--muted);letter-spacing:-1px\">┅┅</span> Schritt", "Schrittlinie: beim Projizieren erscheint der Teil darunter erst beim Weiterschalten (wird nicht gedruckt)") + TB("hr", "lk-vis", "<span style=\"opacity:.7\">—</span> Visual", "Visual Line: kurze Linie in der Mitte, um die Seite zu gliedern (wird gedruckt)") + SEP +
       '<label class="lk-tb" title="Bild einfügen">🖼 Bild<input type="file" id="lk-img" accept="image/*" multiple hidden></label></div>' +
@@ -7718,6 +7789,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const lkStepHtml = (secs, s, k) => (secs[s] || []).slice(0, k + 1).map((p) => p.join("")).join("");
   // Folienansicht im selben Fenster (Pfeiltasten: zuerst Schritte, dann Abschnitte)
   function lkPresent() {
+    if (!document.documentElement.classList.contains("lk-proj")) lkLsReset();
     let secs = [], s = 0, k = 0;
     const build = () => { const tmp = document.createElement("div"); tmp.innerHTML = lkSanitize(($("#lk-page") || {}).innerHTML || ""); lkWrapStray(tmp); secs = lkDeck(tmp).secs; if (s >= secs.length) { s = secs.length - 1; k = 0; } if (k >= secs[s].length) k = secs[s].length - 1; };
     build();
@@ -7801,7 +7873,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function lkPrRemote() {
     if (lkPresenting()) lkPrStop();
     if (!window.ZBEAM) { lkStat("Das geht nur mit Anmeldung bei OneDrive."); return; }
-    lkSave(); PR.remote = true; PR.s = 0; PR.k = 0; PR.black = false; BM.last = ""; BM.ok = true;
+    lkLsReset(); lkSave(); PR.remote = true; PR.s = 0; PR.k = 0; PR.black = false; BM.last = ""; BM.ok = true;
     lkPrRender(true); lkOpenHead(); lkwSync();
   }
   // Empfänger: dieses Gerät hängt am Beamer und zeigt, was am Tablet weitergeschaltet wird
@@ -7879,7 +7951,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   async function lkPrStart() {
     if (lkPresenting()) { PR.win.focus(); return; }
     if (PR.remote) lkPrStop();
-    lkSave();
+    lkLsReset(); lkSave();
     const w = window.open("", "semper-beamer", "popup=yes,width=1280,height=720");
     if (!w) { lkStat("Das Beamer-Fenster wurde blockiert – bitte Pop-ups für diese Seite erlauben."); return; }
     const css = [...document.querySelectorAll("style")].map((x) => x.textContent).join("\n");
@@ -8148,19 +8220,20 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const alertMsg = (t) => lkStat(t);
   // ---------- Projizieren: dieselbe Seite, ohne Kopfzeile, Leisten nur bei Bedarf ----------
   function lkLsSet(on) {
-    try { localStorage.setItem("semper-ls", on ? "1" : "0"); } catch (e) {}
+    LS_SHOW = !!on;
     document.documentElement.classList.toggle("ls-on", on);
     lkOpenHead(); if (lkBeaming()) lkPrRender(false);
     document.querySelectorAll(".lk-show").forEach((ov) => ov.dispatchEvent(new Event("lsredraw")));
-    lkStat(on ? "Lehrerschrift wird beim Zeigen angezeigt." : "Lehrerschrift ist beim Zeigen ausgeblendet.");
+    lkStat(on ? "Lehrerschrift wird beim Zeigen angezeigt (bis zum nächsten Zeigen)." : "Lehrerschrift ist beim Zeigen ausgeblendet.");
   }
+  const lkLsReset = () => { if (LS_SHOW) { LS_SHOW = false; document.documentElement.classList.remove("ls-on"); } };
   document.documentElement.classList.toggle("ls-on", lkLsShow());
   document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-lsv]"); if (b) lkLsSet(!lkLsShow()); });
   function lkProj(on) {
     const H = document.documentElement;
     if (on === H.classList.contains("lk-proj")) return;
     H.classList.toggle("lk-proj", on); H.classList.remove("lk-tools");
-    if (on) { LK.pside = false; LK.pdocs = false; try { H.requestFullscreen && H.requestFullscreen().catch(() => {}); } catch (e) {} }
+    if (on) { lkLsReset(); LK.pside = false; LK.pdocs = false; try { H.requestFullscreen && H.requestFullscreen().catch(() => {}); } catch (e) {} }
     else { lkPenOff(true); lkPrStop(); lkToolsReset(document); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} }
     lkLayout(); lkOpenHead();
   }
@@ -8986,7 +9059,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     else if (cmd === "emo") { document.execCommand("insertText", false, arg + " "); lkPopsClose(); }
     else if (cmd === "fs") { const bl = lkBlocks(); bl.forEach((el) => { const n = Math.max(1, Math.min(7, lkSize(el) + +arg)); lkSetCls([el], /^fs-\d$/, n === 3 ? "" : "fs-" + n); }); }
     else if (cmd === "lh") lkSetCls(lkBlocks(), /^lh-\d$/, arg ? "lh-" + arg : "");
-    else if (cmd === "ls") { if (!lsToggle(pg)) lkStat("Zuerst Text markieren, dann «Lehrerschrift»."); }
+    else if (cmd === "ls") { if (!lsToggle(pg)) lkStat("Zuerst in die Seite klicken, dann «Lehrerschrift»."); }
     else if (cmd === "note") { const bl = lkBlocks(), on = !bl.every((el) => el.classList.contains("lk-note")); bl.forEach((el) => { el.classList.toggle("lk-note", on); if (!el.className) el.removeAttribute("class"); }); }
     else if (cmd === "al") lkSetCls(lkBlocks(), /^al-[crj]$/, arg);
     else if (cmd === "dot") { const sel = getSelection(), n = sel.anchorNode, o = sel.anchorOffset; const before = n && n.nodeType === 3 ? n.nodeValue.slice(0, o) : ""; document.execCommand("insertText", false, (/\s$/.test(before) || !before ? "" : " ") + "· "); }
@@ -9072,6 +9145,48 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const lbl = g.parentNode.querySelector(".lk-tsize"); if (lbl) lbl.textContent = r + " Zeilen × " + k + " Spalten";
   });
   document.getElementById("view-lektion").addEventListener("input", (e) => { if (e.target.id === "lk-page") lkSave(true); });
+  // Aus der Planung (◫ Planung) hinüberziehen: markierten Text, Bilder und Tabellen in die Seite, dort wo losgelassen wird
+  let lkPD = null;
+  document.getElementById("view-lektion").addEventListener("dragstart", (e) => {
+    const tg = e.target && e.target.nodeType === 3 ? e.target.parentElement : e.target;
+    lkPD = null;
+    // Bild in der Seite ziehen = verschieben (keine Kopie)
+    const own = tg && tg.closest && tg.closest("#lk-page figure.lk-fig");
+    if (own) { lkPD = { fig: own }; own.classList.add("moving"); try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", ""); } catch (err) {} return; }
+    const box = tg && tg.closest && tg.closest("#lk-planbox"); if (!box) return;
+    const img = tg.closest("img"), m = img && /^\/_blob\/([0-9a-f]{8,64})$/.exec(img.getAttribute("src") || "");
+    if (m) { const fc = img.closest("figure") && img.closest("figure").querySelector("figcaption"), cap = fc ? fc.textContent.trim() : ""; lkPD = { html: lkFigHtml(m[1]) + (cap ? '<p class="fs-2">' + esc(cap) + "</p>" : "<p><br></p>"), img: true }; }
+    else { const s = getSelection(); if (!s.rangeCount || s.isCollapsed) return; const d = document.createElement("div"); d.appendChild(s.getRangeAt(0).cloneContents()); d.querySelectorAll(".lk-ptake").forEach((x) => x.remove()); lkPD = { html: d.innerHTML }; }
+    try { e.dataTransfer.effectAllowed = "copy"; } catch (err) {}
+  });
+  document.getElementById("view-lektion").addEventListener("dragend", () => { if (lkPD && lkPD.fig) lkPD.fig.classList.remove("moving"); lkPD = null; });
+  document.getElementById("view-lektion").addEventListener("dragover", (e) => { if (lkPD && e.target.closest && e.target.closest("#lk-page")) { e.preventDefault(); try { e.dataTransfer.dropEffect = lkPD.fig ? "move" : "copy"; } catch (err) {} } });
+  document.getElementById("view-lektion").addEventListener("drop", (e) => {
+    const pg = $("#lk-page"); if (!lkPD || !pg || !(e.target.closest && e.target.closest("#lk-page"))) return;
+    e.preventDefault(); e.stopPropagation();
+    const d = lkPD; lkPD = null;
+    let rg = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+    if (!rg && document.caretPositionFromPoint) { const cp = document.caretPositionFromPoint(e.clientX, e.clientY); if (cp) { rg = document.createRange(); rg.setStart(cp.offsetNode, cp.offset); } }
+    if (rg && (!pg.contains(rg.startContainer) || (rg.startContainer.nodeType === 1 ? rg.startContainer : rg.startContainer.parentElement).closest("figure"))) rg = null;
+    if (d.fig) {
+      const fig = d.fig; fig.classList.remove("moving");
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      let top = under && under !== pg && pg.contains(under) ? under : null; while (top && top.parentNode !== pg) top = top.parentNode;
+      if (top === fig) return;
+      if (top) { const r = top.getBoundingClientRect(); if (e.clientY > r.top + r.height / 2 && !/\bfl-[lr]\b/.test(fig.className)) top.after(fig); else top.before(fig); }
+      else { const kids = [...pg.children].filter((k) => k !== fig), ref = kids.find((k) => k.getBoundingClientRect().top > e.clientY); if (ref) ref.before(fig); else pg.appendChild(fig); }
+      // Bild mit Text daneben: auf die Seite, zu der es gezogen wurde
+      if (/\bfl-[lr]\b/.test(fig.className)) { const pr = pg.getBoundingClientRect(), right = e.clientX > pr.left + pr.width / 2; fig.classList.remove("fl-l", "fl-r"); fig.classList.add(right ? "fl-r" : "fl-l"); }
+      if (!fig.nextElementSibling) { const p2 = document.createElement("p"); p2.innerHTML = "<br>"; fig.after(p2); }
+      lkWrapStray(pg); lkSave(); return;
+    }
+    const html = lkSanitize(d.html);
+    if (d.img) { lkInsertBlocks(html, rg); lkStat("Bild in die Seite übernommen. Rechtsklick bzw. lange drücken aufs Bild: Grösse und Lage."); return; }
+    if (/<(table|h[123]|ul|ol|blockquote|figure|hr)\b|<(p|div)\b[\s\S]*<(p|div)\b/i.test(html)) { lkInsertBlocks(html, rg); lkStat("In die Seite übernommen."); return; }
+    pg.focus(); const s = getSelection(); s.removeAllRanges(); if (rg) s.addRange(rg); else { const r = document.createRange(); r.selectNodeContents(pg); r.collapse(false); s.addRange(r); }
+    const sp = rg && rg.startContainer.nodeType === 3 && rg.startOffset > 0 && /\S/.test(rg.startContainer.nodeValue[rg.startOffset - 1]) ? " " : "";
+    document.execCommand("insertHTML", false, sp + html.replace(/^<(p|div)>([\s\S]*)<\/\1>$/, "$2")); lkWrapStray(pg); lkSave(); lkStat("In die Seite übernommen.");
+  });
   // Eingefügte Tabellen (z. B. aus den Notizen der Lektion, Word oder Excel) kommen als Tabelle der Seite herein
   document.getElementById("view-lektion").addEventListener("paste", (e) => {
     if (e.target.closest && !e.target.closest("#lk-page")) return;
