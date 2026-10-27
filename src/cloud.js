@@ -7,6 +7,9 @@
   const BASE = "0_Planung/Zeitplan-App";
   const GRAPH = "https://graph.microsoft.com/v1.0";
   const SCOPES = "openid profile offline_access User.Read Files.ReadWrite";
+  // Sobald Microsoft To Do verbunden ist, gehört das To-Do-Recht zu jeder Anmeldung (sonst gibt Microsoft beim privaten Konto Schlüssel ohne dieses Recht)
+  const TASKS = "Tasks.ReadWrite";
+  const scopes = () => SCOPES + (ls.get("zp-todo") ? " " + TASKS : "");
   const ACC = { privat: { tenant: "consumers", label: "privates Microsoft-Konto" } };
   const REDIRECT = location.origin + location.pathname;
   const mem = {}, subs = {}, timers = {}, dirty = {}, tags = {};
@@ -44,20 +47,20 @@
   async function login(acc, prompt, extra) {
     const verifier = rnd(48), state = rnd(16);
     const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
-    sessionStorage.setItem("zp-pkce", JSON.stringify({ verifier, state, acc }));
+    if (extra) ls.set("zp-todo", 1);
+    sessionStorage.setItem("zp-pkce", JSON.stringify({ verifier, state, acc, extra: !!extra }));
     const tok = ls.get("zp-tok-" + acc) || {};
-    const q = new URLSearchParams({ client_id: CFG.clientId, response_type: "code", redirect_uri: REDIRECT, scope: SCOPES + (extra ? " " + extra : ""), state, code_challenge: challenge, code_challenge_method: "S256", response_mode: "query" });
+    const q = new URLSearchParams({ client_id: CFG.clientId, response_type: "code", redirect_uri: REDIRECT, scope: scopes(), state, code_challenge: challenge, code_challenge_method: "S256", response_mode: "query" });
     if (prompt) q.set("prompt", prompt);
     if (tok.user) q.set("login_hint", tok.user);
     location.assign("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/authorize?" + q);
   }
   async function tokenRequest(acc, body, scope) {
-    const r = await _fetch("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: CFG.clientId, scope: scope || SCOPES, ...body }) });
+    const r = await _fetch("https://login.microsoftonline.com/" + ACC[acc].tenant + "/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: CFG.clientId, scope: scope || scopes(), ...body }) });
     const j = await r.json();
     if (!r.ok || !j.access_token) { const x = new Error(j.error_description || j.error || "Anmeldung fehlgeschlagen"); x.code = j.error || ""; throw x; }
-    if (scope) { const old = ls.get("zp-tok-" + acc) || {}; if (j.refresh_token) { old.refresh = j.refresh_token; ls.set("zp-tok-" + acc, old); } return { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, scope: j.scope || "" }; }
     const old = ls.get("zp-tok-" + acc) || {};
-    const t = { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, refresh: j.refresh_token || old.refresh, user: old.user };
+    const t = { access: j.access_token, exp: Date.now() + (j.expires_in - 120) * 1000, refresh: j.refresh_token || old.refresh, user: old.user, scope: j.scope || "" };
     ls.set("zp-tok-" + acc, t); return t;
   }
   async function handleRedirect() {
@@ -65,7 +68,7 @@
     if (!q.get("code") && !q.get("error")) return;
     const p = JSON.parse(sessionStorage.getItem("zp-pkce") || "null"); sessionStorage.removeItem("zp-pkce");
     history.replaceState(null, "", REDIRECT);
-    if (q.get("error")) throw new Error(q.get("error_description") || q.get("error"));
+    if (q.get("error")) { if (p && p.extra) ls.del("zp-todo"); throw new Error(q.get("error_description") || q.get("error")); }
     if (!p || p.state !== q.get("state")) throw new Error("Anmeldung abgelaufen, bitte nochmals.");
     await tokenRequest(p.acc, { grant_type: "authorization_code", code: q.get("code"), redirect_uri: REDIRECT, code_verifier: p.verifier });
   }
@@ -74,7 +77,11 @@
     if (t && t.access && t.exp > Date.now()) return t.access;
     if (t && t.refresh) {
       try { return (await tokenRequest(acc, { grant_type: "refresh_token", refresh_token: t.refresh })).access; }
-      catch (e) { if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; } }
+      catch (e) {
+        if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; }
+        // To-Do-Recht zurückgezogen: ohne weiterarbeiten statt neu anmelden
+        if (ls.get("zp-todo")) { ls.del("zp-todo"); try { return (await tokenRequest(acc, { grant_type: "refresh_token", refresh_token: t.refresh })).access; } catch (e2) { if (isOffline(e2)) { const x = new Error("offline"); x.offline = true; throw x; } } }
+      }
     }
     if (!navigator.onLine) { const x = new Error("offline"); x.offline = true; throw x; }
     await login(acc); await new Promise(() => {}); // Seite wird umgeleitet
@@ -89,18 +96,16 @@
   }
   // ---------- Microsoft To Do (Erinnerungen aufs Handy) ----------
   // Eigener Schlüssel nur für To Do, damit die normale Anmeldung unverändert bleibt. Beim ersten Mal fragt Microsoft einmal um Zustimmung.
-  const TODO_SCOPE = "https://graph.microsoft.com/Tasks.ReadWrite offline_access";
+  const hasTasks = (t) => !!(t && /tasks\.readwrite/i.test(t.scope || ""));
   async function todoToken() {
-    const t = ls.get("zp-tok-todo");
-    if (t && t.access && t.exp > Date.now()) return t.access;
-    const p = ls.get("zp-tok-privat");
-    if (!p || !p.refresh) { const x = new Error("Nicht angemeldet"); x.consent = true; throw x; }
-    let n;
-    try { n = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: p.refresh }, TODO_SCOPE); }
+    let t = ls.get("zp-tok-privat");
+    if (!t || !t.refresh) { const x = new Error("Nicht angemeldet"); x.consent = true; throw x; }
+    if (hasTasks(t) && t.exp > Date.now()) return t.access;
+    // Schlüssel mit To-Do-Recht holen (klappt ohne Rückfrage, sobald einmal zugestimmt wurde)
+    try { t = await tokenRequest("privat", { grant_type: "refresh_token", refresh_token: t.refresh }, SCOPES + " " + TASKS); }
     catch (e) { if (isOffline(e)) { const x = new Error("offline"); x.offline = true; throw x; } e.consent = true; throw e; }
-    // Microsoft gibt manchmal einen Schlüssel ohne To-Do-Recht zurück, solange nicht zugestimmt wurde
-    if (n.scope && !/tasks\.readwrite/i.test(n.scope)) { const x = new Error("Keine Zustimmung für To Do"); x.consent = true; throw x; }
-    ls.set("zp-tok-todo", n); return n.access;
+    if (t.scope && !hasTasks(t)) { const x = new Error("Microsoft hat das Recht für To Do nicht erteilt"); x.consent = true; throw x; }
+    ls.set("zp-todo", 1); return t.access;
   }
   window.ZTODO = {
     async api(path, opts) {
@@ -109,12 +114,12 @@
         const h = { ...(opts.headers || {}), Authorization: "Bearer " + (await todoToken()) };
         if (opts.body && typeof opts.body !== "string") { h["Content-Type"] = "application/json"; }
         const r = await _fetch(path.startsWith("http") ? path : GRAPH + path, { ...opts, headers: h, body: opts.body && typeof opts.body !== "string" ? JSON.stringify(opts.body) : opts.body });
-        if (r.status === 401 && i === 0) { ls.del("zp-tok-todo"); continue; }
+        if (r.status === 401 && i === 0) { const t = ls.get("zp-tok-privat") || {}; t.exp = 0; ls.set("zp-tok-privat", t); continue; }
         if (r.status === 403) { const x = new Error("Keine Berechtigung für To Do"); x.consent = true; throw x; }
         return r;
       }
     },
-    connect() { ls.del("zp-tok-todo"); return login("privat", "", "Tasks.ReadWrite"); },
+    connect() { return login("privat", "consent", TASKS); },
     async ready() { try { await todoToken(); return true; } catch (e) { if (e.offline) throw e; return false; } },
   };
   const enc = (p) => p.split("/").map(encodeURIComponent).join("/");

@@ -9491,7 +9491,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function tdAsk() {
     TD.asked = true;
     let t = $("#sv-toast"); if (!t) { t = document.createElement("div"); t.id = "sv-toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
-    t.className = "sv-toast warn"; t.innerHTML = "Für die Erinnerungen aufs Handy muss Microsoft einmal zustimmen." + '<button type="button" class="btn primary" data-tdok>Jetzt erlauben</button><button type="button" class="btn ghost" data-svclose aria-label="Schliessen">×</button>';
+    t.className = "sv-toast warn"; t.innerHTML = "Für die Erinnerungen aufs Handy muss Microsoft einmal zustimmen." + (TD.msg ? '<small style="display:block;opacity:.75;margin-top:4px">Meldung von Microsoft: ' + esc(TD.msg) + "</small>" : "") + '<button type="button" class="btn primary" data-tdok>Jetzt erlauben</button><button type="button" class="btn ghost" data-svclose aria-label="Schliessen">×</button>';
     t.querySelector("[data-tdok]").onclick = () => window.ZTODO.connect();
   }
   function tdBadge() { const b = $("#tdBtn"); if (!b) return; b.classList.toggle("on", !!(TD.cfg && TD.cfg.on)); b.classList.toggle("warn", !!(TD.cfg && TD.cfg.on && TD.err === "consent")); }
