@@ -1235,9 +1235,11 @@ html.fit body { touch-action: pan-x pan-y; }
 .cal-e.done { text-decoration: line-through; opacity: 0.6; }
 .d-todof { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
 /* Mehrere To-do-Punkte in einem Eintrag */
-.tdp { cursor: pointer; color: color-mix(in srgb, var(--ink) 70%, transparent); font-weight: 400; font-style: normal; text-decoration: none; display: inline-block; }
-.tdp:hover { color: var(--accent); }
-.tdp.on { color: var(--accent); }
+.tdp { cursor: pointer; position: relative; display: inline-block; box-sizing: border-box; width: 15px; height: 15px; margin-right: 2px; vertical-align: -2px; overflow: hidden; color: transparent; font-size: 11px; line-height: 13px; font-weight: 400; font-style: normal; text-decoration: none; border: 1.5px solid color-mix(in srgb, var(--ink) 55%, transparent); border-radius: 4px; background: var(--surface); }
+.tdp:hover { border-color: var(--accent); }
+.tdp.on { background: var(--accent); border-color: var(--accent); }
+.tdp.on::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--surface); font-size: 11px; font-weight: 700; line-height: 1; }
+.tdb .tdq, #d-tdb .tdq { display: inline-block; box-sizing: border-box; width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; vertical-align: -1px; }
 .tdp-x { text-decoration: line-through; opacity: 0.6; }
 #d-tdb { align-self: flex-start; justify-self: start; margin-right: auto; }
 .cell .tdb { display: none; position: absolute; right: 30px; top: 4px; z-index: 3; width: 20px; height: 20px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); font-size: 13px; line-height: 1; place-items: center; cursor: pointer; }
@@ -2940,7 +2942,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   function tdpEnter(host) {
     const ln = tdpCaretLine(host); if (!ln || !ln.point) return false;
     if (ln.empty) { for (let i = 0; i < ln.after.length; i++) document.execCommand("forwardDelete"); for (let i = 0; i < ln.before.length; i++) document.execCommand("delete"); return false; }
-    lineBreak(); document.execCommand("insertText", false, "☐ "); return true;
+    lineBreak(); document.execCommand("insertHTML", false, '<span class="tdp" title="Abhaken">☐</span>\u00a0'); return true;
   }
   document.addEventListener("mousedown", (e) => { if (tdpHit(e)) e.preventDefault(); }, true); // Schreibmarke bleibt, Feld wird nicht umgeschaltet
   document.addEventListener("click", (e) => {
@@ -3064,11 +3066,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const sband = serBand(key, slot);
     return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + (x && !x.split && oneTodo(x, 1) ? " has-todo" + (x.done ? " is-done" : "") : "") + (x && x.split ? " is-split" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
       (x && x.split
-        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (oneTodo(x, n + 1) ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button>' + '<button class="tdb" type="button" title="To-do: Kästchen für diese Zeile (Enter = nächstes To-do)" aria-label="To-do">☐</button>' + '</div>'; }).join("") + '</div>'
+        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (oneTodo(x, n + 1) ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button>' + '<button class="tdb" type="button" title="To-do: Kästchen für diese Zeile (Enter = nächstes To-do)" aria-label="To-do"><span class="tdq"></span></button>' + '</div>'; }).join("") + '</div>'
         : todoBox(x, 1) + ta(key, slot, label, 1, x)) +
       (x && x.from && !x.split ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
       (more ? '<span class="dot" aria-hidden="true"></span>' : "") +
-      '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + (x && x.split ? "" : '<button class="tdb" type="button" title="To-do: Kästchen für diese Zeile (Enter = nächstes To-do)" aria-label="To-do">☐</button>') + rz + '</div>';
+      '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + (x && x.split ? "" : '<button class="tdb" type="button" title="To-do: Kästchen für diese Zeile (Enter = nächstes To-do)" aria-label="To-do"><span class="tdq"></span></button>') + rz + '</div>';
   }
   function dayRow(key, weekStart) {
     const date = fromKey(key), wd = date.getDay(), we = wd === 0 || wd === 6, isToday = key === keyOf(today());
@@ -4201,7 +4203,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         '<div class="d-split' + (side ? " on" : "") + '" id="d-split" style="--dl:' + dSideW() + '"><div class="d-sl"><div class="field"><span class="lbl">Lektionsplanung</span><div class="ptable-wrap"><table class="ptable" id="p-table">' + planTableInner(opt.plan) + "</table></div>" +
         '<div class="ptools"><button class="btn ghost" type="button" id="p-addrow">+ Zeile</button><span class="msg">Spaltentitel lassen sich anklicken und umbenennen. Die Trennlinie zwischen zwei Titeln ziehen, um die Breite zu ändern. Zeilen am Griff ⠿ rechts nach oben oder unten ziehen. Rechtsklick (Tablet: lange drücken auf den Titel): Spalten und Zeilen verschieben, einfügen, löschen.</span></div></div></div>' +
         '<div class="d-gut" id="d-gut" title="Ziehen, um die Breite der beiden Seiten zu ändern" aria-hidden="true"></div><div class="d-sr">' + notesF + "</div></div>" + actionsF;
-    } else body = textF + (opt.todo ? '<div class="field d-todof"><button type="button" class="btn ghost tdb" id="d-tdb" title="Die Zeile mit der Schreibmarke bekommt ein Kästchen zum Abhaken (oder verliert es). Enter = nächstes To-do, Enter in einem leeren To-do = fertig.">☐ To-do</button></div>' : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
+    } else body = textF + (opt.todo ? '<div class="field d-todof"><button type="button" class="btn ghost tdb" id="d-tdb" title="Die Zeile mit der Schreibmarke bekommt ein Kästchen zum Abhaken (oder verliert es). Enter = nächstes To-do, Enter in einem leeren To-do = fertig.">'+'<span class="tdq"></span> To-do</button></div>' : "") + (opt.time ? '<div class="field d-timef"><span class="lbl">Zeit (freiwillig)</span><div class="d-time"><input type="time" id="d-from" value="' + esc(x.from || "") + '" aria-label="von"><span>bis</span><input type="time" id="d-to" value="' + esc(x.to || "") + '" aria-label="bis"><button type="button" class="btn ghost" id="d-tclr" title="Zeit entfernen">×</button>' + (x.split ? '<span class="msg">(erster Teil)</span>' : "") + "</div>" +
       (x.split ? Array.from({ length: (x.nparts || 2) - 1 }, (_, k) => { const n = k + 2; return '<div class="d-time" data-ptime="' + n + '"><input type="time" class="pf" value="' + esc(x["from" + n] || "") + '" aria-label="Teil ' + n + ' von"><span>bis</span><input type="time" class="pt" value="' + esc(x["to" + n] || "") + '" aria-label="Teil ' + n + ' bis"><button type="button" class="btn ghost pc" title="Zeit entfernen">×</button><span class="msg">(Teil ' + n + ")</span></div>"; }).join("") : "") + '</div>' : "") + colorF + notesF + docsF + actionsF;
     openModal(
       '<h3 class="d-title">' + esc(opt.title) + "<small>" + esc(opt.sub || "") + "</small></h3>" + body,
