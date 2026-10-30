@@ -2101,14 +2101,15 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         const b = tag === "B" || tag === "STRONG" || +st.fontWeight >= 600 || st.fontWeight === "bold";
         const i = tag === "I" || tag === "EM" || st.fontStyle === "italic";
         const u = tag === "U" || /underline/.test(st.textDecoration || st.textDecorationLine || "");
+        const x = tag === "S" || tag === "STRIKE" || tag === "DEL" || /line-through/.test(st.textDecoration || st.textDecorationLine || "");
         const ls = isLs(n);
-        if (ls) out += '<span class="ls">'; if (b) out += "<b>"; if (i) out += "<i>"; if (u) out += "<u>";
+        if (ls) out += '<span class="ls">'; if (b) out += "<b>"; if (i) out += "<i>"; if (u) out += "<u>"; if (x) out += "<s>";
         walk(n);
-        if (u) out += "</u>"; if (i) out += "</i>"; if (b) out += "</b>"; if (ls) out += "</span>";
+        if (x) out += "</s>"; if (u) out += "</u>"; if (i) out += "</i>"; if (b) out += "</b>"; if (ls) out += "</span>";
       }
     }
     walk(tpl.content);
-    return out.replace(/<(b|i|u)><\/\1>/g, "").replace(/<span class="ls"><\/span>/g, "").replace(/(<br>)+$/, "");
+    return out.replace(/<(b|i|u|s)><\/\1>/g, "").replace(/<span class="ls"><\/span>/g, "").replace(/(<br>)+$/, "");
   }
   function htmlToPlain(html) {
     const tpl = document.createElement("template"); tpl.innerHTML = (html || "").replace(/<br>/g, "\n");
@@ -2448,25 +2449,28 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     }
     caretToEnd(host);
   }
-  // Knopf «To-do»: die Zeile mit der Schreibmarke bekommt ein Kästchen (oder verliert es); ohne Schreibmarke die letzte Zeile
+  // Knopf «To-do» wie ein Aufzählungszeichen: die Zeile mit der Schreibmarke (bzw. alle markierten Zeilen) bekommt ein Kästchen oder verliert es; ohne Schreibmarke die letzte Zeile
   function tdpToggleLine(host) {
     const html = sanitize(host.innerHTML), lines = tdpLines(html), s = getSelection();
-    let n = lines.length - 1, col = null;
+    const upTo = (node, off) => { const a = document.createRange(); a.selectNodeContents(host); a.setEnd(node, off); const d = document.createElement("div"); d.appendChild(a.cloneContents()); d.appendChild(document.createTextNode("\uE000")); return htmlToPlain(sanitize(d.innerHTML)).replace("\uE000", "").split("\n"); };
+    let n0 = lines.length - 1, n1 = n0, col = null;
     if (s.rangeCount && host.contains(s.anchorNode)) {
-      const a = document.createRange(); a.selectNodeContents(host); a.setEnd(s.getRangeAt(0).startContainer, s.getRangeAt(0).startOffset);
-      const d = document.createElement("div"); d.appendChild(a.cloneContents()); d.appendChild(document.createTextNode(""));
-      const before = htmlToPlain(sanitize(d.innerHTML)).replace("", "").split("\n"); n = Math.min(before.length - 1, lines.length - 1); col = before[before.length - 1].length;
+      const r = s.getRangeAt(0), b0 = upTo(r.startContainer, r.startOffset), b1 = r.collapsed ? b0 : upTo(r.endContainer, r.endOffset);
+      n0 = b0.length - 1; n1 = Math.max(n0, b1.length - 1); col = r.collapsed ? b0[b0.length - 1].length : null;
     }
-    if (!html) n = 0;
-    const l = lines[n] || "", m = TDP_RE.exec(l), had = !!m;
-    lines[n] = had ? m[1] + l.slice(m[0].length).replace(/^\s/, "") : (/^((?:<[^>]+>)*)/.exec(l)[1]) + "☐ " + l.slice(/^((?:<[^>]+>)*)/.exec(l)[1].length);
+    if (!html) n0 = n1 = 0;
+    while (lines.length <= n1) lines.push(""); // neue, noch leere Zeile unter einem Titel
+    const idx = []; for (let n = n0; n <= n1; n++) if (n0 === n1 || htmlToPlain(lines[n]).trim()) idx.push(n);
+    const add = idx.some((n) => !TDP_RE.test(lines[n]));
+    idx.forEach((n) => { const l = lines[n], m = TDP_RE.exec(l), lead = /^((?:<[^>]+>)*)/.exec(l)[1];
+      if (add && !m) lines[n] = lead + (htmlToPlain(l).trim() ? "☐ " : "☐&nbsp;") + l.slice(lead.length); else if (!add && m) lines[n] = m[1] + l.slice(m[0].length).replace(/^\s/, ""); });
     const nh = lines.join("<br>"), plain = htmlToPlain(nh).split("\n");
     host.innerHTML = tdpDeco(nh, !host.isContentEditable);
     host.dispatchEvent(new Event("input", { bubbles: true }));
     if (!host.isContentEditable) return;
     host.focus();
-    const base = plain.slice(0, n).reduce((a, x) => a + x.length + 1, 0), len = plain[n].length;
-    caretAtPlain(host, col == null ? base + len : base + Math.max(had ? 0 : 2, Math.min(len, col + (had ? -2 : 2))));
+    const base = plain.slice(0, n1).reduce((a, x) => a + x.length + 1, 0), len = plain[n1].length;
+    caretAtPlain(host, col == null || n0 !== n1 ? base + len : base + Math.max(add ? 2 : 0, Math.min(len, col + (add ? 2 : -2))));
   }
   // Ein Eintrag mit dem alten einzelnen To-do-Kästchen wird zur Liste mit Kästchen (abgehakt bleibt abgehakt)
   function tdpFromOld(x, part) {
@@ -2545,11 +2549,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     const sband = serBand(key, slot);
     return '<div class="' + cls + (band || sband ? " has-ul" : "") + (x && x.from && !x.split ? " has-time" : "") + (x && !x.split && oneTodo(x, 1) ? " has-todo" + (x.done ? " is-done" : "") : "") + (x && x.split ? " is-split" : "") + '" data-slot="' + slot + '"' + style + '><span class="slot-label">' + label + '</span>' + band + sband +
       (x && x.split
-        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (oneTodo(x, n + 1) ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button>' + '<button class="tdb" type="button" title="To-do: Kästchen für diese Zeile (Enter = nächstes To-do)" aria-label="To-do"><span class="tdq"></span></button>' + '</div>'; }).join("") + '</div>'
+        ? '<div class="parts parts-' + x.split + '">' + Array.from({ length: x.nparts || 2 }, (_, n) => { const pt = timeTxt({ from: x["from" + sfx(n + 1)], to: x["to" + sfx(n + 1)] }); return '<div class="pw' + (pt ? " has-time" : "") + (oneTodo(x, n + 1) ? " has-todo" + (x["done" + sfx(n + 1)] ? " is-done" : "") : "") + '" data-pw="' + (n + 1) + '">' + todoBox(x, n + 1) + ta(key, slot, label, n + 1, x) + (pt ? '<span class="t-time">' + esc(pt) + "</span>" : "") + '<button class="exp pexp" type="button" title="Diesen Eintrag gross öffnen" aria-label="Diesen Eintrag gross öffnen"></button>' + '<button class="tdb" type="button" title="To-do wie ein Aufzählungszeichen: diese Zeile (oder die markierten Zeilen) bekommt ein Kästchen. Enter = nächstes To-do. Titel darüber: Titel schreiben, Umschalt+Enter, dann ☐." aria-label="To-do"><span class="tdq"></span></button>' + '</div>'; }).join("") + '</div>'
         : todoBox(x, 1) + ta(key, slot, label, 1, x)) +
       (x && x.from && !x.split ? '<span class="t-time">' + esc(timeTxt(x)) + "</span>" : "") +
       (more ? '<span class="dot" aria-hidden="true"></span>' : "") +
-      '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + (x && x.split ? "" : '<button class="tdb" type="button" title="To-do: Kästchen für diese Zeile (Enter = nächstes To-do)" aria-label="To-do"><span class="tdq"></span></button>') + rz + '</div>';
+      '<button class="exp" type="button" title="' + tip + '" aria-label="' + tip + '"></button>' + (x && x.split ? "" : '<button class="tdb" type="button" title="To-do wie ein Aufzählungszeichen: diese Zeile (oder die markierten Zeilen) bekommt ein Kästchen. Enter = nächstes To-do. Titel darüber: Titel schreiben, Umschalt+Enter, dann ☐." aria-label="To-do"><span class="tdq"></span></button>') + rz + '</div>';
   }
   function dayRow(key, weekStart) {
     const date = fromKey(key), wd = date.getDay(), we = wd === 0 || wd === 6, isToday = key === keyOf(today());
@@ -2740,6 +2744,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     '<button type="button" data-cmd="bold" title="Fett (Strg+B)" aria-label="Fett"><b>F</b></button>' +
     '<button type="button" data-cmd="italic" title="Kursiv (Strg+I)" aria-label="Kursiv"><i>K</i></button>' +
     '<button type="button" data-cmd="underline" title="Unterstrichen (Strg+U)" aria-label="Unterstrichen"><u>U</u></button>' +
+    '<button type="button" data-cmd="strikeThrough" title="Durchgestrichen (Strg+Umschalt+X), z. B. zum Abhaken oder für abgesagte Termine" aria-label="Durchgestrichen"><s>S</s></button>' +
     '<button type="button" data-cmd="ls" class="fm-ls" title="Lehrerschrift (z. B. Lösungen) – beim Zeigen ausblendbar" aria-label="Lehrerschrift"><span class="ls">✎</span></button>';
   document.body.appendChild(fmtBar);
   fmtBar.addEventListener("mousedown", (e) => e.preventDefault()); // Markierung behalten
@@ -2827,6 +2832,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   // Tastenkürzel für die Formatierung (in jedem formatierbaren Feld)
   document.addEventListener("keydown", (e) => {
     const t = e.target.closest && e.target.closest(".rich"); if (!t || !t.isContentEditable) return;
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === "x") { e.preventDefault(); document.execCommand("strikeThrough"); updateFmt(); return; }
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
       const cmd = { b: "bold", i: "italic", u: "underline" }[e.key.toLowerCase()];
       if (cmd) { e.preventDefault(); document.execCommand(cmd); updateFmt(); }
