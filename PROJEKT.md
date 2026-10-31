@@ -108,6 +108,9 @@ umfrage/index.html    ← Abstimmungsseite für die Handys der Klasse (eigenstä
 - Klassenordner in OneDrive.
 - Zeitplan der Klasse: Reihe klein, dann «L1» bzw. eigener Name (`slots[sk].label`, leer = L1), darunter der Titel aus dem Original (Phase, sonst erste Zeile der Planung; änderbar als `topic`). Im Tagesplan-Dialog «Thema im Tagesplan» (`dp`) = eigener Text, leer = Reihe · Lektion.
 - «Als Original übernehmen» schreibt eine Fassung aus der Klasse zurück in die Reihe.
+- **Neue Lektion** (31.10.2026): Knopf «+ Neue Lektion» beim Zeitplan, «+» in freien Zeilen, ⋯ › «Hier eine neue Lektion planen …», im Tagesplan-Dialog «+ Neue Lektion hier» (`kNewLessonDlg`, `kNewLesson`): Name, Tag (Stunden der Klasse), Kurznotiz (= Kurzeintrag). Gespeichert als eigene kleine Kopie (`own: true`, ohne `src`, 1 Lektion) mit festem Datum (`k.pins`, eigene Lektionen haben Vorrang). «Einplanen und planen» öffnet gleich das Lektionsfenster. ✎ in jeder Zeile öffnet die Lektion gross (`kPlanLesson`). «↶ Rückgängig» entfernt eine neue Lektion wieder (landet unter «Entfernte Reihen»).
+- **Lektionsnamen** (31.10.2026) gehören zur Lektion, nicht zum Datum: Umbenennen im Zeitplan, im Tagesplan-Dialog oder unten in der Reihe schreibt `r.lnames` der Kopie (`kRename`), überall gleich (Tagesplan, Zeitplan, Reihe, Unterricht). Alte Namen am Datum (`slots[sk].label`) werden beim Öffnen der Klasse übernommen (`kMigrateNames`).
+- **Beschreibung** (Text unter dem Namen, `topic`) ist standardmässig ausgeblendet; «+ Beschreibung» (beim Darüberfahren) oder ⋯ blendet sie ein (Vorschlag aus der Planung), ganz leeren blendet aus; «Beschreibungen anzeigen» (`UP.ktopic`) zeigt alle.
 
 **Unterricht** (`data-tab="lektion"`, `view-lektion`, Code-Präfix `lk`)
 - **Aufbau:**

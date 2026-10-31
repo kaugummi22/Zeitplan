@@ -1745,7 +1745,7 @@ mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b 
 .k-sched-meta input[type="number"] { width: 60px; }
 .k-sched { display: grid; border: 1px solid var(--line); border-radius: var(--radius); max-height: 460px; overflow: auto; }
 .ks-week { font-size: 0.72rem; font-weight: 700; color: var(--muted); background: var(--bg); padding: 4px 10px; position: sticky; top: 0; z-index: 1; }
-.ks-row { display: grid; grid-template-columns: 88px 92px minmax(0, 1.4fr) minmax(0, 1fr) 104px 86px; gap: 8px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line); transition: background-color 0.4s; }
+.ks-row { display: grid; grid-template-columns: 88px 92px minmax(0, 1.4fr) minmax(0, 1fr) 104px 116px; gap: 8px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line); transition: background-color 0.4s; }
 .ks-row.flash { background: var(--accent-soft); }
 .ks-row.ins { background: color-mix(in srgb, var(--c-gelb) 35%, transparent); }
 .ks-row.pruef { background: color-mix(in srgb, var(--c-rost) 30%, transparent); }
@@ -1753,7 +1753,7 @@ mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b 
 .ks-row.kind:not(.pruef) { background: color-mix(in srgb, var(--c-lila) 22%, transparent); }
 .ks-kind { width: 100%; font: inherit; font-size: 0.82rem; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); }
 .ks-unit .none.hol { display: block; text-align: center; }
-.k-sched.no-kind .ks-row { grid-template-columns: 88px 92px minmax(0, 1.4fr) minmax(0, 1fr) 86px; }
+.k-sched.no-kind .ks-row { grid-template-columns: 88px 92px minmax(0, 1.4fr) minmax(0, 1fr) 116px; }
 .k-sched.no-kind .ks-kind, .k-sched.no-kind .ks-kind-ph { display: none; }
 .k-chk { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
 .ks-title.empty { font-weight: 400; font-style: italic; color: var(--muted); }
@@ -1770,7 +1770,12 @@ mark.hl-y { background: #fff1a6; } mark.hl-g { background: #d3f2c4; } mark.hl-b 
 .ks-unit .ks-ph { margin-left: 0; }
 .ks-unit.hol { color: var(--accent); font-style: normal; font-weight: 700; }
 .ks-special { display: block; font-size: 0.7rem; font-weight: 700; color: var(--accent); }
-.ks-act { display: inline-flex; gap: 2px; }
+.ks-act { display: inline-flex; gap: 2px; justify-content: flex-end; }
+.ks-btn.plus { color: var(--accent); font-weight: 700; font-size: 1.05rem; }
+.ks-tadd { justify-self: start; border: 0; background: none; padding: 0 5px; margin-left: -5px; font: inherit; font-size: 0.74rem; color: var(--muted); opacity: 0; cursor: pointer; border-radius: 5px; }
+.ks-row:hover .ks-tadd, .ks-tadd:focus-visible { opacity: 0.85; }
+.ks-tadd:hover { color: var(--accent); background: var(--accent-soft); }
+@media (hover: none) { .ks-tadd { opacity: 0.6; } }
 .ks-btn { width: 26px; height: 26px; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--muted); font-size: 0.95rem; line-height: 1; }
 .ks-btn:hover { border-color: var(--line); background: var(--bg); color: var(--ink); }
 .ks-btn.x:hover, .ks-btn.x.on { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
@@ -5769,7 +5774,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
 
       '<label class="prio-pick">Wichtigkeit <select id="r-prio" class="prio-sel pr-' + prioOf(r) + '" aria-label="Wichtigkeit der Reihe">' + PRIOS.map(([v, l]) => '<option value="' + v + '"' + (prioOf(r) === v ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" +
       '<label class="lit-pick" title="Literatur: Reihe zu einem Buch oder Werk (im Jahresplan mit «Lit», unter «Reihen ▾» filterbar)"><input type="checkbox" id="r-lit"' + (r.lit ? " checked" : "") + "> Lit</label></div>" +
-      (r.klasse
+      (r.klasse && r.own
+        ? '<div class="k-banner">Eigene Lektion dieser Klasse (nicht aus der Planung)' + (r.copiedAt ? ", angelegt am " + fmt(fromKey(r.copiedAt)) : "") + ". Name, Kurzeintrag und Lektionsplanung ändern Sie wie gewohnt – mit «+» bei der Lektion öffnen Sie sie gross. Den Tag ändern Sie beim Datum der Lektion.</div>"
+        : r.klasse
         ? '<div class="k-banner">' + (r.partial ? "Ausgewählte Lektionen aus" : "Kopie von") + " „" + esc((U.reihen[r.src] && U.reihen[r.src].title) || r.srcTitle || "Reihe") + "“ aus dem Unterricht" + (r.copiedAt ? ", kopiert am " + fmt(fromKey(r.copiedAt)) : "") + ". Änderungen hier gelten nur für diese Klasse." +
           (canFolders() ? (r.kfolder ? '<br>Die Dokumente sind Kopien im Klassenordner (' + esc(relPath(r.folder)) + '). Die Originale im Unterricht bleiben unverändert. Ein bearbeitetes Dokument können Sie beim Ansehen mit «Als Original übernehmen» zurück in den Unterricht geben.'
             : '<br><b>Achtung:</b> Die Dokumente dieser Kopie sind noch die Originale aus dem Unterricht – wenn Sie sie in Word bearbeiten, ändern sich die Originale. <button type="button" class="btn ghost" data-kcopyfiles="1">In den Klassenordner kopieren</button>') : "") + "</div>"
@@ -5873,7 +5880,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     dirtyU.add(id);
     openDetailBox({
       editDocs: true,
-      title: r.title || "Reihe", sub: lname(r, i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : ""), x, textLabel: "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
+      title: r.title || "Reihe", sub: r.own ? "Eigene Lektion · " + ((K.klassen[r.klasse] || {}).name || "Klasse") : lname(r, i, s) + (phaseOf(r, i) ? " · " + phaseOf(r, i) : ""), x, textLabel: r.own ? "Kurznotiz (Kurzeintrag)" : "Kurzeintrag in der Tabelle", plan: x.plan, reiheFiles: [...(r.mainFiles || []), ...(r.files || [])],
       onPrint: () => { const rr = U.reihen[id]; if (rr) printLesson(rr, i); },
       changed: () => { const rr = U.reihen[id]; if (rr) { putLessonX(rr, i, x); saveReihe(id, 900); } },
       onClose: () => { uFlush("r:" + id); renderU(); if (after) after(); },
@@ -6000,6 +6007,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       r.lnames = { ...(r.lnames || {}) };
       if (!v || v === ln.dataset.ph) delete r.lnames[i]; else r.lnames[i] = v;
       if (!Object.keys(r.lnames).length) delete r.lnames;
+      if (r.own) r.title = v || "Neue Lektion";
+      if (r.klasse) K.pending = true; // Zeitplan und Tagesplan oben zeigen den neuen Namen nach dem Schreiben
       saveReihe(U.sel); return;
     }
     const ph = e.target.closest && e.target.closest(".ph[data-phase]");
@@ -6969,7 +6978,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     for (const [rid, r] of copiesFor(kid, kCur(k))) {
       if (r.hidden) continue;
       for (const [i, s] of blocksOf(r)) for (let part = 0; part < s; part++) {
-        const u = { rid, i, s, part, title: r.title || "Reihe", label: lname(r, i, s), phase: phaseOf(r, i) };
+        const u = { rid, i, s, part, title: r.title || "Reihe", label: lname(r, i, s), phase: phaseOf(r, i), own: !!r.own };
         u.key = unitKey(u); u.omitted = omit.has(u.key);
         units.push(u);
       }
@@ -7013,7 +7022,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (k.moves) out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.p - b.p));
     // Lektionen mit festem Datum (pins) zuerst, die übrigen der Reihe nach auf die freien Stunden
     const pins = k.pins || {}, bySk = {}, freeSet = new Set(out.filter((x) => x.free).map((x) => x.sk));
-    for (const un of units) { const sk = pins[un.key]; if (sk && freeSet.has(sk) && !bySk[sk]) { bySk[sk] = un; un.pinned = true; } }
+    for (const un of [...units.filter((x) => x.own), ...units.filter((x) => !x.own)]) { const sk = pins[un.key]; if (sk && freeSet.has(sk) && !bySk[sk]) { bySk[sk] = un; un.pinned = true; } }
     const seq = units.filter((x) => !x.pinned);
     let u = 0;
     for (const slot of out) {
@@ -7050,7 +7059,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
   const unitOrig = (u) => { if (u.phase) return u.phase; const r = U.reihen[u.rid]; if (!r || typeof u.i !== "number") return ""; const t = htmlToPlain((r.lessons || [])[u.i] || "").trim().split(/\n/)[0] || ""; return t.length > 70 ? t.slice(0, 68) + " …" : t; };
   const unitPart = (u) => u.label + (u.s > 1 ? " (" + (u.part + 1) + "/" + u.s + ")" : "");
   const unitName = (s) => { const c = s.custom; if (c == null) return unitPart(s.unit); const pre = s.unit.title + " · "; return c.startsWith(pre) ? c.slice(pre.length) : c; };
-  const unitText = (s) => s.hol ? s.hol : s.skip ? "fällt aus" : s.ins != null ? s.ins : s.unit ? (s.custom != null && !s.custom.startsWith(s.unit.title + " · ") && s.custom.startsWith(s.unit.title) ? s.custom : s.unit.title + " · " + unitName(s)) : "noch nichts geplant";
+  const unitText = (s) => s.hol ? s.hol : s.skip ? "fällt aus" : s.ins != null ? s.ins : s.unit && s.unit.own ? unitName(s) : s.unit ? (s.custom != null && !s.custom.startsWith(s.unit.title + " · ") && s.custom.startsWith(s.unit.title) ? s.custom : s.unit.title + " · " + unitName(s)) : "noch nichts geplant";
 
   // ---------- Darstellung: Tagesplan (Daten links, Lektionszeiten oben, scrollbar) ----------
   try { K.kview = localStorage.getItem("zeitplan-kview") === "woche" ? "woche" : "tag"; } catch (e) { K.kview = "tag"; }
@@ -7167,7 +7176,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const lessonTxt = s.unit ? s.unit.title + " · " + s.unit.label + (s.unit.s > 1 ? " (" + (s.unit.part + 1) + "/" + s.unit.s + ")" : "") : "";
       body = '<p class="msg"><span class="sq f-' + kColor(s.kid) + '"></span> <b>' + esc(k.name || "Klasse") + "</b>" + (s.moved ? " · verschoben, eigentlich " + esc(TAGE[fromKey(orig[0]).getDay()] + ", " + fmt(fromKey(orig[0])) + " · " + ot[0] + "–" + ot[1]) : " laut Stundenplan") + "</p>" +
         (s.unit || s.ins != null ? '<label class="field"><span class="lbl">Thema im Tagesplan <small>(Ihr eigener Text; leer = Reihe und Lektion)</small></span><input type="text" id="dp-short" value="' + esc(s.dp || "") + '" placeholder="' + esc(unitText(s)) + '"></label>' : "") +
-        (s.unit ? '<label class="field"><span class="lbl">Name der Lektion <small>(leer = ' + esc(s.unit ? unitPart(s.unit) : "") + ")</small></span><input type=\"text\" id=\"dp-label\" value=\"" + esc(meta.label != null ? unitName(s) : "") + '" placeholder="' + esc(s.unit ? unitPart(s.unit) : "") + '"></label>' : "") +
+        (s.unit ? '<label class="field"><span class="lbl">Name der Lektion <small>(gleich wie im Zeitplan der Klasse und in der Reihe' + (s.unit.own ? "" : "; leer = " + esc(typeof s.unit.i === "number" ? lessonLabel(s.unit.i, s.unit.s) : unitPart(s.unit))) + ")</small></span><input type=\"text\" id=\"dp-label\" value=\"" + esc(unitName(s).replace(partRx, "")) + '" placeholder="' + esc(typeof s.unit.i === "number" ? lessonLabel(s.unit.i, s.unit.s) : unitPart(s.unit)) + '"></label>' : "") +
         '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="4" placeholder="z. B. Prüfung zurückgeben, Szene 3 lesen …">' + esc(s.note || "") + "</textarea></label>" +
         '<div class="dp-grid"><label class="field"><span class="lbl">Zeit</span><span class="dp-time"><input type="text" id="dp-from" inputmode="numeric" maxlength="5" value="' + esc(s.from) + '"> – <input type="text" id="dp-to" inputmode="numeric" maxlength="5" value="' + esc(s.to) + '"></span></label>' +
         '<label class="field"><span class="lbl">Verschieben auf</span><span class="dp-time"><input type="date" id="dp-date" value="' + esc(s.date) + '"><select id="dp-p">' + (semOf(s.date) || sem).times.map((x, q) => '<option value="' + q + '"' + (q === s.p ? " selected" : "") + ">" + (q + 1) + ". " + esc(x[0]) + "</option>").join("") + "</select></span></label></div>" +
@@ -7179,11 +7188,12 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
         '<label class="field"><span class="lbl">oder eigener Eintrag</span><input type="text" id="dp-t" value="' + esc(ex.t || "") + '" placeholder="z. B. Sitzung, Exkursion"></label>' +
         '<label class="field"><span class="lbl">Was wir machen</span><textarea id="dp-note" rows="4">' + esc(ex.note || "") + "</textarea></label>";
     }
-    openModal("<h3>" + title + "</h3>" + body + '<div class="actions">' + (!s && (ex.k || ex.t || ex.note) ? '<button type="button" class="btn ghost danger" id="dp-clear">Eintrag löschen</button>' : "") + (s && (s.moved || s.ownTime) ? '<button type="button" class="btn ghost" id="dp-reset" title="Wieder Zeit und Platz laut Stundenplan">Wie im Stundenplan</button>' : "") + '<button type="button" class="btn ghost" id="dp-cancel">Abbrechen</button><button type="button" class="btn primary" id="dp-ok">Speichern</button></div>', (root) => {
+    openModal("<h3>" + title + "</h3>" + body + '<div class="actions">' + (!s && (ex.k || ex.t || ex.note) ? '<button type="button" class="btn ghost danger" id="dp-clear">Eintrag löschen</button>' : "") + (s && !s.hol ? '<button type="button" class="btn ghost" id="dp-new" title="An dieser Stunde eine eigene Lektion einplanen – planbar wie in der Planung">+ Neue Lektion hier</button>' : "") + (s && (s.moved || s.ownTime) ? '<button type="button" class="btn ghost" id="dp-reset" title="Wieder Zeit und Platz laut Stundenplan">Wie im Stundenplan</button>' : "") + '<button type="button" class="btn ghost" id="dp-cancel">Abbrechen</button><button type="button" class="btn primary" id="dp-ok">Speichern</button></div>', (root) => {
       const done = () => { closeModal(); renderK(); render(); };
       const setExtra = (v) => { const e2 = { ...spGet().extra }; if (v) e2[key] = v; else delete e2[key]; spSet({ extra: e2 }); spSave(0); };
       root.querySelector("#dp-cancel").onclick = closeModal;
       const clr = root.querySelector("#dp-clear"); if (clr) clr.onclick = () => { setExtra(null); done(); };
+      const nw = root.querySelector("#dp-new"); if (nw) nw.onclick = () => { closeModal(); kNewLessonDlg(s.kid, s.sk); };
       const rs = root.querySelector("#dp-reset"); if (rs) rs.onclick = () => { kSlotSet(s.sk, { from: "", to: "" }, s.kid); kMove(s, s.sk); done(); };
       root.querySelector("#dp-ok").onclick = () => {
         const note = root.querySelector("#dp-note").value.trim();
@@ -7194,8 +7204,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
           const fr = tm(v("#dp-from"), ""), to = tm(v("#dp-to"), "");
           const patch = { note, skip: root.querySelector("#dp-skip").checked, from: fr && fr !== stdT[0] ? fr : "", to: to && to !== stdT[1] ? to : "" };
           if (v("#dp-short") != null) patch.dp = v("#dp-short");
-          if (v("#dp-label") != null) patch.label = v("#dp-label") && v("#dp-label") !== unitPart(s.unit) ? v("#dp-label") : null;
           kSlotSet(s.sk, patch, s.kid);
+          if (v("#dp-label") != null) kRename(s.sk, v("#dp-label") || "", s.kid);
           if (pos !== s.at && v("#dp-date")) { const msg = kMove(s, pos); if (msg) { kStatus(msg, true); } }
         }
         else { const kk = root.querySelector("#dp-k").value, tt = root.querySelector("#dp-t").value.trim(); setExtra(kk || tt || note ? { ...(kk ? { k: kk } : {}), ...(tt ? { t: tt } : {}), ...(note ? { note } : {}) } : null); }
@@ -7293,27 +7303,33 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     h += '<div class="k-sched-meta"><label>Anzeigen <select id="k-vmode">' + VIEW_MODES.map(([m, l]) => '<option value="' + m + '"' + (v.mode === m ? " selected" : "") + ">" + l + "</option>").join("") + "</select></label>" + nav +
       (v.mode === "custom" ? '<label>von <input type="date" id="k-vfrom" value="' + esc(vf) + '"></label><label>bis <input type="date" id="k-vto" value="' + esc(vt) + '"></label>' : "") +
       '<label class="k-chk"><input type="checkbox" id="k-showkind"' + (UP.kind !== false ? " checked" : "") + "> Modus anzeigen</label>" +
+      '<label class="k-chk" title="Unter dem Namen jeder Lektion die genauere Beschreibung zeigen (was darin vorkommt). Sonst nur dort, wo Sie eine eingeblendet haben."><input type="checkbox" id="k-showtopic"' + (UP.ktopic ? " checked" : "") + "> Beschreibungen anzeigen</label>" +
       '<label class="k-start">Lektionen verteilen ab <input type="date" data-kf="start" value="' + esc(k.start || keyOf(today())) + '"></label>' +
       '<button type="button" class="btn ghost" data-hol="klassen">Ferien und spezielle Tage</button>' +
-      '<button type="button" class="btn ghost" id="k-undo"' + ((K.undo[kid] || []).length ? "" : " disabled") + ' title="Letzte Änderung am Zeitplan rückgängig machen">↶ Rückgängig</button></div>';
+      '<button type="button" class="btn ghost" id="k-undo"' + ((K.undo[kid] || []).length ? "" : " disabled") + ' title="Letzte Änderung am Zeitplan rückgängig machen">↶ Rückgängig</button>' +
+      (all.length ? '<button type="button" class="btn primary k-newl" data-knew="" title="Eine eigene Lektion an einem Tag einplanen – planbar wie in der Planung">+ Neue Lektion</button>' : "") + "</div>";
     if (!all.length) return h + '<div class="empty">Diese Klasse steht noch nicht im Stundenplan. Tragen Sie sie oben ein, dann erscheint hier automatisch, was Sie wann unterrichten.</div></section>';
     const todayK = keyOf(today()), rows = all.filter((s) => s.date >= vf && s.date <= vt);
     let lastW = null;
     h += '<div class="k-sched' + (UP.kind === false ? " no-kind" : "") + '">' + (rows.length ? rows.map((s) => {
       const d = fromKey(s.date), w = isoWeek(d);
       const wk = w !== lastW ? '<div class="ks-week">KW ' + w + "</div>" : ""; lastW = w;
-      const topic = '<input type="text" class="ks-topic" data-ktopic="' + s.sk + '" value="' + esc(s.topic != null ? s.topic : s.unit ? unitOrig(s.unit) : "") + '" placeholder="Titel / Thema …" aria-label="Titel der Lektion" title="Titel der Lektion – kommt aus der Originalreihe, hier änderbar">';
+      // Beschreibung (was in der Lektion vorkommt): ausgeblendet, ausser selbst eingeblendet oder «Beschreibungen anzeigen»
+      const tShown = UP.ktopic || (typeof s.topic === "string" && s.topic.trim()) || K.topicOpen === s.sk;
+      const topic = tShown ? '<input type="text" class="ks-topic" data-ktopic="' + s.sk + '" value="' + esc(s.topic != null ? s.topic : s.unit ? unitOrig(s.unit) : "") + '" placeholder="Beschreibung: was in dieser Lektion vorkommt …" aria-label="Beschreibung der Lektion" title="Beschreibung der Lektion – hier änderbar; ganz leeren blendet sie wieder aus">'
+        : '<button type="button" class="ks-tadd" data-ktopicadd="' + s.sk + '" title="Beschreibung einblenden: was in dieser Lektion vorkommt">+ Beschreibung</button>';
       let main;
       if (s.hol) main = '<div class="ks-unit"><span class="none hol">' + esc(s.hol) + "</span></div>";
       else if (s.skip) main = '<div class="ks-unit"><span class="none">fällt aus</span></div>';
       else if (s.ins != null) main = '<div class="ks-unit"><input type="text" class="ks-title ins" data-kins="' + s.sk + '" value="' + esc(s.ins) + '" aria-label="Eingeschobene Lektion">' + topic + "</div>";
-      else if (s.unit) main = '<div class="ks-unit"><span class="ks-line"><span class="ks-rt">' + esc(s.unit.title) + '</span><input type="text" class="ks-title" data-klabel="' + s.sk + '" data-kdef="' + esc(unitPart(s.unit)) + '" value="' + esc(unitName(s)) + '" placeholder="' + esc(unitPart(s.unit)) + '" aria-label="Name der Lektion (leer = ' + esc(unitPart(s.unit)) + ')" title="Name der Lektion in dieser Klasse – leer lassen für ' + esc(unitPart(s.unit)) + '"></span>' + topic + "</div>";
-      else main = '<div class="ks-unit"><input type="text" class="ks-title empty" data-kins="' + s.sk + '" value="" placeholder="noch nichts geplant – hier schreiben" aria-label="Lektion eintragen"></div>';
+      else if (s.unit) main = '<div class="ks-unit"><span class="ks-line">' + (s.unit.own ? "" : '<span class="ks-rt">' + esc(s.unit.title) + "</span>") + '<input type="text" class="ks-title" data-klabel="' + s.sk + '" data-kdef="' + esc(unitPart(s.unit)) + '" value="' + esc(unitName(s)) + '" placeholder="' + esc(unitPart(s.unit)) + '" aria-label="Name der Lektion (leer = ' + esc(unitPart(s.unit)) + ')" title="Name der Lektion in dieser Klasse – leer lassen für ' + esc(unitPart(s.unit)) + '"></span>' + topic + "</div>";
+      else main = '<div class="ks-unit"><input type="text" class="ks-title empty" data-kins="' + s.sk + '" value="" placeholder="noch nichts geplant – hier schreiben oder +" aria-label="Lektion eintragen"></div>';
       return wk + '<div class="ks-row' + (slotFree(s) ? " skip" : "") + (s.ins != null ? " ins" : "") + (s.kind === "Prüfung" ? " pruef" : s.kind ? " kind" : "") + (s.date === todayK ? " today" : "") + '" data-row="' + s.sk + '"><span class="ks-date">' + WD[d.getDay()] + " " + pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + (s.special ? '<span class="ks-special">' + esc(s.special) + "</span>" : "") + "</span>" +
         '<span class="ks-time' + (s.moved || s.ownTime ? " own" : "") + '"' + (s.moved ? ' title="Nur diese Stunde verschoben – Stundenplan unverändert"' : "") + ">" + esc(s.from) + "–" + esc(s.to) + (s.moved ? " ↷" : "") + "</span>" + main +
         '<input type="text" class="ks-note" data-knote="' + s.sk + '" value="' + esc(s.note) + '" placeholder="Notizen" aria-label="Notizen am ' + fmt(d) + '">' +
         (s.hol ? '<span class="ks-kind-ph"></span>' : kindSelect(s)) +
-        '<span class="ks-act">' + (s.unit ? '<button type="button" class="ks-btn" data-kgo="' + s.unit.rid + "|" + s.unit.i + '" title="Lektion im Editor öffnen" aria-label="Lektion öffnen">↗</button>' : "") +
+        '<span class="ks-act">' + (s.unit ? '<button type="button" class="ks-btn" data-kplan="' + s.unit.rid + "|" + s.unit.i + '" title="Lektion planen: gross öffnen mit Lektionsplanung, Notizen, Kurzeintrag und Dokumenten" aria-label="Lektion planen">✎</button><button type="button" class="ks-btn" data-kgo="' + s.unit.rid + "|" + s.unit.i + '" title="Lektion in der Reihe unten zeigen" aria-label="Lektion in der Reihe zeigen">↗</button>'
+          : s.hol || s.skip ? "" : '<button type="button" class="ks-btn plus" data-knew="' + s.sk + '" title="Hier eine neue Lektion planen (wie in der Planung)" aria-label="Hier eine neue Lektion planen">+</button>') +
         (s.hol ? "" : '<button type="button" class="ks-btn" data-kmenu="' + s.sk + '" title="Einschieben, wiederholen, weglassen …" aria-label="Weitere Möglichkeiten">⋯</button>' +
           '<button type="button" class="ks-btn x' + (s.skip ? " on" : "") + '" data-kx="' + s.sk + '" title="' + (s.skip ? "Stunde findet doch statt" : "Stunde fällt aus") + '" aria-label="' + (s.skip ? "Stunde findet doch statt" : "Stunde fällt aus") + '">×</button>') + "</span></div>";
     }).join("") : '<div class="empty">In diesem Zeitraum keine Stunden.</div>') + "</div>";
@@ -7612,8 +7628,11 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (s.ins != null) h += it("ins-del", "Eingeschobene Lektion entfernen");
     else if (s.skip) h += it("unskip", "Stunde findet doch statt");
     else {
-      h += it("ins", "Hier eine Lektion einschieben") + (s.unit ? it("rep", "Repetition einschieben") : "");
-      if (s.unit) h += it("omit", "Diese Lektion weglassen") + (s.custom != null ? it("reset", "Text zurücksetzen") : "");
+      const ur = s.unit && U.reihen[s.unit.rid], named = s.custom != null || !!(ur && !ur.own && typeof s.unit.i === "number" && (ur.lnames || {})[s.unit.i]);
+      const tShown = (typeof s.topic === "string" && s.topic.trim()) || UP.ktopic;
+      h += it("new", "Hier eine neue Lektion planen …") + it("ins", "Hier nur einen Text einschieben") + (s.unit ? it("rep", "Repetition einschieben") : "");
+      if (s.unit || s.ins != null) h += tShown ? (typeof s.topic === "string" && s.topic.trim() ? it("tophide", "Beschreibung ausblenden") : "") : it("topshow", "Beschreibung einblenden");
+      if (s.unit) h += it("omit", "Diese Lektion weglassen") + (named ? it("reset", "Name zurücksetzen (" + esc(typeof s.unit.i === "number" ? lessonLabel(s.unit.i, s.unit.s) : unitPart(s.unit)) + ")") : "");
       h += it("skip", "Stunde fällt aus");
     }
     m.innerHTML = h;
@@ -7627,7 +7646,10 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       else if (a === "ins-del") kSlotSet(sk, { ins: null });
       else if (a === "skip") kSlotSet(sk, { skip: true });
       else if (a === "unskip") kSlotSet(sk, { skip: false });
-      else if (a === "reset") kSlotSet(sk, { label: null });
+      else if (a === "reset") { kRename(sk, ""); if ((k.slots || {})[sk] && k.slots[sk].label != null) kSlotSet(sk, { label: null }); }
+      else if (a === "new") { kNewLessonDlg(kid, sk); return; }
+      else if (a === "topshow") { kTopicShow(sk); return; }
+      else if (a === "tophide") kSlotSet(sk, { topic: null });
       else if (a === "omit") { k.omit = [...new Set([...(k.omit || []), s.unit.key])]; if (k.pins) delete k.pins[s.unit.key]; kSave(kid); }
       renderK(); render();
       if (a === "ins") { const t = document.querySelector('[data-kins="' + sk + '"]'); if (t) { t.focus(); t.select(); } }
@@ -7804,6 +7826,99 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (Object.keys(v).length) k.slots[sk] = v; else delete k.slots[sk];
     kSave(kid);
   }
+  // ---------- Lektionsnamen: gehören zur Lektion (r.lnames der Klassen-Kopie), damit Zeitplan, Tagesplan, Reihe unten und Unterricht gleich heissen ----------
+  const partRx = /\s*\(\d+\/\d+\)\s*$/;
+  function kRename(sk, v, kid) {
+    kid = kid || K.sel; const k = K.klassen[kid]; if (!k) return;
+    const s = classSchedule(kid).find((x) => x.sk === sk); if (!s || !s.unit) return;
+    const u = s.unit, meta = (k.slots || {})[sk] || {};
+    v = String(v || "").replace(/\s+/g, " ").trim();
+    if (typeof u.i !== "number") { kSlotSet(sk, { label: !v || v === unitPart(u) ? null : v }, kid); return; }
+    const r = U.reihen[u.rid]; if (!r) return;
+    v = v.replace(partRx, "");
+    if (v.startsWith(u.title + " · ")) v = v.slice(u.title.length + 3);
+    r.lnames = { ...(r.lnames || {}) };
+    if (!v || v === lessonLabel(u.i, u.s)) delete r.lnames[u.i]; else r.lnames[u.i] = v;
+    if (!Object.keys(r.lnames).length) delete r.lnames;
+    if (r.own) r.title = v || "Neue Lektion";
+    saveReihe(u.rid);
+    if (meta.label != null) kSlotSet(sk, { label: null }, kid);
+  }
+  // Frühere Namen, die nur am Datum hingen (slots[sk].label), einmalig zur Lektion übernehmen
+  function kMigrateNames(kid) {
+    const k = K.klassen[kid]; if (!k || !k.slots) return;
+    let ch = false;
+    for (const s of classSchedule(kid)) {
+      if (!s.unit || s.custom == null || typeof s.unit.i !== "number") continue;
+      const r = U.reihen[s.unit.rid]; if (!r) continue;
+      const v = unitName(s).replace(partRx, "").trim();
+      if (v && v !== lessonLabel(s.unit.i, s.unit.s)) { r.lnames = { ...(r.lnames || {}), [s.unit.i]: v }; saveReihe(s.unit.rid, 0); }
+      const m = { ...k.slots[s.sk] }; delete m.label;
+      k.slots = { ...k.slots }; if (Object.keys(m).length) k.slots[s.sk] = m; else delete k.slots[s.sk];
+      ch = true;
+    }
+    if (ch) { kSave(kid, 0); K.snap[kid] = kSnapOf(kid); }
+  }
+  // Lektion gross öffnen (Lektionsplanung, Notizen, Kurzeintrag, Dokumente) – wie in der Planung
+  function kPlanLesson(rid, i) {
+    if (!U.reihen[rid]) return;
+    const a = document.activeElement; if (a && a.blur) a.blur();
+    openLessonDetail(String(i).startsWith("ln") ? String(i) : +i, rid, () => { renderK(); render(); });
+  }
+  // ---------- Neue Lektion: eigene kleine Kopie in der Klasse, fest auf einen Tag gelegt ----------
+  function kNewLesson(kid, sk, name, kurz) {
+    const k = K.klassen[kid]; if (!k) return null;
+    const nm = String(name || "").replace(/\s+/g, " ").trim() || "Neue Lektion";
+    const c = normReihe({ years: [5], prio: "wichtig", title: nm, lektionen: 1, ln: "", leitfrage: "", zusatz: "", lessons: [kurz ? esc(kurz).replace(/\n/g, "<br>") : ""], phases: { 0: "" }, lnames: { 0: nm } });
+    c.own = true; c.klasse = kid; c.kyear = kCur(k); c.copiedAt = keyOf(today());
+    c.order = copiesOf(kid).reduce((m, [, r]) => Math.max(m, (r.order ?? 0) + 1), 0);
+    const id = "k" + Date.now().toString(36) + "n" + Math.random().toString(36).slice(2, 5);
+    const before = K.snap[kid] || kSnapOf(kid);
+    K.restoring = true;
+    U.reihen[id] = c; saveReihe(id, 0);
+    const meta = (k.slots || {})[sk] || {};
+    if (meta.ins != null || meta.skip) kSlotSet(sk, { ins: null, skip: false }, kid);
+    k.pins = { ...(k.pins || {}) };
+    for (const [x, v] of Object.entries(k.pins)) if (v === sk) delete k.pins[x];
+    k.pins[id + "|0|0"] = sk;
+    kSave(kid, 0);
+    K.restoring = false;
+    const st = K.undo[kid] = K.undo[kid] || []; st.push(before); if (st.length > 40) st.shift();
+    K.snap[kid] = kSnapOf(kid);
+    return id;
+  }
+  function kNewLessonDlg(kid, sk) {
+    const k = K.klassen[kid]; if (!k) return;
+    const tk = keyOf(today()), sch = classSchedule(kid), opts = sch.filter((x) => !x.hol && (x.date >= tk || x.sk === sk));
+    if (!opts.length) { kStatus("Diese Klasse hat keine kommenden Lektionen im Stundenplan.", true); return; }
+    const pre = (sk && opts.find((x) => x.sk === sk)) || opts.find((x) => !x.unit && x.ins == null && !x.skip) || opts[0];
+    const cur = (x) => x.skip ? " – fällt aus" : x.ins != null ? " – " + (x.ins || "eingeschoben") : x.unit ? " – " + unitText(x) : " – frei";
+    const optH = opts.map((x) => { const d = fromKey(x.date); return '<option value="' + x.sk + '"' + (x === pre ? " selected" : "") + ">" + esc(WD[d.getDay()] + " " + fmt(d).slice(0, 6) + " " + x.from + cur(x)) + "</option>"; }).join("");
+    const insName = pre.ins != null && pre.ins.trim() && pre.ins !== "Neue Lektion" ? pre.ins.trim() : "";
+    openModal('<h3>Neue Lektion · ' + esc(k.name || "Klasse") + "</h3>" +
+      '<label class="field"><span class="lbl">Name der Lektion</span><input type="text" id="kn-name" value="' + esc(insName) + '" placeholder="z. B. Einführung Gedichte"></label>' +
+      '<label class="field"><span class="lbl">Tag</span><select id="kn-day">' + optH + "</select></label>" +
+      '<p class="msg" id="kn-hint"></p>' +
+      '<label class="field"><span class="lbl">Kurznotiz <small>(Kurzeintrag, später änderbar)</small></span><textarea id="kn-kurz" rows="3" placeholder="z. B. Gedicht lesen, Reimschema besprechen"></textarea></label>' +
+      '<div class="actions"><button type="button" class="btn ghost" id="kn-cancel">Abbrechen</button><button type="button" class="btn" id="kn-only">Nur einplanen</button><button type="button" class="btn primary" id="kn-plan">Einplanen und planen</button></div>', (root) => {
+      const sel = root.querySelector("#kn-day"), hint = root.querySelector("#kn-hint");
+      const upd = () => { const x = opts.find((o) => o.sk === sel.value); hint.textContent = x && x.unit ? "Die Lektion, die dort steht, rückt mit den folgenden eine Stunde nach hinten." : x && x.ins != null ? "Der eingetragene Text an diesem Tag wird ersetzt." : x && x.skip ? "Die Stunde war als «fällt aus» markiert – sie findet dann wieder statt." : ""; hint.hidden = !hint.textContent; };
+      sel.onchange = upd; upd();
+      root.querySelector("#kn-cancel").onclick = closeModal;
+      const go = (plan) => {
+        const id = kNewLesson(kid, sel.value, root.querySelector("#kn-name").value, root.querySelector("#kn-kurz").value.trim());
+        closeModal(); if (!id) return;
+        K.rsel = id; renderK(); render();
+        kStatus("Neue Lektion eingeplant. Rückgängig: «↶ Rückgängig» beim Zeitplan.");
+        const row = document.querySelector('[data-row="' + sel.value + '"]'); if (row) { row.scrollIntoView({ block: "nearest" }); row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 1600); }
+        if (plan) kPlanLesson(id, 0);
+      };
+      root.querySelector("#kn-only").onclick = () => go(false);
+      root.querySelector("#kn-plan").onclick = () => go(true);
+      root.querySelector("#kn-name").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(true); } });
+      setTimeout(() => root.querySelector("#kn-name").focus(), 30);
+    });
+  }
 
   // ---------- Darstellung: Klasse ----------
   function renderK() {
@@ -7823,6 +7938,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (!K.snap[kid]) K.snap[kid] = kSnapOf(kid);
     // ältere Kopien ohne Schuljahr dem aktuellen Schuljahr zuordnen (einmalig)
     for (const [id, r] of copiesOf(kid)) if (!Number.isInteger(r.kyear)) { r.kyear = cy; saveReihe(id, 0); }
+    kMigrateNames(kid);
     if (k.archived) {
       main.innerHTML = '<div class="k-head"><h2 class="k-archname">' + esc(k.name || "Klasse") + '</h2><span class="k-badge">archiviert</span><div class="r-tools"><button type="button" class="btn" id="k-unarch">Wiederherstellen</button><button type="button" class="btn ghost danger" id="k-del">Klasse löschen</button></div></div>' +
         '<p class="msg">Archivierte Klassen erscheinen nicht mehr im Stundenplan und in den Terminen. Ihre Reihen bleiben gespeichert.</p>';
@@ -7843,7 +7959,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       '<section class="k-sec">' + secHead("k-" + kid + "-reihen", "Reihen dieser Klasse · " + esc((CLASS_YEARS[cy] || {}).label || ""), '<span class="msg">' + active.length + "</span>");
     if (isOpen("k-" + kid + "-reihen")) {
       h += '<div class="k-rlist">' +
-        (active.length ? active.map(([id, r]) => '<div class="k-rbtn' + (id === K.rsel ? " on" : "") + '"><button type="button" class="k-rsel" data-krsel="' + id + '"><b>' + esc(r.title || "Ohne Titel") + "</b><span>" + (r.lektionen ? r.lektionen + " L · " : "") + planned(r) + ' ausgearbeitet</span></button><span class="k-mv"><button type="button" data-kmove="' + id + '|-1" title="Früher unterrichten" aria-label="Nach vorne">‹</button><button type="button" data-kmove="' + id + '|1" title="Später unterrichten" aria-label="Nach hinten">›</button></span><button type="button" class="k-x" data-khide="' + id + '" title="Aus der Klasse entfernen (wird nicht gelöscht)" aria-label="Aus der Klasse entfernen">×</button></div>').join("")
+        (active.length ? active.map(([id, r]) => '<div class="k-rbtn' + (id === K.rsel ? " on" : "") + '"><button type="button" class="k-rsel" data-krsel="' + id + '"><b>' + esc(r.title || "Ohne Titel") + "</b><span>" + (r.own ? "Eigene Lektion · " + (planned(r) ? "ausgearbeitet" : "noch leer") : (r.lektionen ? r.lektionen + " L · " : "") + planned(r) + " ausgearbeitet") + '</span></button><span class="k-mv"><button type="button" data-kmove="' + id + '|-1" title="Früher unterrichten" aria-label="Nach vorne">‹</button><button type="button" data-kmove="' + id + '|1" title="Später unterrichten" aria-label="Nach hinten">›</button></span><button type="button" class="k-x" data-khide="' + id + '" title="Aus der Klasse entfernen (wird nicht gelöscht)" aria-label="Aus der Klasse entfernen">×</button></div>').join("")
           : '<span class="msg">Noch keine Reihen für dieses Schuljahr.</span>') +
         '</div><button type="button" class="btn ghost" data-kbulk="1">+ Reihen aus dem Unterricht hinzufügen …</button>';
       if (hidden.length) {
@@ -7886,6 +8002,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
       const x = U.reihen[id]; if (!x) continue;
       if ((x.order ?? null) !== v.order || !!x.hidden !== v.hidden) { if (v.order == null) delete x.order; else x.order = v.order; if (v.hidden) x.hidden = true; else delete x.hidden; saveReihe(id, 0); }
     }
+    // danach neu angelegte Lektionen (eigene Kopien) wieder entfernen – sie bleiben unter «Entfernte Reihen»
+    for (const [id, x] of copiesOf(kid)) if (!(id in prev.r) && !x.hidden) { x.hidden = true; saveReihe(id, 0); }
     K.restoring = false; K.snap[kid] = kSnapOf(kid);
     renderK(); render(); kStatus("Rückgängig gemacht");
   }
@@ -8079,6 +8197,9 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (b.dataset.hol) { openHolidays("klassen"); return; }
     if (b.dataset.kbulk) { openBulkCopy(K.sel); return; }
     if (b.dataset.kmenu) { kSlotMenu(b, b.dataset.kmenu); return; }
+    if (b.dataset.knew != null) { kNewLessonDlg(K.sel, b.dataset.knew); return; }
+    if (b.dataset.kplan) { const [rid, i] = b.dataset.kplan.split("|"); kPlanLesson(rid, i); return; }
+    if (b.dataset.ktopicadd) { kTopicShow(b.dataset.ktopicadd); return; }
     if (b.dataset.kx) { const cur = k && (k.slots || {})[b.dataset.kx]; kSlotSet(b.dataset.kx, { skip: !(cur && cur.skip) }); renderK(); render(); return; }
     if (b.id === "k-undo") { kUndo(K.sel); return; }
     if (b.dataset.kunomit) { if (k) { k.omit = (k.omit || []).filter((x) => x !== b.dataset.kunomit); kSave(K.sel, 0); renderK(); render(); } return; }
@@ -8146,6 +8267,7 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (t.id === "sp-from" || t.id === "sp-to") { if (t.value) { semPatch(t.id === "sp-from" ? { from: t.value } : { to: t.value }); spSave(0); } t.blur(); renderK(); render(); return; }
     if (t.dataset.kkind) { if (t.value === "__neu") newKind(t.dataset.kkind); else { kSlotSet(t.dataset.kkind, { kind: t.value }); t.blur(); renderK(); } return; }
     if (t.id === "k-showkind") { UP.kind = t.checked; saveUP(); t.blur(); renderK(); return; }
+    if (t.id === "k-showtopic") { UP.ktopic = t.checked || undefined; saveUP(); t.blur(); renderK(); return; }
     if (t.id === "k-vmode") { K.view[K.sel] = { mode: t.value, off: 0 }; t.blur(); renderK(); return; }
     if (t.id === "k-vfrom" || t.id === "k-vto") { const v = K.view[K.sel] = K.view[K.sel] || { mode: "custom", off: 0 }; v[t.id === "k-vfrom" ? "from" : "to"] = t.value; t.blur(); renderK(); return; }
     if (t.dataset.spt) {
@@ -8164,8 +8286,8 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     if (nt) {
       if (nt.dataset.knote) kSlotSet(nt.dataset.knote, { note: nt.value });
       else if (nt.dataset.kins) kSlotSet(nt.dataset.kins, { ins: nt.value });
-      else if (nt.dataset.ktopic) kSlotSet(nt.dataset.ktopic, { topic: nt.value });
-      else { const v = nt.value.trim(); kSlotSet(nt.dataset.klabel, { label: !v || v === nt.dataset.kdef ? null : v }); }
+      else if (nt.dataset.ktopic) { K.topicOpen = nt.dataset.ktopic; kSlotSet(nt.dataset.ktopic, { topic: nt.value.trim() ? nt.value : null }); }
+      else kRename(nt.dataset.klabel, nt.value);
       return;
     }
     const t = e.target.closest && e.target.closest("[data-kf]"); if (!t) return;
@@ -8177,7 +8299,21 @@ header.top .codebtn svg { width: calc(16px * var(--hs)); height: calc(16px * var
     } else k.note = sanitize(t.innerHTML);
     kSave(K.sel);
   });
-  kEl.addEventListener("focusout", () => setTimeout(() => { if (!kEditing() && K.pending) renderK(); }, 0));
+  kEl.addEventListener("focusout", (e) => {
+    // leere Beschreibung wird beim Verlassen wieder ausgeblendet
+    if (e.target && e.target.dataset && e.target.dataset.ktopic && K.topicOpen === e.target.dataset.ktopic) { K.topicOpen = null; if (!e.target.value.trim()) K.pending = true; }
+    setTimeout(() => { if (!kEditing() && K.pending) renderK(); }, 0);
+  });
+  // Beschreibung einer Lektion einblenden: Text aus der Planung (Phase bzw. erste Zeile) als Vorschlag, dann änderbar
+  function kTopicShow(sk) {
+    const s = classSchedule(K.sel).find((x) => x.sk === sk); if (!s) return;
+    const orig = s.unit ? unitOrig(s.unit) : "";
+    K.topicOpen = sk;
+    if (orig) kSlotSet(sk, { topic: orig });
+    const a = document.activeElement; if (a && a.blur) a.blur();
+    renderK();
+    const inp = document.querySelector('[data-ktopic="' + sk + '"]'); if (inp) { inp.focus(); const n = inp.value.length; try { inp.setSelectionRange(n, n); } catch (e) {} }
+  }
 
   // ---------- Code der Seite bearbeiten ----------
   function openCode() {
